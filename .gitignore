@@ -1,0 +1,22 @@
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+.env
+data/
+data/samples/
+*.db
+*.sqlite
+*.sqlite3
+# financial statements and exports anywhere except test fixtures
+*.pdf
+*.PDF
+*.csv
+*.CSV
+*.ofx
+*.OFX
+*.qfx
+*.QFX
+!tests/fixtures/**
