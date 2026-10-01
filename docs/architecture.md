@@ -125,7 +125,7 @@ Details are in the phase specs. Core tables:
 - `import_batches`: one row per imported file; for statements also the period, opening/closing balance, and whether it reconciled.
 - `transactions`: one row per transaction, with posted and transaction dates, section, card last4, and cardholder; deduplicated by a fingerprint.
 - `balance_snapshots`: balance of an account as of a date (from each statement, or entered manually).
-- `categories`, `category_rules`, `merchants` (Phase 9).
+- `categories`, `category_rules`, `merchants` (Phase 11).
 
 ### Statement parsing design
 
@@ -134,7 +134,7 @@ Details are in the phase specs. Core tables:
 - Statement dates often omit the year; a shared helper infers it from the statement period (handles December to January).
 - Real statements in `data/samples/` are used only by opt-in tests that report pass/fail, never content.
 
-Transfers between the household's own accounts (card payments from checking, moves between checking and savings) must be excluded from spending, or spending is double-counted. Phase 9 handles this.
+Transfers between the household's own accounts (card payments from checking, moves between checking and savings) must be excluded from spending, or spending is double-counted. Phase 11 handles this.
 
 ## Cloud migration path
 
@@ -144,7 +144,7 @@ The local design already isolates what changes in the cloud:
 |---|---|---|
 | Config | `.env` / env vars | Container App env vars |
 | Secrets (LLM key, DB password) | `.env` (gitignored) | Key Vault + managed identity |
-| Database | SQLite | PostgreSQL or Azure SQL (decide in Phase 15) |
+| Database | SQLite | PostgreSQL or Azure SQL (decide in Phase 17) |
 | File uploads | read from local path | upload through web UI, processed in memory or Blob Storage |
 | Auth | none (bound to 127.0.0.1) | Container Apps built-in auth with Entra ID, single allowed user |
 | Hosting | `fin` CLI / local uvicorn | Azure Container Apps (free monthly grant) |
@@ -153,4 +153,4 @@ Rules that keep this cheap: config only from env, no dialect-specific SQL, web l
 
 ### Open decision for later
 
-Whether the cloud copy holds raw transactions or only processed summaries. Decide before Phase 16.
+Whether the cloud copy holds raw transactions or only processed summaries. Decide before Phase 18.

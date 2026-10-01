@@ -19,7 +19,7 @@ Parsers for checking and savings statements, completing coverage of every sample
 
 ## Out of scope
 
-Transfer detection between accounts (Phase 9), even though these statements are full of transfers.
+Transfer detection between accounts (Phase 11), even though these statements are full of transfers.
 
 ## Truist requirements
 

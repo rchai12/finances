@@ -12,7 +12,7 @@ This file applies to every phase. Read it, then `docs/architecture.md`, then the
 
 ## Privacy rules (non-negotiable)
 
-1. **No network calls** anywhere except inside `src/finances/advice/` (introduced in Phase 13). No telemetry, analytics, crash reporting, or update checks.
+1. **No network calls** anywhere except inside `src/finances/advice/` (introduced in Phase 15). No telemetry, analytics, crash reporting, or update checks.
 2. **Never commit financial data.** `data/` is gitignored. Do not create real-looking data outside `tests/fixtures/`.
 3. **Tests use synthetic data only.** Invented merchants (e.g. "ACME COFFEE", "FOOBAR GROCERY"), invented amounts, no real names, no realistic account numbers.
 4. **Do not log transaction descriptions, amounts, balances, or account numbers** at INFO level or above. DEBUG is allowed but must never be the default.
@@ -44,3 +44,7 @@ This file applies to every phase. Read it, then `docs/architecture.md`, then the
 - `ruff check .` and `ruff format --check .` must pass.
 - Prefer small, pure functions. Docstrings only where the intent is not obvious.
 - `pytest` must pass, including all tests from previous phases.
+
+## Testing
+
+Follow `docs/testing.md`: put tests in the right layer (`tests/unit`, `tests/integration`, `tests/e2e`), keep them deterministic and offline, keep coverage above the configured threshold, and add a failing-first test for every bug fix. If you add code to a module listed under "Critical modules", cover every branch.

@@ -25,6 +25,14 @@ Importing files, categories, reports. The `transactions` table is created now bu
 ## Dependencies
 
 Add runtime: `sqlalchemy>=2.0`, `alembic>=1.13`
+Add dev: `pytest-cov>=5`
+
+## Test setup changes (do these first)
+
+Per `docs/testing.md`:
+- Move the Phase 1 tests into `tests/unit/` (or `tests/e2e/` for the CLI tests). Create `tests/integration/` and `tests/e2e/`.
+- Shared fixtures in `tests/conftest.py`: `tmp_settings` (points `FIN_DATA_DIR` at `tmp_path`, clears the settings cache) and `db_session` (fresh SQLite under `tmp_path`, migrated with `upgrade_to_head`).
+- Coverage in `pyproject.toml`: `addopts = "--cov=finances --cov-branch --cov-report=term-missing"`, `[tool.coverage.report] fail_under = 85`, `show_missing = true`.
 
 ## Deliverables
 

@@ -19,11 +19,11 @@ When a reconciled statement is imported for a period that already has provisiona
 
 ## Out of scope
 
-Categories (Phase 9). Any change to CSV import other than what is needed for shared helpers.
+Categories (Phase 11). Any change to CSV import other than what is needed for shared helpers.
 
 ## Why in place
 
-Phase 9 onward attaches categories and manual overrides to transaction ids. Deleting and re-inserting would lose them. Upgrading the matched row keeps the id.
+Phase 11 onward attaches categories and manual overrides to transaction ids. Deleting and re-inserting would lose them. Upgrading the matched row keeps the id.
 
 ## Deliverables
 

@@ -58,7 +58,7 @@ Total Transactions for This Period | $1,514.46
 - Section header regex: `^(.+?) #(\d{4}): (Payments, Credits and Adjustments|Transactions|Total Transactions)`. Sets current `cardholder`, `card_last4`, and section (`payments_credits` / `purchases`).
 - Row regex: `^([A-Z][a-z]{2} \d{1,2})\s+([A-Z][a-z]{2} \d{1,2})\s+(.+?)\s+(- )?\$([\d,]+\.\d\d)$`.
 - Amount sign: `- $X` → `+X` (credit to you). `$X` → `-X` (purchase).
-- Descriptions have merchant, city, and state run together (`FOOBAR CHICKEN #123TUCKERGA`). Keep as-is; Phase 9 normalizes.
+- Descriptions have merchant, city, and state run together (`FOOBAR CHICKEN #123TUCKERGA`). Keep as-is; Phase 11 normalizes.
 - Pages repeat the header and say `Transactions (Continued)`; current section/cardholder carries over pages.
 
 **Fees and interest** are summary lines without dates:
@@ -242,7 +242,7 @@ Date | Description | Credits | Debits | Balance
 - Rows have one amount plus a running balance: `^(\d\d/\d\d/\d{4})\s+(.+?)\s+\$([\d,]+\.\d\d)\s+\$([\d,]+\.\d\d)$`.
 - **Sign comes from the running balance**: `amount = balance_this_row - balance_previous_row`. Then check that `abs(amount)` equals the printed amount. This avoids depending on which column the amount sits in.
 - Opening balance from `Beginning Balance`, closing from `Ending Balance`. Do not emit those as lines.
-- This extraction drops spaces inside descriptions (`ACHDepositInternettransfer...`). Accept that for now; the Phase 9 normalizer handles matching.
+- This extraction drops spaces inside descriptions (`ACHDepositInternettransfer...`). Accept that for now; the Phase 11 normalizer handles matching.
 
 ---
 
@@ -274,7 +274,7 @@ Posted Date,Transaction Date,Transaction Type,Check/Serial #,Full description,Me
 - `Merchant name` and `Category name` / `Sub-category name` are the bank's own cleanup. Store them as hints (`bank_merchant`, `bank_category` = `"Category / Sub-category"`); they are not authoritative (e.g. transfers to the user's own savings are labeled "Investments").
 - `Transaction Type` values seen: `POS`, `Debit`, `Deposit`, `Credit`. Store nothing extra for now.
 - Descriptions are ordered differently from the PDF statement for the same transaction (`... DEBIT CARD PURCHASE` at the end vs the start). Posted date and amount match the statement exactly.
-- Zelle rows contain a person's name in the description. Fine locally; Phase 12 (privacy payload) must strip it.
+- Zelle rows contain a person's name in the description. Fine locally; Phase 14 (privacy payload) must strip it.
 
 ## 7. Citi card CSV (`citi_card_csv`)
 
@@ -300,4 +300,4 @@ Pending,09/25/2026,"ACME WHSE #0000 PLANO TX",12.00,,JOHN DOE
 
 ## Cross-source notes
 
-- The checking account's payment to a card references a card number that does **not** match the card's last4 on the card statement. Transfer matching (Phase 9) must rely on amount and date, not on numbers inside descriptions.
+- The checking account's payment to a card references a card number that does **not** match the card's last4 on the card statement. Transfer matching (Phase 11) must rely on amount and date, not on numbers inside descriptions.

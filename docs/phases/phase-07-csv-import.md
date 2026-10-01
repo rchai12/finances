@@ -23,7 +23,7 @@ Import CSV exports (Truist checking, Citi card) as **provisional** transactions 
 
 ## Out of scope
 
-Replacing CSV rows when a statement arrives (Phase 8). Categorization (Phase 9).
+Replacing CSV rows when a statement arrives (Phase 8). Categorization (Phase 11).
 
 ## Dependencies
 
