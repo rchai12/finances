@@ -26,6 +26,7 @@ Status: **Phases 1 to 10 are fully specified.** Later phases are outlines and wi
 | 16 | Local web UI | FastAPI dashboard on 127.0.0.1, statement/CSV upload | outline below |
 | 17 | Cloud readiness | Dockerfile, PostgreSQL verified, auth hook, health endpoint | outline below |
 | 18 | Azure deployment | Bicep: Container Apps, DB, Key Vault, Entra auth, budget alert | outline below |
+| later | Aggregator connector | SimpleFIN (or similar) as an automatic provisional source; `fin connect`, `fin sync` | outline below |
 
 Testing rules for every phase are in [testing.md](testing.md). Each later phase adds its critical modules to the coverage and mutation gates from Phase 10.
 
@@ -79,3 +80,8 @@ Testing rules for every phase are in [testing.md](testing.md). Each later phase 
 ### Phase 18: Azure deployment
 - Bicep: Container App, database, Key Vault, managed identity, Entra ID auth limited to the household, budget alert.
 - Deployment runbook.
+
+### Later: Aggregator connector
+- See `docs/architecture.md`, "Future: aggregator connectors". The data path (provisional rows, statement matching, merge) already exists from Phases 2, 7, and 8; this phase adds only the connector, account linking, credentials, and the sync command.
+- Before specifying: confirm the aggregator covers all five institutions, and decide which accounts to link (opt-in per account).
+- Can run any time after Phase 10; in the cloud, `fin sync` becomes a scheduled job (after Phase 18).

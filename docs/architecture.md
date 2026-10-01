@@ -17,7 +17,7 @@ It runs locally first. It is structured so it can later move to Azure with minim
 
 - Bank scraping or stored bank credentials. Data arrives as PDF statements and CSV exports the user downloads.
 - OCR. All current statements contain extractable text.
-- Third-party aggregators (Plaid, etc.).
+- Third-party aggregators in the first release. The design leaves a slot for one (see "Future: aggregator connectors").
 - Multi-user, multi-currency, investments, taxes, budgeting envelopes.
 
 ## Tech stack
@@ -80,6 +80,8 @@ cli, web  ──►  ingest, categorize, analysis, privacy, advice  ──►  d
                                                               ▼
                                                    transactions + balance snapshot (DB)
                                                               ▲
+ Aggregator API ─► connector ─► ProvisionalRow ─┐  (future; same path as CSV)
+                                                │
  CSV export ─► detect profile ─► parse ─► daily balance check ┘  (source = csv, provisional;
                                                                  a later statement upgrades
                                                                  these rows in place)
@@ -135,6 +137,25 @@ Details are in the phase specs. Core tables:
 - Real statements in `data/samples/` are used only by opt-in tests that report pass/fail, never content.
 
 Transfers between the household's own accounts (card payments from checking, moves between checking and savings) must be excluded from spending, or spending is double-counted. Phase 11 handles this.
+
+## Future: aggregator connectors
+
+An aggregator (e.g. SimpleFIN Bridge) may later replace manual CSV downloads. It slots in as **another provisional source**; statements stay the record. What is already in place for it:
+
+- `TransactionSource.AGGREGATOR`, `BalanceSource.AGGREGATOR`, and `PROVISIONAL_SOURCES` (Phase 2). Nothing treats `csv` as the only provisional source.
+- `ProvisionalRow` with `external_id`, and the source-neutral `import_provisional()` service (Phase 7): balance check, statement matching, external-id dedup, insert. A connector only has to produce rows.
+- Statement merge (Phase 8) upgrades any provisional source in place.
+- Import batches accept `format = "api"`, hashing the fetched rows instead of a file.
+- The network rule (AGENTS.md rule 1) already allows `src/finances/connectors/`.
+
+What the connector phase will add:
+
+- `src/finances/connectors/`: a `Connector` protocol (`list_remote_accounts()`, `fetch(remote_account_id, start, end) -> list[ProvisionalRow] + balance`), and a SimpleFIN implementation. Pending transactions are skipped, as with CSV status filtering.
+- `account_links` table (`account_id`, `provider`, `remote_account_id`) so remote accounts map to local ones; `fin connect simplefin` and `fin sync` commands.
+- The access credential (SimpleFIN's access URL embeds it) from `FIN_SIMPLEFIN_ACCESS_URL` locally, Key Vault in the cloud. Never logged, never in the DB.
+- Cross-provisional matching: if an account gets both CSV and aggregator rows, match them against each other with the same matcher so they do not double-count. Until then, **one provisional source per account**.
+- In the cloud, `fin sync` runs as a scheduled job (e.g. a Container Apps job).
+- Privacy note: enabling a connector means the aggregator sees the linked accounts' data. It is opt-in per account.
 
 ## Cloud migration path
 

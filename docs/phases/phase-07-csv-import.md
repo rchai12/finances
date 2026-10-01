@@ -18,7 +18,8 @@ Import CSV exports (Truist checking, Citi card) as **provisional** transactions 
 - CSV parser with header auto-detection
 - End-of-day running balance check
 - Shared transaction matcher (amount + nearby date), also used by Phase 8
-- CSV import service, including skipping rows already on an imported statement
+- A **source-neutral provisional import service** (balance check, statement matching, dedup, insert) that CSV uses now and a future aggregator connector will reuse (see `docs/architecture.md`, "Future: aggregator connectors")
+- CSV import service as a thin wrapper around it
 - `fin import csv`, CSV support in `fin import folder`, `fin profiles list`
 
 ## Out of scope
@@ -101,25 +102,32 @@ Rules:
 - If `include_status` is set, rows whose status is not listed are skipped and counted.
 - Invalid profiles raise `ProfileError`.
 
-### 3. Parser (`src/finances/ingest/csv_parser.py`)
+### 3. Provisional row model (`src/finances/ingest/provisional.py`)
+
+The common shape for every provisional source (CSV now, aggregator later). Nothing in it is CSV-specific.
 
 ```python
 @dataclass(frozen=True)
-class CsvRow:
-    line_number: int
+class ProvisionalRow:
+    ref: int                          # position in the source (CSV line number, API list index); for error messages
     posted_date: date
     transaction_date: date | None
     description: str
-    amount_cents: int
-    running_balance_cents: int | None
-    cardholder: str | None
-    bank_merchant: str | None
-    bank_category: str | None
+    amount_cents: int                 # holder perspective
+    running_balance_cents: int | None = None   # end-of-day balance, if the source has one
+    cardholder: str | None = None
+    bank_merchant: str | None = None
+    bank_category: str | None = None
+    external_id: str | None = None    # stable id from the source (aggregators provide one; CSVs do not)
+```
 
+### 4. CSV parser (`src/finances/ingest/csv_parser.py`)
+
+```python
 @dataclass(frozen=True)
 class CsvParseResult:
     profile: CsvProfile
-    rows: list[CsvRow]
+    rows: list[ProvisionalRow]        # ref = CSV line number
     errors: list[RowError]            # line number + field + reason, no row contents
     skipped_status: int
 
@@ -129,18 +137,18 @@ def parse_csv(content: bytes, profile: CsvProfile) -> CsvParseResult
 - Takes bytes. Blank lines skipped. Bad dates/amounts become `RowError`s; parsing continues.
 - No header match → `ProfileError` listing known profile names. Multiple matches → `ProfileError`.
 
-### 4. Running balance check (`src/finances/ingest/csv_balance.py`)
+### 5. Running balance check (`src/finances/ingest/balance_check.py`)
 
 ```python
-def check_daily_balances(rows: list[CsvRow]) -> ReconcileResult
+def check_daily_balances(rows: list[ProvisionalRow]) -> ReconcileResult
 ```
-Only when the profile has `running_balance`:
+Only when rows carry `running_balance_cents`:
 - Group rows by `posted_date`; every row in a day must carry the same balance.
 - For each day after the earliest: `previous_day_balance + sum(day amounts) == day_balance`.
 - Works regardless of file order (sort by date first).
 - Returns the existing `ReconcileResult` shape (difference and the first failing date in the message; no descriptions).
 
-### 5. Matcher (`src/finances/ingest/matching.py`)
+### 6. Matcher (`src/finances/ingest/matching.py`)
 
 One rule for "is this the same real transaction from a different source", used here and in Phase 8.
 
@@ -162,37 +170,59 @@ def match_one_to_one(left: list[MatchItem], right: list[MatchItem],
 - Returns `(left.key, right.key)` pairs. Pure function.
 - Why a date window: the same transaction can carry a purchase date in one source and a posting date in the other (e.g. the Citi CSV has a single date column), typically 1 to 3 days apart.
 
-### 6. Import service (`src/finances/ingest/csv_service.py`)
+### 7. Provisional import service (`src/finances/ingest/provisional.py`)
+
+```python
+def import_provisional(session, *, account: Account, rows: list[ProvisionalRow],
+                       source: TransactionSource,          # csv now; aggregator later
+                       batch_format: str,                  # "csv" now; "api" later
+                       parser_name: str,                   # CSV profile name / connector name
+                       source_label: str,                  # filename, or e.g. "simplefin pull 2026-10-01"
+                       content_sha256: str,                # file hash, or hash of the canonical JSON of rows
+                       dry_run: bool = False,
+                       allow_mismatch: bool = False) -> ProvisionalImportResult
+```
+Must not know about CSV. Steps:
+1. Content hash already imported for this account → `already_imported`.
+2. Balance check (if applicable). Failure and not `allow_mismatch` → `failed`.
+3. **Skip rows already on a statement** (match, don't just compare dates). For each reconciled statement batch of this account, with `W = MATCH_MAX_DAYS`:
+   - Candidate provisional rows: `posted_date` in `[period_start - W, period_end + W]`.
+   - Candidate statement rows: this account's `source = "statement"` transactions in the same window.
+   - Run `match_one_to_one(candidates, statement_rows)`. Each statement row can be claimed once per import.
+   - Then classify each candidate row:
+     | Situation | Action | Counted as |
+     |---|---|---|
+     | Matched a statement row | skip | `covered_by_statement` |
+     | Unmatched, `posted_date` in `(period_end - W, period_end + W]` (boundary zone) | keep, insert as provisional | (normal insert) |
+     | Unmatched, `posted_date` in `[period_start, period_end - W]` (deep inside a closed, reconciled period) | skip | `conflicts` |
+   - Why: near the end of a period, a row dated by purchase date (as in the Citi CSV) can belong to the *next* statement (bought Jan 23, posted Jan 24). Keeping it as provisional avoids a temporary gap; the next statement absorbs it (Phase 8). Deep inside a reconciled period, the statement is the truth, and an unmatched provisional row would double-count.
+   - If `conflicts > 0`, the CLI prints a warning with the count only.
+4. Fingerprint the remaining rows, namespaced by source:
+   - with `external_id`: `sha256(f"{account_id}|{source}|ext|{external_id}")`
+   - without: `sha256(f"{account_id}|{source}|{posted}|{amount}|{UPPER(collapsed desc)}|{occurrence}")`
+   
+   Drop existing fingerprints (`duplicates`). Overlapping CSV downloads (or repeated API pulls) therefore never duplicate.
+5. Dry run → counts only.
+6. One DB transaction: import batch (`format = batch_format`, `parser_name`, `source_filename = source_label`, no period or balances), transactions with the given `source`, and, if rows carry a running balance, a `balance_snapshots` row for the latest date (balance source matching the transaction source; skip if one exists).
+
+`ProvisionalImportResult` mirrors `StatementImportResult` and adds `covered_by_statement` and `conflicts`.
+
+### 8. CSV import service (`src/finances/ingest/csv_service.py`)
 
 ```python
 def import_csv(session, *, filename: str, content: bytes, account_name: str | None = None,
                dry_run: bool = False, allow_mismatch: bool = False,
                skip_bad_rows: bool = False) -> CsvImportResult
 ```
-Steps:
-1. File hash already imported → `already_imported`.
-2. Detect profile, parse. Errors and not `skip_bad_rows` → `failed`, nothing written.
-3. Resolve account: `--account`, else `filename_last4` + `find_accounts_by_last4`, else fail with a message asking for `--account`. If both are available and disagree, fail.
-4. Balance check (if applicable). Failure and not `allow_mismatch` → `failed`.
-5. **Skip rows already on a statement** (match, don't just compare dates). For each reconciled statement batch of this account, with `W = MATCH_MAX_DAYS`:
-   - Candidate CSV rows: `posted_date` in `[period_start - W, period_end + W]`.
-   - Candidate statement rows: this account's `source = "statement"` transactions in the same window.
-   - Run `match_one_to_one(csv_candidates, statement_rows)`. Each statement row can be claimed once per import.
-   - Then classify each candidate CSV row:
-     | Situation | Action | Counted as |
-     |---|---|---|
-     | Matched a statement row | skip | `covered_by_statement` |
-     | Unmatched, `posted_date` in `(period_end - W, period_end + W]` (boundary zone) | keep, insert as provisional | (normal insert) |
-     | Unmatched, `posted_date` in `[period_start, period_end - W]` (deep inside a closed, reconciled period) | skip | `conflicts` |
-   - Why: near the end of a period, a CSV row dated by purchase date can belong to the *next* statement (bought Jan 23, posted Jan 24). Keeping it as provisional avoids a temporary gap; the next statement absorbs it (Phase 8). Deep inside a reconciled period, the statement is the truth, and an unmatched CSV row would double-count.
-   - If `conflicts > 0`, the CLI prints a warning with the count only.
-6. Fingerprint the remaining rows in a separate namespace: `sha256(f"{account_id}|csv|{posted}|{amount}|{UPPER(collapsed desc)}|{occurrence}")`; drop existing fingerprints (`duplicates`). Overlapping CSV downloads therefore never duplicate.
-7. Dry run → counts only.
-8. One DB transaction: import batch (format `csv`, `parser_name` = profile name, no period or balances), transactions with `source = "csv"`, and, if a running balance exists, a `balance_snapshots` row for the latest date (`source = "csv"`; skip if one exists).
+1. Detect profile, parse. Errors and not `skip_bad_rows` → `failed`, nothing written.
+2. Resolve account: `--account`, else `filename_last4` + `find_accounts_by_last4`, else fail with a message asking for `--account`. If both are available and disagree, fail.
+3. Call `import_provisional(..., source=TransactionSource.CSV, batch_format="csv", parser_name=profile.name, source_label=<basename>, content_sha256=sha256(content))`.
 
-`CsvImportResult` mirrors `StatementImportResult` and adds `skipped_status`, `covered_by_statement`, and `conflicts`.
+`CsvImportResult` = the provisional result plus `profile_name` and `skipped_status`. Keep this module thin; anything not CSV-specific belongs in `provisional.py`.
 
-### 7. CLI
+
+
+### 9. CLI
 
 - `fin import csv PATH [--account NAME] [--dry-run] [--allow-mismatch] [--skip-bad-rows]`: prints profile, account, date range, read / inserted / duplicates / covered by statement / conflicts / skipped status, balance check result, and up to 10 errors (`line N, field: reason`).
 - `fin import folder DIR`: now also picks up `*.csv` (case-insensitive) and routes them to `import_csv`. A CSV whose account cannot be resolved is reported as `failed` with the `--account` hint; other files continue.
@@ -223,6 +253,8 @@ Synthetic only, following the layouts in the formats doc:
   - **Sale vs post date**: statement row posted Jan 20, CSV row dated Jan 18, same amount → skipped as covered.
   - **Conflict**: CSV row dated Jan 10, inside the reconciled period, not on the statement → skipped, `conflicts == 1`.
   - Two identical-amount CSV rows near one statement row: only one is covered; the other follows the table above.
+- **Source neutrality**: call `import_provisional` directly with hand-built rows that carry `external_id` and `source = aggregator` (no CSV involved). Rows insert; a second call with the same rows (different `content_sha256`) inserts 0 via the external-id fingerprints; statement matching still applies.
+- `csv_service.py` contains no matching, fingerprinting, or balance logic (review check; note it in `docs/progress.md`).
 - Matcher unit tests: equal amount within window matches; 5 days apart does not; 1-cent difference does not; closest date wins; description similarity breaks ties; shuffled inputs give identical output.
   - Balance failure writes nothing; `allow_mismatch` overrides.
 - CLI: `import folder` handles a mix of fake-statement and CSV files.

@@ -41,7 +41,7 @@ def plan_merge(stmt: ParsedStatement, provisional: list[Transaction], *,
                max_days: int = MATCH_MAX_DAYS) -> MergePlan
 ```
 - `max_days` defaults to `MATCH_MAX_DAYS` from `ingest/matching.py` (Phase 7).
-- `provisional` = this account's `source = "csv"` rows with `posted_date` in `[period_start - max_days, period_end + max_days]`.
+- `provisional` = this account's rows with `source in PROVISIONAL_SOURCES` with `posted_date` in `[period_start - max_days, period_end + max_days]`.
 - Pairing uses **`match_one_to_one` from Phase 7**. Do not write a second matcher; the CSV import and the statement merge must agree on what "same transaction" means.
 - `drop_ids` = unmatched provisional rows that are now inside a closed, reconciled period:
   - `posted_date` in `[period_start, period_end]` of this statement, or
@@ -61,7 +61,7 @@ Inside the existing single transaction, after reconciliation passes:
 
 ### 3. Repository helpers
 
-- `list_provisional(session, account_id, start, end) -> list[Transaction]`
+- `list_provisional(session, account_id, start, end) -> list[Transaction]` (filters on `PROVISIONAL_SOURCES`, not on `"csv"`)
 - `upgrade_transaction(session, txn_id, fields: dict) -> None` (whitelisted fields only)
 - `delete_transactions(session, ids) -> int`
 

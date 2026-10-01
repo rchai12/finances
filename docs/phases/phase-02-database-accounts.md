@@ -57,8 +57,9 @@ No imports from other project packages.
 
 `models.py`
 - `AccountType(StrEnum)`: `checking`, `savings`, `credit_card`, `other`.
-- `BalanceSource(StrEnum)`: `statement`, `csv`, `manual`.
-- `TransactionSource(StrEnum)`: `statement`, `csv`, `manual`.
+- `BalanceSource(StrEnum)`: `statement`, `csv`, `aggregator`, `manual`.
+- `TransactionSource(StrEnum)`: `statement`, `csv`, `aggregator`, `manual`.
+- `PROVISIONAL_SOURCES = frozenset({TransactionSource.CSV, TransactionSource.AGGREGATOR})`. Code that asks "is this row provisional?" must use this constant, never compare to `"csv"` directly. (`aggregator` is unused until a connector exists; it is defined now so no later code assumes CSV is the only provisional source.)
 - Frozen dataclasses mirroring the tables below: `Account`, `ImportBatch`, `Transaction`, `BalanceSnapshot`. Repositories return these, not ORM objects.
 
 ### 2. Database (`src/finances/db/`)
@@ -87,8 +88,8 @@ No imports from other project packages.
 | id | Integer PK | |
 | account_id | FK accounts.id | |
 | source_filename | String(255) | basename only, never the full path |
-| file_sha256 | String(64) | |
-| format | String(10) | `pdf` / `csv` / `ofx` |
+| file_sha256 | String(64) | hash of the file; for API pulls, hash of the canonical JSON of the fetched rows |
+| format | String(10) | `pdf` / `csv` / `api` |
 | parser_name | String(50), nullable | e.g. `capital_one_card`, or a CSV profile name |
 | period_start | Date, nullable | statement period |
 | period_end | Date, nullable | |
@@ -116,7 +117,7 @@ Constraint: `UniqueConstraint(account_id, file_sha256)`.
 | card_last4 | String(4), nullable | which card on a multi-card account |
 | cardholder | String(100), nullable | name as printed; stays local, never sent to the LLM |
 | external_id | String(100), nullable | e.g. OFX FITID or statement reference number |
-| source | String(10) | `statement` / `csv` / `manual`; server default `statement`. CSV rows are provisional until a statement covers them (Phase 8) |
+| source | String(10) | `statement` / `csv` / `aggregator` / `manual`; server default `statement`. `csv` and `aggregator` rows are provisional until a statement covers them (Phase 8) |
 | fingerprint | String(64) | dedup key, see Phase 3 |
 | created_at | DateTime(tz) | |
 Constraint: `UniqueConstraint(account_id, fingerprint)`.

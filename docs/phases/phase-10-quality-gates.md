@@ -47,7 +47,7 @@ Also provide `scripts/check.sh` with the same steps for Linux/WSL (the future cl
 
 - `ruff` (lint, with `--fix` off) and `ruff-format --check`.
 - A local hook running `pytest tests/unit -q -x --no-cov` (fast).
-- A local **privacy guard** hook: blocks the commit if any staged file is under `data/`, or has extension `.pdf`, `.csv`, `.ofx`, `.qfx` outside `tests/fixtures/`, or if a staged text file contains a run of 12 or more digits outside `tests/fixtures/` (likely an account number). Write it as a small Python script in `scripts/` with its own unit tests.
+- A local **privacy guard** hook: blocks the commit if any staged file is under `data/`, or has extension `.pdf`, `.csv`, `.ofx`, `.qfx` outside `tests/fixtures/`, or if a staged text file contains a run of 12 or more digits outside `tests/fixtures/` (likely an account number). Known synthetic numbers used in docs (e.g. the examples in `docs/statement-formats.md`) go in `scripts/privacy_allowlist.txt`, one exact string per line; do not exempt whole folders. Write it as a small Python script in `scripts/` with its own unit tests.
 - Document `pre-commit install` in the root `README.md`.
 
 ### 5. Optional CI (`.github/workflows/ci.yml`)

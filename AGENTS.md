@@ -12,7 +12,7 @@ This file applies to every phase. Read it, then `docs/architecture.md`, then the
 
 ## Privacy rules (non-negotiable)
 
-1. **No network calls** anywhere except inside `src/finances/advice/` (introduced in Phase 15). No telemetry, analytics, crash reporting, or update checks.
+1. **No network calls** anywhere except inside `src/finances/advice/` (LLM, Phase 15) and `src/finances/connectors/` (aggregators, a future phase). Both run only on an explicit user command or a configured schedule. No telemetry, analytics, crash reporting, or update checks.
 2. **Never commit financial data.** `data/` is gitignored. Do not create real-looking data outside `tests/fixtures/`.
 3. **Tests use synthetic data only.** Invented merchants (e.g. "ACME COFFEE", "FOOBAR GROCERY"), invented amounts, no real names, no realistic account numbers.
 4. **Do not log transaction descriptions, amounts, balances, or account numbers** at INFO level or above. DEBUG is allowed but must never be the default.
