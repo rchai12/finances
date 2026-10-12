@@ -45,7 +45,8 @@ Verification guides have the same file name under `verification/`.
 | 2d | `parse_money` | Money text to integer cents; the coder writes the body against given tests | [phase-02d](phases/phase-02d-parse-money.md) |
 | 2e | `AccountType` and `Account` | The account enum and frozen dataclass in `domain/models.py` | [phase-02e](phases/phase-02e-account-model.md) |
 | 2f | `validate_last4` | Accepts `None` or exactly four ASCII digits | [phase-02f](phases/phase-02f-validate-last4.md) |
-| 2g onward | `accounts` ORM table, engine, session scope, first migration, one repository function per sub-phase, `fin db upgrade`, `fin accounts add`, `fin accounts list` | One unit per sub-phase | to be written after 2f is built |
+| 2g | `accounts` table and `to_account` | SQLAlchemy dependency, seven ORM columns, and the row-to-`Account` conversion. A deliberately larger phase, to find the coder's limit | [phase-02g](phases/phase-02g-accounts-table.md) |
+| 2h onward | Engine, session scope, first migration, repository functions, `fin db upgrade`, `fin accounts add`, `fin accounts list` | Sized from the result of 2g | to be written after 2g is built |
 
 From 2c on, a sub-phase asks for one unit of code. The spec gives the tests and the steps; the coder writes the implementation.
 

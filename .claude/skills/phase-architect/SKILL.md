@@ -33,6 +33,8 @@ A phase asks the coder to write **one unit**: one function, one class or datacla
 - 1 new dependency
 - about 150 lines of spec, not counting the test block
 
+**Finding the limit (the user's request).** These limits are the size that is known to work (2c to 2f: one unit, about 15 steps). Phase 2g raises the load on purpose: two Code steps, eight requirements, a new dependency, four files, 23 steps. Raise the load in one phase at a time and read the verifier's "Steps skipped or out of order" line. If the larger phase passes at the first attempt, make that size the new normal and try the next increase (three units, or logic with more branches). If it fails, note which dimension broke (number of steps, number of units, number of files, or a new kind of step) and go back one size on that dimension only.
+
 Order sub-phases so each ends with format, lint, and tests passing, and each depends only on phases before it. Start a new area with its easiest unit, so the first attempt is a fair one.
 
 **Numbering.** Roadmap numbers are referenced from `AGENTS.md`, `docs/testing.md`, and other specs, so never renumber. A removed phase keeps its number. Split a roadmap phase into lettered sub-phases: `phase-02c-format-cents.md`, `phase-02d-parse-money.md`. List them in the roadmap under the parent number, and delete the superseded parent spec once its sub-phases cover it.
@@ -256,7 +258,7 @@ for number, kind, text in zip(parts[0::3], parts[1::3], parts[2::3], strict=True
             shown = lines
         print(number, f"exit={result.returncode}", *shown[-4:], *lines[-1:], sep="\n    ")
         continue
-    path = Path(re.search(r"`([^`\s]+/[^`\s]+)`", text).group(1))
+    path = Path(re.search(r"`([^`\s]+\.(?:py|toml|md|ini|txt|mako))`", text).group(1))
     if kind == "Code":
         path.write_text(Path(supplied[number]).read_text(encoding="utf-8"), encoding="utf-8")
     elif "at the end of" in text:
