@@ -1,5 +1,7 @@
 # Phase 7: CSV import
 
+> **Removed. Do not implement.** CSV import was replaced by the aggregator feed (roadmap Phase 17). Kept only as reference for the matching and provisional-row design.
+
 ## Goal
 
 Import CSV exports (Truist checking, Citi card) as **provisional** transactions that fill the gap after the latest statement. Profiles are auto-detected from the header row. CSV rows that match a transaction on an already-imported statement are skipped. (Phase 8 handles the reverse case: a statement arriving after CSV rows.)

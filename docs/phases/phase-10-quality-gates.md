@@ -41,7 +41,7 @@ Runs in order, stopping at the first failure:
 4. `python scripts/check_coverage.py`
 5. If `data/samples/` exists: the real-sample tests
 
-Also provide `scripts/check.sh` with the same steps for Linux/WSL (the future cloud container).
+Also provide `scripts/check.sh` with the same steps for macOS, Linux, and WSL.
 
 ### 4. Pre-commit hooks (`.pre-commit-config.yaml`)
 

@@ -12,7 +12,7 @@ This file applies to every phase. Read it, then `docs/architecture.md`, then the
 
 ## Privacy rules (non-negotiable)
 
-1. **No network calls** anywhere except inside `src/finances/advice/` (introduced in Phase 15). No telemetry, analytics, crash reporting, or update checks.
+1. **No network calls** anywhere except inside `src/finances/sync/` (the aggregator client, Phase 17), which contacts only the configured aggregator. No telemetry, analytics, crash reporting, or update checks. The MCP server (Phase 14) uses the stdio transport only and never opens a port; the web UI (Phase 16) binds to 127.0.0.1 only, and remote access is provided outside the app by a private VPN. This app never calls an LLM.
 2. **Never commit financial data.** `data/` is gitignored. Do not create real-looking data outside `tests/fixtures/`.
 3. **Tests use synthetic data only.** Invented merchants (e.g. "ACME COFFEE", "FOOBAR GROCERY"), invented amounts, no real names, no realistic account numbers.
 4. **Do not log transaction descriptions, amounts, balances, or account numbers** at INFO level or above. DEBUG is allowed but must never be the default.
@@ -31,12 +31,13 @@ This file applies to every phase. Read it, then `docs/architecture.md`, then the
 
 ## Architecture rules
 
-- Layering (see `docs/architecture.md`): `domain` imports nothing from this project. `cli` and `web` are thin and contain no business logic.
-- Business logic (ingest, categorize, analysis, privacy) must be callable without a CLI and testable without a real database where practical.
-- Database access goes through SQLAlchemy 2.0 style code in `src/finances/db/`. No dialect-specific SQL. The app must stay portable to PostgreSQL / Azure SQL.
+- Layering (see `docs/architecture.md`): `domain` imports nothing from this project. `cli`, `mcp_server`, and `web` are thin and contain no business logic.
+- MCP tools are read-only until Phase 19. From then on a tool may write only what its spec lists, and never an amount, date, balance, account, import, deletion, or sync.
+- Business logic (ingest, sync, categorize, analysis) must be callable without a CLI and testable without a real database where practical.
+- Database access goes through SQLAlchemy 2.0 style code in `src/finances/db/`. No dialect-specific SQL.
 - Every schema change ships as an Alembic migration. Never edit a migration that a previous phase already shipped.
-- All configuration comes from `finances.config.get_settings()` (environment variables with prefix `FIN_`). No hardcoded paths, no secrets in code.
-- Use `pathlib.Path`. Development happens on Windows; code must also run on Linux (the eventual cloud container).
+- All configuration comes from `finances.config.get_settings()` (environment variables with prefix `FIN_`). No hardcoded paths, no secrets in code. The aggregator token lives in the OS keyring only.
+- Use `pathlib.Path`. Development happens on Windows and the app is deployed on macOS (a Mac Studio); code must run on both.
 
 ## Code style
 

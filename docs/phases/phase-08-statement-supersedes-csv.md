@@ -1,5 +1,7 @@
 # Phase 8: Statements supersede provisional CSV rows
 
+> **Draft. Do not implement.** Written when provisional rows came from CSV. It will be re-issued as sub-phases for aggregator rows after Phase 17.
+
 ## Goal
 
 When a reconciled statement is imported for a period that already has provisional CSV rows, the statement becomes the record: matching CSV rows are **upgraded in place** (keeping their ids, so later categories and notes survive), unmatched statement lines are inserted, and leftover CSV rows inside the period are removed. The final database must be the same no matter whether the CSV or the statement was imported first.

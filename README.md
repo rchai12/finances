@@ -1,6 +1,6 @@
 # Finances
 
-Finances is a local personal-finance tool for one household. It is structured to import bank and card statements, summarize spending, and optionally ask a language model for advice using a privacy-preserving summary. Raw financial files stay on this machine. This version provides configuration, redacting logs, and the `fin` command.
+Finances is a local personal-finance tool for one household. It is structured to import bank and card statements, summarize spending, and expose the results to a local AI agent through an MCP server. Its only outbound connection is to the bank-data aggregator, and raw financial files stay on this machine. This version provides configuration, redacting logs, and the `fin` command.
 
 ## Setup (Windows PowerShell)
 

@@ -274,7 +274,7 @@ Posted Date,Transaction Date,Transaction Type,Check/Serial #,Full description,Me
 - `Merchant name` and `Category name` / `Sub-category name` are the bank's own cleanup. Store them as hints (`bank_merchant`, `bank_category` = `"Category / Sub-category"`); they are not authoritative (e.g. transfers to the user's own savings are labeled "Investments").
 - `Transaction Type` values seen: `POS`, `Debit`, `Deposit`, `Credit`. Store nothing extra for now.
 - Descriptions are ordered differently from the PDF statement for the same transaction (`... DEBIT CARD PURCHASE` at the end vs the start). Posted date and amount match the statement exactly.
-- Zelle rows contain a person's name in the description. Fine locally; Phase 14 (privacy payload) must strip it.
+- Zelle rows contain a person's name in the description. Fine locally; the MCP tools return it as is, which relies on the agent's model being local (see `architecture.md`, Privacy boundary).
 
 ## 7. Citi card CSV (`citi_card_csv`)
 

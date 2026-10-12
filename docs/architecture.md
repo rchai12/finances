@@ -2,22 +2,31 @@
 
 ## Purpose
 
-A personal finance tool for one household (two people, several shared cards). It imports monthly PDF statements (the record) and CSV exports (provisional, covering the time since the last statement) from banks and card issuers, computes balances, ranks spending by category and merchant, finds specific places to cut back, and optionally asks a frontier LLM for advice using a privacy-preserving summary.
+A personal finance tool for one household (two people, several shared cards). It pulls transactions daily from a third-party aggregator (provisional) and imports monthly PDF statements as the audit (the record), computes balances, ranks spending by category and merchant, and finds specific places to cut back.
 
-It runs locally first. It is structured so it can later move to Azure with minimal change.
+It is one platform inside a larger personal AI system. An overarching agent, running on a local model, delegates work to subagents (email, reminders, tasks, stock analysis). One of those subagents uses this app through an MCP server to analyze spending patterns and give advice. The app supplies the data, the reports, and the rule-based findings. It contains no LLM and does not produce advice itself.
+
+Everything runs on one machine the household owns (a Mac Studio): the overarching agent, its subagents, the local model, and this app with its database. There is no cloud deployment.
+
+The household reaches that machine remotely over a private, encrypted connection. The app itself is never published to the internet (see Privacy boundary).
+
+It also works on its own through the `fin` CLI and, later, a local web UI.
 
 ## Goals
 
-- Raw financial data never leaves the user's machine unless the user deliberately deploys to the cloud.
-- The LLM only ever receives an aggregated, pseudonymized payload that the user can preview before sending.
-- Targeted, merchant-level advice ("$118/mo at an independent bakery, up 2x since summer").
+- Raw financial data stays on the household's machine. The app's only outbound connection is to the aggregator.
+- The agent gets typed tools that return real merchants and amounts, so its advice can be specific ("$118/mo at one bakery, up 2x since summer").
+- Arithmetic is done here, in tested code, not by the model: balances, totals, trends, and findings come back from tools already computed.
+- Every report is a pure function with one implementation, shared by the CLI, the web UI, and the MCP server.
 - Small, readable codebase that the owner can audit.
 
 ## Non-goals (for now)
 
-- Bank scraping or stored bank credentials. Data arrives as PDF statements and CSV exports the user downloads.
+- Bank scraping or stored bank passwords. The app holds only an aggregator access token, in the macOS Keychain.
+- CSV import. The aggregator feed replaces it.
 - OCR. All current statements contain extractable text.
-- Third-party aggregators (Plaid, etc.).
+- An LLM call, prompt, or advice text inside this app. That belongs to the agent.
+- Cloud deployment.
 - Multi-user, multi-currency, investments, taxes, budgeting envelopes.
 
 ## Tech stack
@@ -26,13 +35,14 @@ It runs locally first. It is structured so it can later move to Azure with minim
 |---|---|---|
 | Language | Python 3.11+ | Strong data tooling, readable |
 | CLI | Typer + Rich | Simple commands, nice tables |
-| Config | pydantic-settings, env vars prefixed `FIN_` | Same mechanism works locally and in Azure |
-| DB access | SQLAlchemy 2.0 | Portable between SQLite and PostgreSQL / Azure SQL |
-| Migrations | Alembic | Versioned schema, needed once a cloud DB exists |
+| Config | pydantic-settings, env vars prefixed `FIN_` | One typed settings object, no hardcoded paths |
+| DB access | SQLAlchemy 2.0 | Typed queries, no dialect-specific SQL |
+| Migrations | Alembic | Versioned schema; upgrades never lose imported data |
 | Local DB | SQLite file in `data/` | Zero setup |
 | PDF text | `pypdf` (layout extraction mode) | Pure Python; keeps statement columns aligned where `pdftotext` scrambles them |
-| Web UI (later) | FastAPI + Jinja2 + HTMX | One deployable container, little JavaScript |
-| LLM (later) | Provider interface, first implementation Anthropic API | Swappable |
+| Daily feed (later) | Third-party aggregator, provider not yet chosen | No manual downloads; the app's only outbound connection |
+| Agent interface (later) | MCP server, official `mcp` Python SDK, stdio transport | Typed tools any agent framework can call; stdio opens no port |
+| Web UI (later) | FastAPI + Jinja2 + HTMX, bound to 127.0.0.1 | Little JavaScript |
 | Tests / lint | pytest, ruff | Standard |
 
 ## Package layout
@@ -50,27 +60,27 @@ finances/
     db/                         engine/session, ORM models, repositories
     ingest/                     PDF text, statement model, reconciliation, dedup, import service
       parsers/                  one module per statement format (Capital One, BoA, Citi, Truist, Marcus)
+    sync/                       aggregator client and daily sync (ONLY place with network; later)
     categorize/                 categories, rules engine, merchant normalization
     analysis/                   reports and insights (pure functions over domain objects)
-    privacy/                    pseudonymization, coarsening, PII checks, payload builder
-    advice/                     LLM provider interface + implementations (ONLY place with network)
     cli/                        Typer commands (thin)
+    mcp_server/                 MCP tools for the agent (thin, later)
     web/                        FastAPI app (thin, later)
   tests/
-    fixtures/                   synthetic CSV/OFX files only
-  data/                         gitignored: SQLite DB, user profiles, payload previews
+    fixtures/                   synthetic statement text and aggregator responses only
+  data/                         gitignored: SQLite DB, real statement samples
 ```
 
 ### Dependency direction
 
 ```
-cli, web  ──►  ingest, categorize, analysis, privacy, advice  ──►  db  ──►  domain
-                         └──────────────────────────────────────────────►  domain
+cli, mcp_server, web  ──►  ingest, sync, categorize, analysis  ──►  db  ──►  domain
+                                     └───────────────────────────────────►  domain
 ```
 
 - `domain` depends on nothing in the project.
-- `analysis` and `privacy` operate on domain objects, not ORM rows, so they are testable without a database.
-- `advice` receives a finished payload from `privacy`. It never reads the database directly.
+- `analysis` operates on domain objects, not ORM rows, so it is testable without a database.
+- `cli`, `mcp_server`, and `web` are three thin front ends over the same functions. None of them imports another.
 
 ## Data flow
 
@@ -80,7 +90,7 @@ cli, web  ──►  ingest, categorize, analysis, privacy, advice  ──►  d
                                                               ▼
                                                    transactions + balance snapshot (DB)
                                                               ▲
- CSV export ─► detect profile ─► parse ─► daily balance check ┘  (source = csv, provisional;
+ Aggregator ─► daily sync ─► dedup ───────────────────────────┘  (source = aggregator, provisional;
                                                                  a later statement upgrades
                                                                  these rows in place)
                                │
@@ -90,32 +100,38 @@ cli, web  ──►  ingest, categorize, analysis, privacy, advice  ──►  d
                                ▼
                          analysis: balances, spending by category,
                          per-merchant stats, recurring charges, insights
-                               │                         │
-                               ▼                         ▼
-                         reports (CLI/web)        privacy: pseudonymize + coarsen
-                                                         │
-                                                         ▼
-                                                  payload preview file  (user reviews)
-                                                         │  explicit confirm
-                                                         ▼
-                                                  advice: LLM API ─► response
-                                                         │
-                                                         ▼
-                                                  re-hydrate tokens locally ─► shown to user
+                               │
+              ┌────────────────┼─────────────────┐
+              ▼                ▼                 ▼
+          fin CLI       MCP server (stdio)    web UI (127.0.0.1)
+                               │
+                               ▼
+                    finance subagent (local model)
+                               │
+                               ▼
+                    overarching agent ─► user
 ```
+
+## Agent interface
+
+The MCP server is how the agent reaches this app. Details are in the Phase 14 and 19 specs; the rules are fixed here.
+
+- **Transport is stdio.** The agent launches `fin mcp serve` as a child process. No port is opened, so nothing else on the machine or network can connect.
+- **Read tools come first** (Phase 14): accounts, balances, transactions, reports, findings, and data coverage (which periods each account has, how old the newest data is, and which periods are statement-audited).
+- **Write tools come later** (Phase 19) and touch only the interpretation layer: a transaction's category, proposed rules and merchant aliases, transfer-pair confirmations, the status of a finding, and an advice log. The ledger is immutable to the agent: no tool changes an amount, date, balance, or account, imports or deletes anything, triggers a sync, or overrides reconciliation.
+- **Every agent write** is tagged as made by the agent, never overwrites a value the user set by hand, and can be undone. The user reviews agent writes with `fin review`. Rules and aliases stay proposals until the user approves them.
+- **Tools are thin.** Each one validates its arguments, calls one function in `analysis`, `categorize`, or `db`, and returns the result. A tool contains no business logic.
+- **Results are plain data:** money as integer cents, dates as ISO strings, the sign convention from `AGENTS.md`, and a hard cap on rows per call with paging.
+- **Results carry raw data** (merchant names, amounts, cardholder names, last 4 digits). Full account numbers are never stored, so they are never returned.
 
 ## Privacy boundary
 
-Everything left of the LLM call stays local. The payload sent to the LLM:
+Raw financial data stays on the household's machine, with one known exception upstream.
 
-- contains category totals, trends, and per-merchant behavior stats;
-- names only well-known national brands (from an allowlist); every other merchant becomes a token like `M07` plus a generic type ("independent bakery");
-- coarsens time (week or month, "weekday mornings"), rounds amounts to whole dollars;
-- excludes sensitive categories (medical, legal, religious, political) entirely;
-- uses fresh tokens on every run so runs cannot be linked;
-- must pass an automated PII check (digit runs, emails, phone numbers, user blocklist) and be written to a preview file before it can be sent.
-
-The token-to-name mapping never leaves the machine.
+- **Aggregator.** The aggregator company sees every transaction it delivers. This is accepted in exchange for not importing by hand, and nothing in this app can reduce it. The aggregator is the app's only outbound connection; all of that code lives in `src/finances/sync/`. Nothing else in the app touches the network, and the app sends the aggregator nothing except its credentials and sync requests.
+- **Agent.** The MCP server hands raw data to whatever process launched it. That is acceptable only because the agent runs on a **local model** on the same machine. The app cannot check this. If the finance subagent, or the overarching agent that reads its answers, is ever moved to a hosted model, raw data leaves the machine through the agent, and this design must be revisited first.
+- **Remote access.** The app never listens on a public interface: the MCP server uses stdio and the web UI binds to 127.0.0.1. Remote access is provided outside the app, by an encrypted private network between the household's own devices (a WireGuard-based mesh VPN such as Tailscale) that forwards to the loopback port. A tunnel service that decrypts traffic on its own servers is not used, since it would see the data. The web UI still requires a login (Phase 20), so reaching the port is not enough.
+- **Logs.** Tool arguments and results, and aggregator responses, are never logged at INFO or above (`AGENTS.md` privacy rule 4).
 
 ## Data model (overview)
 
@@ -127,6 +143,8 @@ Details are in the phase specs. Core tables:
 - `balance_snapshots`: balance of an account as of a date (from each statement, or entered manually).
 - `categories`, `category_rules`, `merchants` (Phase 11).
 
+`transactions.source` records where a row came from: `aggregator` rows are provisional, and a reconciled statement upgrades them in place to `statement`, keeping their ids so categories and notes survive.
+
 ### Statement parsing design
 
 - Each format is a `StatementParser` with `detect(first_page_text)` and `parse(pages_text) -> ParsedStatement`. Parsers work on **text**, so tests use synthetic text fixtures and never need real PDFs.
@@ -136,21 +154,7 @@ Details are in the phase specs. Core tables:
 
 Transfers between the household's own accounts (card payments from checking, moves between checking and savings) must be excluded from spending, or spending is double-counted. Phase 11 handles this.
 
-## Cloud migration path
+## Open decisions
 
-The local design already isolates what changes in the cloud:
-
-| Concern | Local | Azure (later) |
-|---|---|---|
-| Config | `.env` / env vars | Container App env vars |
-| Secrets (LLM key, DB password) | `.env` (gitignored) | Key Vault + managed identity |
-| Database | SQLite | PostgreSQL or Azure SQL (decide in Phase 17) |
-| File uploads | read from local path | upload through web UI, processed in memory or Blob Storage |
-| Auth | none (bound to 127.0.0.1) | Container Apps built-in auth with Entra ID, single allowed user |
-| Hosting | `fin` CLI / local uvicorn | Azure Container Apps (free monthly grant) |
-
-Rules that keep this cheap: config only from env, no dialect-specific SQL, web layer thin, no local-filesystem assumptions inside business logic (pass file contents or file-like objects, not paths, to parsers).
-
-### Open decision for later
-
-Whether the cloud copy holds raw transactions or only processed summaries. Decide before Phase 18.
+- **Aggregator provider.** Must cover Capital One, Bank of America, Citi, Truist, and Marcus, be available to an individual, and ideally report pending versus posted and a per-card identifier. Decide before Phase 17 is specified. Phase 17 comes early in the build order, so this is the next decision needed.
+- **Remote access method.** The default above is a mesh VPN with the app on loopback. Confirm before Phase 20.

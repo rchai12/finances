@@ -1,5 +1,7 @@
 # Phase 2: Database and accounts
 
+> **Superseded draft. Do not implement.** Phase 2 is being re-issued as sub-phases 2a to 2g (see `docs/roadmap.md`). This file is kept as source material until they are all written.
+
 ## Goal
 
 A versioned database schema for accounts, import batches, transactions, and balance snapshots; repository functions to use it; money helpers; and CLI commands to create and list accounts.
@@ -114,7 +116,7 @@ Constraint: `UniqueConstraint(account_id, file_sha256)`.
 | description_normalized | String(500) | |
 | section | String(30), nullable | source section, e.g. `purchases`, `payments_credits`, `fees`, `interest`, `deposits`, `withdrawals` |
 | card_last4 | String(4), nullable | which card on a multi-card account |
-| cardholder | String(100), nullable | name as printed; stays local, never sent to the LLM |
+| cardholder | String(100), nullable | name as printed; stays on this machine |
 | external_id | String(100), nullable | e.g. OFX FITID or statement reference number |
 | source | String(10) | `statement` / `csv` / `manual`; server default `statement`. CSV rows are provisional until a statement covers them (Phase 8) |
 | fingerprint | String(64) | dedup key, see Phase 3 |
