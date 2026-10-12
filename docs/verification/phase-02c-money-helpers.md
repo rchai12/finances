@@ -2,7 +2,7 @@
 
 Spec: `docs/phases/phase-02c-money-helpers.md`
 
-Do not modify any file in the repository. Report findings only. The work under review is normally uncommitted, so "the diff" means `git status --short` plus `git diff HEAD`.
+Do not modify any file in the repository. Report findings only. The work under review is uncommitted, so "the diff" means `git status --short` plus `git diff HEAD`.
 
 ## 1. Gates
 
@@ -11,40 +11,35 @@ Activate the virtual environment first, then run each command on its own line.
 | Command | Expected |
 |---|---|
 | `python -m ruff check .` | `All checks passed!` |
-| `python -m ruff format --check .` | no files would be reformatted |
-| `python -m pytest` | exit code 0, exactly 72 passed, 0 skipped, 0 xfailed, `TOTAL` at least 85% |
+| `python -m ruff format --check .` | `18 files already formatted` |
+| `python -m pytest` | exit code 0, exactly `72 passed`, 0 skipped, 0 xfailed, and the line `Required test coverage of 85.0% reached. Total coverage: 98.77%` |
 
 In the coverage table, the row for `src/finances/domain/money.py` must show 100% and an empty `Missing` column. Anything less is a FAIL, because this is a critical module (`docs/testing.md`).
 
 ## 2. Scope audit
 
-- `git status --short` lists only: `src/finances/domain/__init__.py`, `src/finances/domain/money.py`, `tests/unit/test_money.py`, `docs/progress.md`. Report every other path.
-- `src/finances/domain/__init__.py` is empty.
-- `git diff HEAD -- pyproject.toml` is empty (no new dependency).
-- `git diff HEAD -- tests/conftest.py tests/unit/test_config.py tests/unit/test_diagnostics.py tests/unit/test_log.py tests/e2e` is empty.
-- `src/finances/domain/` contains no file other than `__init__.py` and `money.py`.
+- `git status --short` lists exactly: `docs/progress.md`, `src/finances/domain/`, `tests/unit/test_money.py`. Report every other path as a finding.
+- `src/finances/domain/` contains exactly `__init__.py` and `money.py` (ignore `__pycache__`).
+- `git diff HEAD -- pyproject.toml tests/conftest.py tests/unit/test_config.py tests/unit/test_diagnostics.py tests/unit/test_log.py tests/e2e` is empty.
 
 ## 3. Requirement checklist
 
-Read `src/finances/domain/money.py` for the "read" rows.
+The spec gives both files verbatim, so these rows are comparisons.
 
 | Id | Check | How | Pass when |
 |---|---|---|---|
-| R1 | signatures | read | `def parse_money(text: str) -> int` and `def format_cents(cents: int) -> str`, both with these exact names and type hints |
-| R1 | step order | read | outer `strip()` first; then one negative marker chosen by `if / elif / elif` in the order parentheses, trailing `-`, leading `-`; then one optional `$`; then `fullmatch`; no second `strip()` anywhere |
-| R1 | pattern | read | the compiled pattern equals the one in the spec (R1, step 4) character for character, and it is applied with `fullmatch`, not `match` or `search` |
-| R1 | conversion | read | cents come from `Decimal`, multiplied by 100, converted with `int(...)` |
-| R2 | valid inputs | probe script, section 4 | all `valid` lines print `ok` |
-| R3 | invalid inputs | probe script | all `invalid` lines print `ok` |
-| R4 | message | probe script | all `message` lines print `ok` |
-| R5 | ASCII only | `git grep -n -F "\d" -- src/finances/domain/money.py` | no matches; probe script `ascii` lines print `ok` |
-| R6 | return type | probe script | `type` line prints `ok` |
-| R7 | formatting | read and probe script | uses `divmod(abs(cents), 100)`; all `format` lines print `ok` |
-| R8 | round trip | probe script | `roundtrip` line prints `ok` |
+| R1 | package marker | read `src/finances/domain/__init__.py` | the file is empty |
+| R2 | `money.py` | compare the file with the R2 block in the spec | identical apart from trailing whitespace |
+| R3 | `test_money.py` | compare the file with the R3 block | identical apart from trailing whitespace |
+| R4 | nothing bent to fit | read both files | no `try`, `except`, `skip`, `xfail`, `assert True`, or `# pragma: no cover` |
+| R5 | counts | gate output from section 1; `python -m pytest tests/unit/test_money.py --no-cov` | exactly `72 passed` overall, exactly `56 passed` for the file, `money.py` at 100% |
+| behavior | independent of the copy | probe script, section 4 | last line is `FAILURES 0` |
+
+For each comparison, report every differing line with its line number.
 
 ## 4. Independent probes
 
-Most of these inputs are **not** in the spec's tables. They catch an implementation that special-cases the listed examples or uses `float` (`0.29`, `4.35`, and `1.15` each come out one cent low when multiplied as floats).
+Run this even when the file comparison passes. Most of these inputs are **not** in the spec's tables. They catch an implementation that special-cases the listed examples or uses `float` (`0.29`, `4.35`, and `1.15` each come out one cent low when multiplied as floats).
 
 Save the script below in a temporary directory **outside the repository**, run it with `python <path>`, and delete it afterwards. Every line must end in `ok`; the last line must be `FAILURES 0`.
 
@@ -110,15 +105,7 @@ check("roundtrip", all(parse_money(format_cents(n)) == n for n in range(-25000, 
 print("FAILURES", failures)
 ```
 
-## 5. Test quality
-
-The spec gives `tests/unit/test_money.py` verbatim, so this section is a comparison, not a judgment.
-
-- Compare `tests/unit/test_money.py` with the code block under "Tests" in the spec. They must be identical apart from trailing whitespace. Report every differing line, and treat any changed value, renamed test, removed parameter, added `skip` or `xfail`, or added test as a FAIL.
-- `python -m pytest tests/unit/test_money.py --no-cov` ends with exactly `56 passed`.
-- `money.py` contains no `# pragma: no cover`.
-
-## 6. Project rules that apply to this phase
+## 5. Project rules that apply to this phase
 
 - **No float for money.** `git grep -n -E "float|round\(| / |/ 100" -- src/finances/domain/money.py` returns no matches.
 - **`domain` imports nothing from the project.** `git grep -n -E "^(from|import) " -- src/finances/domain` shows only `decimal` and `re`.
@@ -126,12 +113,16 @@ The spec gives `tests/unit/test_money.py` verbatim, so this section is a compari
 - **Input never echoed in errors.** Every `raise` in `money.py` is `ValueError("invalid money text")` with a constant string: no f-string, and no exception chaining that carries the input.
 - **Synthetic data only.** The test file contains amounts only: no merchant names, account numbers, or personal names.
 
-## 7. Progress log
+## 6. Progress log
 
-`docs/progress.md` ends with an entry headed `## Phase 2c: Money helpers (YYYY-MM-DD)`. Any deviation it lists must not change a signature, the pattern, the error message, or the file list. Earlier entries are unchanged.
+`docs/progress.md` ends with the entry given in step 5 of the spec's work order, with a real date in place of `YYYY-MM-DD`. Earlier entries are unchanged.
 
 ## Verdict
 
 `PASS`, or `FAIL` followed by one line per finding in this form:
 
 `<requirement id or section> | <file>:<line> | expected <...> | found <...>`
+
+## If the verdict is FAIL
+
+A repair sent back to the coder is either the instruction to replace a whole file with a block from the spec, or a single command to run. Do not describe an edit in a sentence.

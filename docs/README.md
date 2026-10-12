@@ -10,7 +10,7 @@
 
 ## Workflow
 
-1. Give the coding agent one phase at a time, with a prompt like:
+1. Commit the spec and its verification guide, so `git status` is clean. Then give the coding agent one phase at a time, with a prompt like:
 
    > Read AGENTS.md, docs/architecture.md, docs/testing.md, docs/progress.md, and docs/phases/phase-NN-*.md.
    > Implement only Phase N. Stop when its acceptance criteria pass, then update docs/progress.md.
@@ -20,7 +20,7 @@
    > Read AGENTS.md, docs/phases/phase-NN-*.md, and docs/verification/phase-NN-*.md.
    > Follow the verification guide against the current diff. Do not modify files. Report the verdict.
 
-   A FAIL goes back to the coding agent with the findings.
+   A FAIL goes back to the coding agent as repairs: each one replaces a whole file with a block from the spec, or is a single command.
 3. Commit.
 4. The architect writes or adjusts the next phase spec and its verification guide based on what was actually built.
 

@@ -51,16 +51,22 @@ The coder takes the spec literally and fills every gap with a guess. Remove the 
 - **Behavior as tables** of input to output, including every error case with the exception type and the exact message text.
 - **Algorithms as ordered steps** when the order of checks changes the result.
 - **Numbered requirements** (`R1`, `R2`, ...), one testable statement each. The verification guide refers to these ids.
-- **Tests verbatim.** Give each test file as a complete code block the coder copies unchanged, already passing `ruff check` and `ruff format --check`. A table of test names and assertions is not enough: the coder drops rows, changes fixtures, and rewrites the arrange step. Tables are for data (inputs and outputs), never for code.
-- **Work order.** A numbered list of steps, one file per step, each ending with a command to run and the exact output to expect. The coder does the steps in order and does not start a step until the previous check passes.
+- **Tests verbatim.** Give each test file as a complete code block. When a phase adds tests to an existing file, give the whole file (old tests plus new) and say "replace whole content"; "append" and "edit" are applied badly. A table of test names and assertions is not enough: the coder drops rows, changes fixtures, and rewrites the arrange step. Tables are for data (inputs and outputs), never for code.
+- **Critical modules verbatim.** For a module listed under "Critical modules" in `docs/testing.md`, give the production file as a complete code block too. Ordered steps and tables were not enough: the coder wrote a different algorithm and tests to match it. Keep a short "What the code does" section so a reader can check the block against the intent.
+- **Work order.** A numbered list of steps, one file per step. Each step creates the file, runs `python -m ruff format <that file>`, and then lists checks with the exact output to expect, starting with `python -m ruff format --check <that file>` printing `1 file already formatted`. A copied block often has no final newline, and the formatter is what adds it, so formatting cannot be a later step. The coder does not start a step until the checks of the previous one pass.
+- **Files ruff does not format** (`.toml`, `.md`, `.ini`, `.txt` fixtures): never ask for an edit by hand when one command will do, and give a command that tests the bytes. Final newline, fix and check:
+  `python -c "from pathlib import Path; p = Path('FILE'); b = p.read_bytes(); p.write_bytes(b if b.endswith(b'\n') else b + b'\n')"`
+  `python -c "from pathlib import Path; print(Path('FILE').read_bytes().endswith(b'\n'))"` prints `True`
+- **Progress entry verbatim.** The work order ends by pasting a complete `docs/progress.md` entry given in the spec, with the test count and coverage from the trial run already filled in. The coder replaces only the date. "Record the percentage" is an open choice and gets dropped.
+- **No destructive git.** Every spec's "Out of scope" says: never run `git restore`, `git checkout`, `git reset`, `git stash`, or `git clean`; a mistake in one file is fixed by editing that file. The coder once undid a one-line error by restoring every tracked file.
 - **Before you stop.** The spec ends with a checklist the coder must run and satisfy: format, lint, tests with the **exact** passed count, the scope check, and the progress entry. The coder stops early unless told what finished looks like.
 - **No open choices.** Banned wording: "as appropriate", "or similar", "if needed", "consider", "etc.", "handle errors gracefully". If there are two reasonable designs, pick one and say so.
 - **Out of scope is explicit** and names the tempting next steps the coder must not build.
 - **Dependencies** are listed with version bounds, or the spec says "None new".
 - **Restate the rules that bite** in this phase (integer cents, sign convention, no `metadata.create_all` in tests, no logging of amounts) instead of relying on the coder to recall `AGENTS.md`.
 - **Commands** go one per line with no shell chaining, so they run unchanged in PowerShell (the development platform) and in zsh (the deployment platform). Call tools through the interpreter (`python -m pytest`, `python -m ruff`), since the scripts are not on PATH unless the virtual environment is activated, and say so.
-- **Formatting is a step, not a hope.** The coder runs `python -m ruff format .` and `python -m ruff check --fix .` before the checks. It does not sort imports or end files with a newline by hand.
-- **Trial-run every spec.** Before publishing, follow the spec literally in a throwaway copy outside the repository: every verbatim file must pass format, lint, and tests there, and the counts and coverage figures in the spec come from that run.
+- **Never tell the coder to fix style by hand.** Sorting imports, wrapping lines, and final newlines are done by a command in the step that writes the file.
+- **Trial-run every spec.** Before publishing, follow the published file literally in a throwaway clone outside the repository: extract each code block (without a final newline, as a copy would be), run every command of the work order and the "Before you stop" list, and run the guide's probes and searches. Every exact figure in the spec and the guide (passed counts, files formatted, coverage) comes from that run. Re-run after any edit to the spec.
 
 ## Spec template
 
@@ -97,15 +103,18 @@ R2. ...
 Each test file as a complete code block, to be copied unchanged.
 
 ## Work order
-1. Create <file>. Check: `<command>` ends with `<exact output>`.
+1. Create <file> from the R<n> block. Then run: `python -m ruff format <file>`
+   Checks: `python -m ruff format --check <file>` prints `1 file already formatted`;
+   `<test command>` ends with `<N> passed`.
 2. ...
+N. Add the progress entry given here verbatim (replace only the date).
 
 ## Before you stop
 Every item must be true. If one is not, fix it and run the whole list again.
 - [ ] `python -m ruff check .` prints `All checks passed!`
 - [ ] `python -m ruff format --check .` reports nothing to reformat
 - [ ] `python -m pytest` ends with `<N> passed` (exactly N) and the coverage required
-- [ ] `git status --short` lists exactly: <the files in the Files table> and `docs/progress.md`
+- [ ] `git status --short` lists exactly: <the lines git will print for this phase> and `docs/progress.md`
 - [ ] `docs/progress.md` ends with the entry for this phase (heading given verbatim)
 ```
 
@@ -161,6 +170,10 @@ justified, and within scope.
 ## Verdict
 PASS, or FAIL with one line per finding: requirement id or section, file and line,
 what was expected, what was found.
+
+## If the verdict is FAIL
+A repair sent back to the coder is either the instruction to replace a whole file with a
+block from the spec, or a single command to run. Do not describe an edit in a sentence.
 ```
 
 Rules for writing the guide:
@@ -174,12 +187,14 @@ Rules for writing the guide:
 
 ## After a phase is implemented
 
-1. Read the new `docs/progress.md` entry and the diff. A verifier FAIL goes back to the coder with the findings. Do not rewrite the spec to match a wrong implementation.
+1. Read the new `docs/progress.md` entry and the diff. A verifier FAIL goes back to the coder as repairs, and each repair is either "replace the whole file with block R<n> of the spec" or a single command to run. A sentence describing an edit gets applied as a broken line. Every guide ends with this rule. Do not rewrite the spec to match a wrong implementation.
 2. If the coder struggled, the phase was too large or too loose. Make the following phases smaller or tighter, and turn the cause into a rule in this file. Read the verifier's findings for patterns (work left unfinished, checks not run, given code altered, files touched out of scope), not only for the individual defects.
 3. Revise the next spec's "Starting state" to match what was actually built before handing it over.
 4. Keep the roadmap table and status line current.
 
 ## Handing over
+
+Hand a phase over only from a clean tree: the spec, its verification guide, and any roadmap or skill change must be committed first, and `git status --short` must print nothing. The coder's scope check ("`git status` lists exactly these paths") is impossible otherwise, and a checklist with an impossible item gets ignored. Ask the user to commit, or commit when they have said to.
 
 Report to the user the spec path, the verification guide path, and anything decided on their behalf (splits, design choices, deviations from the roadmap outline). Prompts for the two agents:
 

@@ -2,24 +2,24 @@
 
 ## Goal
 
-Two pure functions that every later phase uses for money: `parse_money` turns text into integer cents, and `format_cents` turns integer cents into display text. Nothing else.
+Two pure functions that every later phase uses for money: `parse_money` turns text into integer cents, and `format_cents` turns integer cents into display text. `domain/money.py` is a critical module (`docs/testing.md`), so both the module and its tests are given below in full. The work is to create the three files exactly and make the checks pass.
 
 ## Read first
 
 - `AGENTS.md`, section "Money and signs"
-- `docs/testing.md` (`domain/money.py` is a critical module: every branch must be covered)
 - `docs/progress.md`
 
 ## Starting state
 
-- Phases 2a and 2b are done: `python -m pytest` runs 16 tests, measures branch coverage, and fails below 85%.
+- Phases 2a and 2b are done and committed. `git status --short` prints nothing.
+- `python -m pytest` ends with `16 passed` and total coverage `98.43%`.
 - `src/finances/domain/` does not exist yet.
 
 ## Files
 
 | Path | Action |
 |---|---|
-| `src/finances/domain/__init__.py` | create, empty |
+| `src/finances/domain/__init__.py` | create, empty (zero bytes) |
 | `src/finances/domain/money.py` | create |
 | `tests/unit/test_money.py` | create |
 
@@ -27,95 +27,56 @@ Do not create or modify any other file, except `docs/progress.md`.
 
 ## Out of scope
 
-A `Money` class, currency conversion, rounding modes, locale formats (`1.234,56`), a `+` sign, enums, dataclasses, database code. Do not add `domain/models.py`.
+- A `Money` class, currency conversion, rounding modes, locale formats (`1.234,56`), a `+` sign, enums, dataclasses, database code, `domain/models.py`.
+- Changing the algorithm, the pattern, the error message, or a test. Do not add `try` / `except`, logging, or extra functions.
+- **Git commands that discard work:** never run `git restore`, `git checkout`, `git reset`, `git stash`, or `git clean`. They undo correct work in other files. A mistake in one file is fixed by editing that file.
 
 ## Dependencies
 
-None new. `money.py` imports only `decimal` and `re` from the standard library.
-
-## Rules that apply here
-
-- Money is an `int` number of cents. `float` must not appear anywhere in `money.py`: no `float(...)`, no `/` division, no `round(...)`.
-- Error messages never contain the input text (`AGENTS.md` privacy rules 4 and 5).
-- No `try` / `except` is needed in `money.py`. The pattern in R1 rejects every invalid input before conversion.
-- No `try` / `except` is needed in `money.py`. The pattern in R1 rejects every invalid input before conversion.
+None new.
 
 ## Requirements
 
+**R1.** `src/finances/domain/__init__.py` exists and is empty.
+
+**R2.** `src/finances/domain/money.py` has exactly this content:
+
 ```python
-def parse_money(text: str) -> int: ...
-def format_cents(cents: int) -> str: ...
+import re
+from decimal import Decimal
+
+_AMOUNT = re.compile(r"(?:[0-9]{1,3}(?:,[0-9]{3})+|[0-9]+)(?:\.[0-9]{1,2})?|\.[0-9]{1,2}")
+
+
+def parse_money(text: str) -> int:
+    """Return integer cents for a money string such as "$1,234.56", "(12.34)" or "12.34-"."""
+    s = text.strip()
+    negative = False
+    if s.startswith("(") and s.endswith(")"):
+        negative = True
+        s = s[1:-1]
+    elif s.endswith("-"):
+        negative = True
+        s = s[:-1]
+    elif s.startswith("-"):
+        negative = True
+        s = s[1:]
+    if s.startswith("$"):
+        s = s[1:]
+    if _AMOUNT.fullmatch(s) is None:
+        raise ValueError("invalid money text")
+    cents = int(Decimal(s.replace(",", "")) * 100)
+    return -cents if negative else cents
+
+
+def format_cents(cents: int) -> str:
+    """Return display text for integer cents: 123456 -> "$1,234.56", -1234 -> "-$12.34"."""
+    dollars, rest = divmod(abs(cents), 100)
+    sign = "-" if cents < 0 else ""
+    return f"{sign}${dollars:,}.{rest:02d}"
 ```
 
-### `parse_money`
-
-**R1.** Follow these steps in this order.
-
-1. `s = text.strip()`
-2. Detect at most one negative marker, using `if` / `elif` / `elif` in this order:
-   - if `s` starts with `(` and ends with `)`: negative, remove both characters;
-   - otherwise, if `s` ends with `-`: negative, remove the last character;
-   - otherwise, if `s` starts with `-`: negative, remove the first character.
-3. If `s` now starts with `$`, remove that one character.
-4. `s` must now match this pattern completely (`re.fullmatch`), otherwise raise `ValueError("invalid money text")`:
-
-   ```python
-   _AMOUNT = re.compile(r"(?:[0-9]{1,3}(?:,[0-9]{3})+|[0-9]+)(?:\.[0-9]{1,2})?|\.[0-9]{1,2}")
-   ```
-
-5. Remove the commas, then `cents = int(Decimal(s) * 100)`. Return `-cents` if negative, else `cents`.
-
-Nothing is stripped after step 1, so whitespace inside the text is an error.
-
-**R2.** Valid inputs:
-
-| Input | Result |
-|---|---|
-| `"12.34"` | `1234` |
-| `"-12.34"` | `-1234` |
-| `"$1,234.56"` | `123456` |
-| `"(12.34)"` | `-1234` |
-| `"12.34-"` | `-1234` |
-| `"  7 "` | `700` |
-| `"-$12.34"` | `-1234` |
-| `"($1,234.56)"` | `-123456` |
-| `"$12.34-"` | `-1234` |
-| `"0"` | `0` |
-| `"-0.00"` | `0` |
-| `".5"` | `50` |
-| `"12.3"` | `1230` |
-| `"1.15"` | `115` |
-| `"1,000,000.00"` | `100000000` |
-
-**R3.** Each of these 22 inputs raises `ValueError`:
-
-`""`, `"   "`, `"abc"`, `"12.345"`, `"12."`, `"1,23.45"`, `"1234,567"`, `"$"`, `"-"`, `"--5"`, `"(5"`, `"5)"`, `"(-5)"`, `"-5-"`, `"$-5"`, `"$$5"`, `"+5"`, `"1 000"`, `"$ 5"`, `"- 5"`, `"1e3"`, `"NaN"`
-
-**R4.** The exception message is exactly `invalid money text` for every invalid input. It does not include the input.
-
-**R5.** Only ASCII digits `0` to `9` are accepted. The pattern uses `[0-9]`, never `\d`.
-
-**R6.** The return value is an `int` (`type(result) is int`).
-
-### `format_cents`
-
-**R7.** Format is an optional leading `-`, then `$`, then dollars with `,` thousands separators, then `.`, then exactly two cent digits. Compute dollars and cents with `divmod(abs(cents), 100)`.
-
-| Input | Result |
-|---|---|
-| `123456` | `"$1,234.56"` |
-| `-1234` | `"-$12.34"` |
-| `0` | `"$0.00"` |
-| `5` | `"$0.05"` |
-| `-5` | `"-$0.05"` |
-| `100` | `"$1.00"` |
-| `100000000` | `"$1,000,000.00"` |
-
-**R8.** Round trip: `parse_money(format_cents(n)) == n` for every `n` in `[0, 1, -1, 99, -99, 100, 12345, -12345, 100000000]`.
-
-## Tests
-
-Create `tests/unit/test_money.py` with **exactly** this content. Copy it unchanged: do not rename, add, remove, or reorder tests, and do not change a value.
+**R3.** `tests/unit/test_money.py` has exactly this content:
 
 ```python
 import pytest
@@ -188,28 +149,120 @@ def test_round_trip(n: int) -> None:
     assert parse_money(format_cents(n)) == n
 ```
 
-If a test fails, the bug is in `money.py`. Fix `money.py`. Never change the test file to make a test pass.
+**R4.** Do not change either block. If a test fails, the copy of `money.py` is wrong: replace the whole file with the R2 block again.
+
+**R5.** `python -m pytest` ends with `72 passed`, and the coverage table shows `src/finances/domain/money.py` at `100%`.
+
+## What the code does
+
+This section explains R2. It is not a second set of instructions.
+
+- Money is an `int` number of cents. `float` never appears: no `float(...)`, no `/` division, no `round(...)`.
+- The error message is the constant `invalid money text`. It never contains the input (`AGENTS.md` privacy rules 4 and 5).
+- Only ASCII digits are accepted: the pattern uses `[0-9]`, not `\d`.
+
+### `parse_money`
+
+The code follows these steps in this order.
+
+1. `s = text.strip()`
+2. Detect at most one negative marker, using `if` / `elif` / `elif` in this order:
+   - if `s` starts with `(` and ends with `)`: negative, remove both characters;
+   - otherwise, if `s` ends with `-`: negative, remove the last character;
+   - otherwise, if `s` starts with `-`: negative, remove the first character.
+3. If `s` now starts with `$`, remove that one character.
+4. `s` must now match this pattern completely (`re.fullmatch`), otherwise raise `ValueError("invalid money text")`:
+
+   ```python
+   _AMOUNT = re.compile(r"(?:[0-9]{1,3}(?:,[0-9]{3})+|[0-9]+)(?:\.[0-9]{1,2})?|\.[0-9]{1,2}")
+   ```
+
+5. Remove the commas, then `cents = int(Decimal(s) * 100)`. Return `-cents` if negative, else `cents`.
+
+Nothing is stripped after step 1, so whitespace inside the text is an error.
+
+Valid inputs:
+
+| Input | Result |
+|---|---|
+| `"12.34"` | `1234` |
+| `"-12.34"` | `-1234` |
+| `"$1,234.56"` | `123456` |
+| `"(12.34)"` | `-1234` |
+| `"12.34-"` | `-1234` |
+| `"  7 "` | `700` |
+| `"-$12.34"` | `-1234` |
+| `"($1,234.56)"` | `-123456` |
+| `"$12.34-"` | `-1234` |
+| `"0"` | `0` |
+| `"-0.00"` | `0` |
+| `".5"` | `50` |
+| `"12.3"` | `1230` |
+| `"1.15"` | `115` |
+| `"1,000,000.00"` | `100000000` |
+
+Each of these 22 inputs raises `ValueError`:
+
+`""`, `"   "`, `"abc"`, `"12.345"`, `"12."`, `"1,23.45"`, `"1234,567"`, `"$"`, `"-"`, `"--5"`, `"(5"`, `"5)"`, `"(-5)"`, `"-5-"`, `"$-5"`, `"$$5"`, `"+5"`, `"1 000"`, `"$ 5"`, `"- 5"`, `"1e3"`, `"NaN"`
+
+The exception message is exactly `invalid money text` for every invalid input. It does not include the input.
+
+Only ASCII digits `0` to `9` are accepted. The pattern uses `[0-9]`, never `\d`.
+
+The return value is an `int` (`type(result) is int`).
+
+### `format_cents`
+
+Format is an optional leading `-`, then `$`, then dollars with `,` thousands separators, then `.`, then exactly two cent digits. Compute dollars and cents with `divmod(abs(cents), 100)`.
+
+| Input | Result |
+|---|---|
+| `123456` | `"$1,234.56"` |
+| `-1234` | `"-$12.34"` |
+| `0` | `"$0.00"` |
+| `5` | `"$0.05"` |
+| `-5` | `"-$0.05"` |
+| `100` | `"$1.00"` |
+| `100000000` | `"$1,000,000.00"` |
+
+Round trip: `parse_money(format_cents(n)) == n` for every `n` in `[0, 1, -1, 99, -99, 100, 12345, -12345, 100000000]`.
 
 ## Work order
 
-Activate the virtual environment first, so `python` is the project's interpreter. Run each command on its own line. Do not start a step until the check of the previous step passes.
+Activate the virtual environment first, so `python` is the project's interpreter. Run each command on its own line. Do not start a step until every check of the previous step passes.
 
-1. Create `src/finances/domain/__init__.py` as an empty file.
-2. Create `tests/unit/test_money.py` from the block above.
-   Check: `python -m pytest tests/unit/test_money.py --no-cov` fails with an import error for `finances.domain.money`. That is expected at this step.
-3. Create `src/finances/domain/money.py` with `parse_money` (R1 to R6) and `format_cents` (R7).
-   Check: `python -m pytest tests/unit/test_money.py --no-cov` ends with `56 passed`.
-4. Run `python -m ruff format .` and then `python -m ruff check --fix .`.
-5. Append the entry to `docs/progress.md` using its template, with the heading `## Phase 2c: Money helpers (YYYY-MM-DD)` and today's date.
+A block copied from this spec may end without a final newline. That is why each step runs the formatter on the file it just wrote: `ruff format` adds the newline. Never skip it.
+
+1. Create the folder `src/finances/domain/` and an empty file `src/finances/domain/__init__.py`.
+   Check: `python -c "import finances.domain"` prints nothing and reports no error.
+2. Create `src/finances/domain/money.py` from the R2 block. Then run:
+   `python -m ruff format src/finances/domain/money.py`
+   Checks:
+   - `python -m ruff format --check src/finances/domain/money.py` prints `1 file already formatted`
+   - `python -m ruff check src/finances/domain/money.py` prints `All checks passed!`
+3. Create `tests/unit/test_money.py` from the R3 block. Then run:
+   `python -m ruff format tests/unit/test_money.py`
+   Checks:
+   - `python -m ruff format --check tests/unit/test_money.py` prints `1 file already formatted`
+   - `python -m pytest tests/unit/test_money.py --no-cov` ends with `56 passed`
+4. Run `python -m ruff check .`
+   Check: it prints `All checks passed!`
+5. Add this entry at the end of `docs/progress.md`, after one blank line. Copy it, and replace `YYYY-MM-DD` with today's date. If you did anything this spec did not ask for, describe it on the "Deviations" line in place of `None`.
+
+```markdown
+## Phase 2c: Money helpers (YYYY-MM-DD)
+- Built: `src/finances/domain/money.py` with `parse_money` and `format_cents`, and `tests/unit/test_money.py`. 72 tests pass. `money.py` coverage: 100%. TOTAL coverage: 98.77%.
+- Deviations from spec (and why): None
+- Follow-ups / known issues: None
+```
 
 ## Before you stop
 
-Every item must be true. If one is not, fix it and run the whole list again.
+Every item must be true. If one is not, fix it by editing that file, then run the whole list again.
 
 - [ ] `python -m ruff check .` prints `All checks passed!`
-- [ ] `python -m ruff format --check .` reports no file to reformat
-- [ ] `python -m pytest` ends with `72 passed` (exactly 72: the 16 that exist after Phase 2b plus 56 new)
-- [ ] In the coverage table, the row for `src/finances/domain/money.py` shows `100%` with nothing under `Missing`
-- [ ] `git status --short` lists only `src/finances/domain/` (holding `__init__.py` and `money.py`), `tests/unit/test_money.py`, and `docs/progress.md`
-- [ ] `tests/unit/test_money.py` is still identical to the block in this spec
-- [ ] `docs/progress.md` ends with the `## Phase 2c: Money helpers` entry, with all three template lines filled in
+- [ ] `python -m ruff format --check .` prints `18 files already formatted`
+- [ ] `python -m pytest` ends with `72 passed` (exactly 72: the 16 from Phase 2b plus 56 new)
+- [ ] The `python -m pytest` output contains `Total coverage: 98.77%`, and the row for `src/finances/domain/money.py` shows `100%`
+- [ ] `git status --short` lists exactly these three lines and nothing else: `docs/progress.md`, `src/finances/domain/`, `tests/unit/test_money.py`
+- [ ] `docs/progress.md` ends with the `## Phase 2c: Money helpers` entry
