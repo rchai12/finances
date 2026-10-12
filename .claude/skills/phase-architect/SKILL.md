@@ -67,7 +67,9 @@ The coder takes the spec literally and fills every gap with a guess. Remove the 
 
 ## Spec template
 
-Save as `docs/phases/phase-NN[x]-<slug>.md`. `docs/phases/phase-02c-format-cents.md` and `docs/phases/phase-02d-parse-money.md` are the models to copy.
+Save as `docs/phases/phase-NN[x]-<slug>.md`. Models to copy: `docs/phases/phase-02d-parse-money.md` for a function, and `docs/phases/phase-02e-account-model.md` for a class (the stub is the class shell with its docstring, and each group of members gets its own Code step followed by a test run selected with `-k`).
+
+This format is confirmed: the coder completed 2c and 2d with it, writing both function bodies itself.
 
 ````markdown
 # Phase NNx: <unit>

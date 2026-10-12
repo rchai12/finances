@@ -35,3 +35,8 @@ Template:
 - Built: `parse_money` in `src/finances/domain/money.py`, with the full money tests in `tests/unit/test_money.py`. 89 tests pass. `money.py` coverage: 100%.
 - Deviations from spec (and why): None
 - Follow-ups / known issues: None
+
+## Phase 2e: AccountType and Account (2026-10-12)
+- Built: `AccountType` and `Account` in `src/finances/domain/models.py`, and `tests/unit/test_models.py`. 102 tests pass. `models.py` coverage: 100%.
+- Deviations from spec (and why): None
+- Follow-ups / known issues: None
