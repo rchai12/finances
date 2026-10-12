@@ -39,7 +39,8 @@ A phase asks the coder to write **two or three related units** in one source fil
 - 2g: two Code steps, eight requirements, a new dependency, four files, 23 steps, easy code. Passed at the first attempt. **This is the standard size now**: two or three related units, 18 to 25 steps.
 - 2h: the same size with harder logic (branches, side effects, a real temporary database) and "library facts" in place of a suggested approach. Passed at the first attempt. Library facts without a recipe are now the default.
 - 2i: a second library the coder has not used here (Alembic), 24 steps, the given tests compare the result with the ORM class. Passed at the first attempt.
-- 2j: three Code steps in one file, a private helper allowed, 23 steps. Result pending.
+- 2j: three Code steps in one file, a private helper allowed, 23 steps. **Failed the first verification, passed after one repair round.** The functions behaved correctly. The misses were: a requirement no test checked (dispose every engine), dead code written for a "do nothing" requirement (re-raising an error another function already raises), and the closing full-test step skipped, so 92% coverage of the module went unnoticed. The size was not the cause; the three rules below marked "from 2j" are.
+- 2k: two Code steps, eight requirements, every one tested, and a per-module coverage step. Result pending.
 
 Do not push the step count past about 25: the failures so far were process slips, which grow with length. Push difficulty and reduce guidance instead. If a phase fails, note which dimension broke (number of steps, number of units, number of files, a new kind of step, or missing guidance) and go back one size on that dimension only.
 
@@ -59,6 +60,11 @@ The coder takes the spec literally and fills every gap with a guess. Remove the 
 - **Red, then green.** The order is: write the tests, format them, write the stub, run the tests and expect the exact failure count, Code, format, run the tests and expect the exact passed count.
 - **Format right after each write.** Every step that writes or changes a Python file is followed by a Run step `.venv/bin/python -m ruff format <file>`. A copied block often has no final newline, and the formatter is what adds it.
 - **Closing checks are steps too.** The last steps are, in order: `.venv/bin/python -m ruff format .` (the safety net that repairs a skipped per-file format), `.venv/bin/python -m ruff format --check .`, `.venv/bin/python -m ruff check .`, `.venv/bin/python -m pytest`, any rule search (`git grep`) with "no output" expected, and `git status --short` with the exact lines expected. A separate "Before you stop" checklist was ignored twice, so there is none.
+- **No requirement without a given test (from 2j).** The coder satisfies what the tests check and misses what only a reader would check. For each numbered requirement, name the test that fails when it is broken. If no test can express it, either make it testable (spy on the call, count the rows afterwards, read the source in a test) or drop it. Say in the spec that every requirement is tested and that nothing beyond them is wanted.
+- **No "do nothing" requirements (from 2j).** A requirement of the form "X already happens elsewhere; do not handle it" is read as "handle X", and produces unreachable code. State it as a fact in the facts list ("`get_engine` raises this error for you") and keep it out of the numbered requirements.
+- **A coverage step for the unit, with one line to look for (from 2j).** Right after the unit's tests pass, and again among the closing steps, add:
+  `.venv/bin/python -m pytest <test file> -o addopts="" --import-mode=importlib --cov=<dotted module> --cov-branch --cov-report=term-missing --cov-fail-under=100`
+  with `Expect: the output contains "Required test coverage of 100% reached"`. A percentage in one row of a long table gets overlooked; a single pass or fail line does not. The repair is "delete the lines listed under Missing": unreached lines are code no requirement asked for.
 - **Guard against the fixed answer.** When today's correct result is a constant (the newest migration is `"0001"`), a body that returns the constant passes. Add a test that changes the input the function should read (point a module constant at a temporary folder with different content) and say in the requirement that a fixed value is wrong.
 - **Stub before fixtures.** When a shared fixture in `tests/conftest.py` imports a new module, the step that writes that module's stub comes first. Otherwise every test in the project fails to collect.
 - **Search steps must not match given text.** Run each `git grep` step against the stub: a pattern that matches a given docstring fails on a correct implementation.
@@ -118,8 +124,9 @@ Type every command exactly as written, starting with `.venv/bin/python`. Do not 
 ### Step 5: Code       replace `raise NotImplementedError` with your implementation
 ### Step 6: Run        format the source file
 ### Step 7: Run        the tests; expect `<N> passed`
-### Step 8: Write      the progress entry, given in full
-### Steps 9 onward     format all, format check, lint, full tests, rule searches, git status
+### Step 8: Run        coverage of the unit's module; expect `Required test coverage of 100% reached`
+### Step 9: Write      the progress entry, given in full
+### Steps 10 onward    format all, format check, lint, full tests, unit coverage again, rule searches, git status
 
 ## If a Run step prints something else
 | Step | Do this, then run the step again |

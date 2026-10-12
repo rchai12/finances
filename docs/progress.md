@@ -60,3 +60,8 @@ Template:
 - Built: Alembic dependency; `src/finances/db/migrations/env.py`; migration `0001` creating the `accounts` table; `tests/integration/test_migrations.py`. 208 tests pass.
 - Deviations from spec (and why): None
 - Follow-ups / known issues: None
+
+## Phase 2j: running migrations from code (2026-10-12)
+- Built: `head_revision`, `upgrade_to_head`, and `current_revision` in `src/finances/db/migrate.py`; `db_url` and `db_engine` fixtures in `tests/conftest.py`; `tests/integration/test_migrate.py`. 228 tests pass. `migrate.py` coverage: 100%.
+- Deviations from spec (and why): None
+- Follow-ups / known issues: None
