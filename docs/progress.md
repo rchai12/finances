@@ -25,3 +25,8 @@ Template:
 - Built: three tests for untested Phase 1 branches (`mask_url` with a port, `mask_url` with an IPv6 host, `fin doctor` exit code 1), and the final newline of `pyproject.toml`. 16 tests pass. TOTAL coverage: 98.43%.
 - Deviations from spec (and why): None
 - Follow-ups / known issues: None
+
+## Phase 2c: format_cents (2026-10-12)
+- Built: `format_cents` in `src/finances/domain/money.py`, and `tests/unit/test_money.py`. 30 tests pass. `money.py` coverage: 100%.
+- Deviations from spec (and why): None
+- Follow-ups / known issues: None
