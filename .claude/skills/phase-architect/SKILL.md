@@ -26,19 +26,21 @@ The local coder is a weak model. It implements badly when a phase is large, bund
 
 A phase is one concept the coder can finish in one session. Split it when it exceeds any of these limits:
 
-- 3 new source modules, or 5 source files touched in total (tests and fixtures not counted)
+- 3 files created or modified in total, tests included (`docs/progress.md` not counted)
 - about 300 lines of new production code
 - 1 Alembic migration
 - 1 new dependency
 - 1 CLI command group (a few subcommands of the same noun)
-- 12 numbered requirements
+- 6 numbered requirements
+
+The file limit has no exception for files given verbatim: the first attempt at a five-file phase stopped after three files.
 - about 150 lines of spec
 
 Also split when a phase mixes layers that can be built and tested separately (for example domain helpers, then ORM and migration, then repositories, then CLI), or when one part is risky enough that it deserves its own review.
 
 Order sub-phases so each ends in a state where `ruff check .`, `ruff format --check .`, and `pytest` pass, and each depends only on phases before it.
 
-**Numbering.** Roadmap numbers are referenced from `AGENTS.md`, `docs/testing.md`, and other specs, so never renumber. A removed phase keeps its number. Split a roadmap phase into lettered sub-phases: `phase-02a-test-infrastructure.md`, `phase-02b-money-helpers.md`. List the sub-phases in the roadmap under the parent number, and delete the superseded parent spec once its sub-phases cover it.
+**Numbering.** Roadmap numbers are referenced from `AGENTS.md`, `docs/testing.md`, and other specs, so never renumber. A removed phase keeps its number. Split a roadmap phase into lettered sub-phases: `phase-02a-coverage-gate.md`, `phase-02c-money-helpers.md`. List the sub-phases in the roadmap under the parent number, and delete the superseded parent spec once its sub-phases cover it.
 
 ## Precision rules for specs
 
@@ -49,13 +51,16 @@ The coder takes the spec literally and fills every gap with a guess. Remove the 
 - **Behavior as tables** of input to output, including every error case with the exception type and the exact message text.
 - **Algorithms as ordered steps** when the order of checks changes the result.
 - **Numbered requirements** (`R1`, `R2`, ...), one testable statement each. The verification guide refers to these ids.
-- **Named tests.** List each test file and the cases it must contain, tied to requirement ids. State the fixture files and their required content.
+- **Tests verbatim.** Give each test file as a complete code block the coder copies unchanged, already passing `ruff check` and `ruff format --check`. A table of test names and assertions is not enough: the coder drops rows, changes fixtures, and rewrites the arrange step. Tables are for data (inputs and outputs), never for code.
+- **Work order.** A numbered list of steps, one file per step, each ending with a command to run and the exact output to expect. The coder does the steps in order and does not start a step until the previous check passes.
+- **Before you stop.** The spec ends with a checklist the coder must run and satisfy: format, lint, tests with the **exact** passed count, the scope check, and the progress entry. The coder stops early unless told what finished looks like.
 - **No open choices.** Banned wording: "as appropriate", "or similar", "if needed", "consider", "etc.", "handle errors gracefully". If there are two reasonable designs, pick one and say so.
 - **Out of scope is explicit** and names the tempting next steps the coder must not build.
 - **Dependencies** are listed with version bounds, or the spec says "None new".
 - **Restate the rules that bite** in this phase (integer cents, sign convention, no `metadata.create_all` in tests, no logging of amounts) instead of relying on the coder to recall `AGENTS.md`.
-- **Commands** in acceptance criteria go one per line with no shell chaining, so they run unchanged in PowerShell (the development platform) and in zsh (the deployment platform).
-- **Check your own tables.** Where the spec gives input and output values, run them through a throwaway reference implementation before publishing, outside the repository.
+- **Commands** go one per line with no shell chaining, so they run unchanged in PowerShell (the development platform) and in zsh (the deployment platform). Call tools through the interpreter (`python -m pytest`, `python -m ruff`), since the scripts are not on PATH unless the virtual environment is activated, and say so.
+- **Formatting is a step, not a hope.** The coder runs `python -m ruff format .` and `python -m ruff check --fix .` before the checks. It does not sort imports or end files with a newline by hand.
+- **Trial-run every spec.** Before publishing, follow the spec literally in a throwaway copy outside the repository: every verbatim file must pass format, lint, and tests there, and the counts and coverage figures in the spec come from that run.
 
 ## Spec template
 
@@ -89,13 +94,19 @@ R2. ...
 (signatures in code blocks, behavior in tables)
 
 ## Tests
-Per test file: the cases, each naming the requirement it covers.
+Each test file as a complete code block, to be copied unchanged.
 
-## Acceptance criteria
-Commands, one per line, and the expected result of each.
+## Work order
+1. Create <file>. Check: `<command>` ends with `<exact output>`.
+2. ...
 
-## Done
-Append the entry to `docs/progress.md` using its template.
+## Before you stop
+Every item must be true. If one is not, fix it and run the whole list again.
+- [ ] `python -m ruff check .` prints `All checks passed!`
+- [ ] `python -m ruff format --check .` reports nothing to reformat
+- [ ] `python -m pytest` ends with `<N> passed` (exactly N) and the coverage required
+- [ ] `git status --short` lists exactly: <the files in the Files table> and `docs/progress.md`
+- [ ] `docs/progress.md` ends with the entry for this phase (heading given verbatim)
 ```
 
 ## Verification guide
@@ -164,7 +175,7 @@ Rules for writing the guide:
 ## After a phase is implemented
 
 1. Read the new `docs/progress.md` entry and the diff. A verifier FAIL goes back to the coder with the findings. Do not rewrite the spec to match a wrong implementation.
-2. If the coder struggled, the phase was too large or too loose. Make the following phases smaller or tighter.
+2. If the coder struggled, the phase was too large or too loose. Make the following phases smaller or tighter, and turn the cause into a rule in this file. Read the verifier's findings for patterns (work left unfinished, checks not run, given code altered, files touched out of scope), not only for the individual defects.
 3. Revise the next spec's "Starting state" to match what was actually built before handing it over.
 4. Keep the roadmap table and status line current.
 

@@ -1,18 +1,18 @@
-# Verify Phase 2b: Money helpers
+# Verify Phase 2c: Money helpers
 
-Spec: `docs/phases/phase-02b-money-helpers.md`
+Spec: `docs/phases/phase-02c-money-helpers.md`
 
 Do not modify any file in the repository. Report findings only. The work under review is normally uncommitted, so "the diff" means `git status --short` plus `git diff HEAD`.
 
 ## 1. Gates
 
-Run each command on its own line.
+Activate the virtual environment first, then run each command on its own line.
 
 | Command | Expected |
 |---|---|
-| `ruff check .` | no problems |
-| `ruff format --check .` | no files would be reformatted |
-| `pytest` | exit code 0, at least 72 tests passed, 0 skipped, 0 xfailed, `TOTAL` at least 85% |
+| `python -m ruff check .` | `All checks passed!` |
+| `python -m ruff format --check .` | no files would be reformatted |
+| `python -m pytest` | exit code 0, exactly 72 passed, 0 skipped, 0 xfailed, `TOTAL` at least 85% |
 
 In the coverage table, the row for `src/finances/domain/money.py` must show 100% and an empty `Missing` column. Anything less is a FAIL, because this is a critical module (`docs/testing.md`).
 
@@ -112,15 +112,11 @@ print("FAILURES", failures)
 
 ## 5. Test quality
 
-Read `tests/unit/test_money.py`.
+The spec gives `tests/unit/test_money.py` verbatim, so this section is a comparison, not a judgment.
 
-- The seven tests named in the spec exist with exactly those names, and there are no others.
-- `test_parse_money_valid` is parametrized over all 15 rows of the spec's R2 table, with the exact expected integers.
-- `test_parse_money_invalid` is parametrized over all 22 inputs of R3 and uses `pytest.raises(ValueError)`, not `pytest.raises(Exception)`.
-- `test_parse_money_error_does_not_echo_input` compares the message with `==`.
-- `test_format_cents` covers all 7 rows of R7; `test_round_trip` covers the 9 values of R8.
-- Expected values are written as integer literals. No expected value is computed by calling the function under test, and no test contains a float literal used as money (`12.34` appears only inside strings).
-- No `skip`, `xfail`, `assert True`, or `# pragma: no cover` in the test file or in `money.py`.
+- Compare `tests/unit/test_money.py` with the code block under "Tests" in the spec. They must be identical apart from trailing whitespace. Report every differing line, and treat any changed value, renamed test, removed parameter, added `skip` or `xfail`, or added test as a FAIL.
+- `python -m pytest tests/unit/test_money.py --no-cov` ends with exactly `56 passed`.
+- `money.py` contains no `# pragma: no cover`.
 
 ## 6. Project rules that apply to this phase
 
@@ -132,7 +128,7 @@ Read `tests/unit/test_money.py`.
 
 ## 7. Progress log
 
-`docs/progress.md` ends with an entry headed `## Phase 2b: Money helpers (YYYY-MM-DD)`. Any deviation it lists must not change a signature, the pattern, the error message, or the file list. Earlier entries are unchanged.
+`docs/progress.md` ends with an entry headed `## Phase 2c: Money helpers (YYYY-MM-DD)`. Any deviation it lists must not change a signature, the pattern, the error message, or the file list. Earlier entries are unchanged.
 
 ## Verdict
 

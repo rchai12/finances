@@ -1,6 +1,6 @@
 # Phase 2: Database and accounts
 
-> **Superseded draft. Do not implement.** Phase 2 is being re-issued as sub-phases 2a to 2g (see `docs/roadmap.md`). This file is kept as source material until they are all written.
+> **Superseded draft. Do not implement.** Phase 2 is being re-issued as sub-phases 2a to 2h (see `docs/roadmap.md`). This file is kept as source material until they are all written.
 
 ## Goal
 

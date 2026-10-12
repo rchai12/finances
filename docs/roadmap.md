@@ -39,13 +39,14 @@ Verification guides have the same file name under `verification/`.
 
 | # | Sub-phase | Outcome | Spec |
 |---|---|---|---|
-| 2a | Test infrastructure and coverage gate | `pytest-cov`, 85% branch gate, `tmp_settings` fixture, Phase 1 gaps tested | [phase-02a](phases/phase-02a-test-infrastructure.md) |
-| 2b | Money helpers | `parse_money`, `format_cents` | [phase-02b](phases/phase-02b-money-helpers.md) |
-| 2c | Account model, ORM, engine | `AccountType`, `Account`, `accounts` ORM table, engine and `session_scope` | to be written after 2b is built |
-| 2d | Alembic and first migration | `0001` creates `accounts`; `upgrade_to_head`; `db_session` fixture | to be written |
-| 2e | Account repositories | create, get by name, find by last4, list | to be written |
-| 2f | `fin db upgrade` | Command plus the `fin doctor` schema check | to be written |
-| 2g | `fin accounts add/list` | The two commands | to be written |
+| 2a | Coverage gate and shared fixture | `pytest-cov`, 85% branch gate, `tmp_settings` fixture, diagnostics tests | [phase-02a](phases/phase-02a-coverage-gate.md) |
+| 2b | Tests for Phase 1 gaps | `mask_url` with a port and an IPv6 host; `fin doctor` exit code 1 | [phase-02b](phases/phase-02b-phase1-gap-tests.md) |
+| 2c | Money helpers | `parse_money`, `format_cents` | [phase-02c](phases/phase-02c-money-helpers.md) |
+| 2d | Account model, ORM, engine | `AccountType`, `Account`, `accounts` ORM table, engine and `session_scope` | to be written after 2c is built |
+| 2e | Alembic and first migration | `0001` creates `accounts`; `upgrade_to_head`; `db_session` fixture | to be written |
+| 2f | Account repositories | create, get by name, find by last4, list | to be written |
+| 2g | `fin db upgrade` | Command plus the `fin doctor` schema check | to be written |
+| 2h | `fin accounts add/list` | The two commands | to be written |
 
 Phase 2 now creates only the `accounts` table. `import_batches`, `transactions`, and `balance_snapshots` each arrive with their own migration in the Phase 3 sub-phase that first uses them, so their columns can account for the aggregator feed.
 
