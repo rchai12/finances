@@ -26,14 +26,20 @@ The local coder is a weak model. It implements badly when a phase is large, bund
 
 ## Sizing a phase
 
-A phase asks the coder to write **one unit**: one function, one class or dataclass, one ORM table, one migration, or one CLI command. Split until that is true. Further limits:
+A phase asks the coder to write **two or three related units** in one source file: functions, a class, an ORM table, a migration, or CLI commands. Each unit gets its own Code step, followed by a test run that selects that unit's tests with `-k`. Further limits:
 
-- 3 files created or modified, tests included (`docs/progress.md` not counted). There is no exception for files given in full: an attempt at a five-file phase stopped after three.
-- 5 numbered requirements, each one sentence with an example
+- 4 files created or modified, tests included (`docs/progress.md` not counted), of which the coder writes code in one.
+- 8 numbered requirements, each one or two sentences, grouped by unit ("Part 1", "Part 2")
 - 1 new dependency
 - about 150 lines of spec, not counting the test block
 
-**Finding the limit (the user's request).** These limits are the size that is known to work (2c to 2f: one unit, about 15 steps). Phase 2g raises the load on purpose: two Code steps, eight requirements, a new dependency, four files, 23 steps. Raise the load in one phase at a time and read the verifier's "Steps skipped or out of order" line. If the larger phase passes at the first attempt, make that size the new normal and try the next increase (three units, or logic with more branches). If it fails, note which dimension broke (number of steps, number of units, number of files, or a new kind of step) and go back one size on that dimension only.
+**Finding the limit (the user's request).** Raise the load in one phase at a time and read the verifier's "Steps skipped or out of order" line. Results so far:
+
+- 2c to 2f: one unit, about 15 steps. Passed.
+- 2g: two Code steps, eight requirements, a new dependency, four files, 23 steps, easy code. Passed at the first attempt. **This is the standard size now**: two or three related units, 18 to 25 steps.
+- 2h: the same size with harder logic (branches, side effects, a real temporary database) and "library facts" in place of a suggested approach. Result pending.
+
+Do not push the step count past about 25: the failures so far were process slips, which grow with length. Push difficulty and reduce guidance instead. If a phase fails, note which dimension broke (number of steps, number of units, number of files, a new kind of step, or missing guidance) and go back one size on that dimension only.
 
 Order sub-phases so each ends with format, lint, and tests passing, and each depends only on phases before it. Start a new area with its easiest unit, so the first attempt is a fair one.
 
@@ -45,7 +51,7 @@ The coder takes the spec literally and fills every gap with a guess. Remove the 
 
 - **Exact paths** for every file to create or modify, and a closed list of files the coder may touch.
 - **The contract is the test file.** Give each test file as a complete code block, and make it the full definition of correct: every accepted and rejected input, every rule that a test can express (an input that breaks a `float` implementation, a constant error message, a return type). When a phase adds tests to an existing file, give the whole file and say "replace whole content"; "append" and "edit" are applied badly. The coder may never change a test.
-- **The unit is the coder's.** Give the exact signature and docstring as a stub that raises `NotImplementedError`, a few numbered requirements (`R1`, `R2`, ...) in plain sentences with examples, and the hard rules a test cannot express. A "Suggested approach" is welcome when the order of checks matters, marked as optional. Do not give the body.
+- **The unit is the coder's.** Give the exact signature and docstring as a stub that raises `NotImplementedError`, a few numbered requirements (`R1`, `R2`, ...) in plain sentences with examples, and the hard rules a test cannot express. Do not give the body. When the code needs a library's API, list "facts you will need" (what a call returns, the shape of a callback), not an ordered recipe; a "Suggested approach" is the fallback for a second attempt.
 - **No open choices outside the body.** Names, paths, messages, exit codes, table and column names are all fixed by the spec. Banned wording: "as appropriate", "or similar", "if needed", "consider", "etc.", "handle errors gracefully".
 - **Steps, one action each.** The body of a spec is a `## Steps` section of headings `### Step N: Write`, `### Step N: Code`, and `### Step N: Run`. A Write step creates or replaces one file from the block it holds, unindented. A Code step is the one place the coder writes code: "replace the line `raise NotImplementedError` with your implementation". A Run step holds one command in backticks on its own line, then `Expect:` with the exact output. Never put two actions in one step: the coder does the first and treats the rest as commentary.
 - **Red, then green.** The order is: write the tests, format them, write the stub, run the tests and expect the exact failure count, Code, format, run the tests and expect the exact passed count.
@@ -211,7 +217,7 @@ Before a spec is published, follow it literally in a throwaway clone. The script
 3. From the clone root, with `PYTHONPATH` set to the clone's `src`, run `python follow_spec.py <spec.md> <code step>=<reference file>` using the project's virtual-environment interpreter.
 4. Compare each printed line with the step's "Expect". Copy the exact figures (failed and passed counts, files formatted, `git status` lines) into the spec and the verification guide.
 5. Run it again with the per-file format steps skipped (`skip=3,7`) to confirm the whole-repository format step repairs them.
-6. Check that the given tests reject a plausible wrong implementation (for money code, one that uses `float`; for a parser, one that trusts a library to reject bad input). If it passes the tests, add the inputs that expose it to the test file.
+6. Check that the given tests reject plausible wrong implementations, one per requirement (for money code, one that uses `float`; for a parser, one that trusts a library to reject bad input; for a transaction scope, ones that always commit, swallow the error, or never close). If one passes the tests, add the case that exposes it to the test file. When swapping implementations in the clone, delete the module's `.pyc` first: two files of the same size written in the same second share a cache entry, and the old code runs.
 7. Run the verification guide's probe script against the reference implementation and the wrong one, and run the guide's searches. Then delete the clone.
 
 The block is fenced as `text` so that `ruff` leaves it alone.

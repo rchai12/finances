@@ -46,7 +46,8 @@ Verification guides have the same file name under `verification/`.
 | 2e | `AccountType` and `Account` | The account enum and frozen dataclass in `domain/models.py` | [phase-02e](phases/phase-02e-account-model.md) |
 | 2f | `validate_last4` | Accepts `None` or exactly four ASCII digits | [phase-02f](phases/phase-02f-validate-last4.md) |
 | 2g | `accounts` table and `to_account` | SQLAlchemy dependency, seven ORM columns, and the row-to-`Account` conversion. A deliberately larger phase, to find the coder's limit | [phase-02g](phases/phase-02g-accounts-table.md) |
-| 2h onward | Engine, session scope, first migration, repository functions, `fin db upgrade`, `fin accounts add`, `fin accounts list` | Sized from the result of 2g | to be written after 2g is built |
+| 2h | `get_engine` and `session_scope` | Opens the SQLite database with foreign keys on for every connection; commit-or-rollback session scope. Harder logic at 2g's size, with library facts but no recipe | [phase-02h](phases/phase-02h-engine-and-session.md) |
+| 2i onward | First migration and `upgrade_to_head`; repository functions (two per sub-phase); `fin db upgrade` and the doctor check; `fin accounts add` and `fin accounts list` | About five sub-phases at this size | to be written after 2h is built |
 
 From 2c on, a sub-phase asks for one unit of code. The spec gives the tests and the steps; the coder writes the implementation.
 
