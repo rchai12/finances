@@ -45,3 +45,8 @@ Template:
 - Built: `validate_last4` in `src/finances/domain/models.py`, with its tests in `tests/unit/test_models.py`. 122 tests pass. `models.py` coverage: 100%.
 - Deviations from spec (and why): None
 - Follow-ups / known issues: None
+
+## Phase 2g: accounts table and to_account (2026-10-12)
+- Built: SQLAlchemy dependency; `Base`, `AccountRow`, and `to_account` in `src/finances/db/orm.py`; `tests/unit/test_orm.py`. 170 tests pass. `orm.py` coverage: 100%.
+- Deviations from spec (and why): None
+- Follow-ups / known issues: None
