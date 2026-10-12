@@ -4,9 +4,26 @@ from enum import StrEnum
 
 import pytest
 
-from finances.domain.models import Account, AccountType
+from finances.domain.models import Account, AccountType, validate_last4
 
 CREATED = datetime(2026, 1, 2, 3, 4, 5, tzinfo=UTC)
+VALID_LAST4 = ["1234", "0000", "0042", "9999"]
+INVALID_LAST4 = [
+    "",
+    "123",
+    "12345",
+    "12a4",
+    "abcd",
+    " 1234",
+    "1234 ",
+    "12 4",
+    "1234\n",
+    "-123",
+    "+123",
+    "12.4",
+    "١٢٣٤",
+    "１２３４",
+]
 
 
 def make_account(**changes: object) -> Account:
@@ -102,3 +119,24 @@ def test_accounts_with_equal_values_are_equal() -> None:
     assert make_account() == make_account()
     assert make_account() != make_account(id=2)
     assert hash(make_account()) == hash(make_account())
+
+
+def test_validate_last4_accepts_none() -> None:
+    assert validate_last4(None) is None
+
+
+@pytest.mark.parametrize("last4", VALID_LAST4)
+def test_validate_last4_returns_valid_input_unchanged(last4: str) -> None:
+    assert validate_last4(last4) == last4
+
+
+@pytest.mark.parametrize("last4", INVALID_LAST4)
+def test_validate_last4_rejects(last4: str) -> None:
+    with pytest.raises(ValueError):
+        validate_last4(last4)
+
+
+def test_validate_last4_error_does_not_echo_input() -> None:
+    with pytest.raises(ValueError) as excinfo:
+        validate_last4("12a4")
+    assert str(excinfo.value) == "last4 must be exactly 4 digits"
