@@ -38,7 +38,8 @@ A phase asks the coder to write **two or three related units** in one source fil
 - 2c to 2f: one unit, about 15 steps. Passed.
 - 2g: two Code steps, eight requirements, a new dependency, four files, 23 steps, easy code. Passed at the first attempt. **This is the standard size now**: two or three related units, 18 to 25 steps.
 - 2h: the same size with harder logic (branches, side effects, a real temporary database) and "library facts" in place of a suggested approach. Passed at the first attempt. Library facts without a recipe are now the default.
-- 2i: a second library the coder has not used here (Alembic), 24 steps, the given tests compare the result with the ORM class. Result pending.
+- 2i: a second library the coder has not used here (Alembic), 24 steps, the given tests compare the result with the ORM class. Passed at the first attempt.
+- 2j: three Code steps in one file, a private helper allowed, 23 steps. Result pending.
 
 Do not push the step count past about 25: the failures so far were process slips, which grow with length. Push difficulty and reduce guidance instead. If a phase fails, note which dimension broke (number of steps, number of units, number of files, a new kind of step, or missing guidance) and go back one size on that dimension only.
 
@@ -58,6 +59,9 @@ The coder takes the spec literally and fills every gap with a guess. Remove the 
 - **Red, then green.** The order is: write the tests, format them, write the stub, run the tests and expect the exact failure count, Code, format, run the tests and expect the exact passed count.
 - **Format right after each write.** Every step that writes or changes a Python file is followed by a Run step `.venv/bin/python -m ruff format <file>`. A copied block often has no final newline, and the formatter is what adds it.
 - **Closing checks are steps too.** The last steps are, in order: `.venv/bin/python -m ruff format .` (the safety net that repairs a skipped per-file format), `.venv/bin/python -m ruff format --check .`, `.venv/bin/python -m ruff check .`, `.venv/bin/python -m pytest`, any rule search (`git grep`) with "no output" expected, and `git status --short` with the exact lines expected. A separate "Before you stop" checklist was ignored twice, so there is none.
+- **Guard against the fixed answer.** When today's correct result is a constant (the newest migration is `"0001"`), a body that returns the constant passes. Add a test that changes the input the function should read (point a module constant at a temporary folder with different content) and say in the requirement that a fixed value is wrong.
+- **Stub before fixtures.** When a shared fixture in `tests/conftest.py` imports a new module, the step that writes that module's stub comes first. Otherwise every test in the project fails to collect.
+- **Search steps must not match given text.** Run each `git grep` step against the stub: a pattern that matches a given docstring fails on a correct implementation.
 - **Wrong variants that turn out right.** When a variant you expected to fail passes every test, check whether it is in fact correct before adding a test against it (unnamed constraints get their names from the naming convention; a folder check on `:memory:` is harmless). If it is correct, say so in the verification guide so the verifier does not report it.
 - **Coverage has blind spots.** Files that a library loads by path (Alembic's `env.py` and migration files) are not in the coverage table. Do not put a coverage figure for them in "Expect"; make sure a given test executes every function in them.
 - **Expect only what the coder cannot change.** Passed and failed counts and the number of formatted files are exact, because the tests and file list are given. Total coverage depends on the coder's body, so expect `Required test coverage of 85.0% reached` and the unit's own row at `100%`, not a total.

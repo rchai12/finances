@@ -48,7 +48,8 @@ Verification guides have the same file name under `verification/`.
 | 2g | `accounts` table and `to_account` | SQLAlchemy dependency, seven ORM columns, and the row-to-`Account` conversion. A deliberately larger phase, to find the coder's limit | [phase-02g](phases/phase-02g-accounts-table.md) |
 | 2h | `get_engine` and `session_scope` | Opens the SQLite database with foreign keys on for every connection; commit-or-rollback session scope. Harder logic at 2g's size, with library facts but no recipe | [phase-02h](phases/phase-02h-engine-and-session.md) |
 | 2i | The first migration | Alembic dependency, given `env.py`, and migration `0001` whose `upgrade` and `downgrade` the coder writes; tests compare the migrated database with the ORM class | [phase-02i](phases/phase-02i-first-migration.md) |
-| 2j onward | `upgrade_to_head` and the revision helpers with a migrated-database test fixture; repository functions (two per sub-phase); `fin db upgrade` and the doctor check; `fin accounts add` and `fin accounts list` | About five sub-phases at this size | to be written after 2i is built |
+| 2j | Running migrations from code | `head_revision`, `upgrade_to_head`, `current_revision` in `db/migrate.py`, plus `db_url` and `db_engine` test fixtures. Three Code steps | [phase-02j](phases/phase-02j-run-migrations.md) |
+| 2k onward | Repository functions (create and get by name; find by last4 and list); `fin db upgrade` and the doctor check; `fin accounts add` and `fin accounts list` | About four sub-phases at this size | to be written after 2j is built |
 
 From 2c on, a sub-phase asks for one unit of code. The spec gives the tests and the steps; the coder writes the implementation.
 
