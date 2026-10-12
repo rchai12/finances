@@ -13,7 +13,9 @@ You are the architect of this project, a local finance platform that a local AI 
 | **Local coder** (small local model) | `AGENTS.md`, `docs/architecture.md`, `docs/testing.md`, `docs/progress.md`, one spec | Implements exactly one phase |
 | **Verifier** (second coder) | the spec, its verification guide, the diff | Checks the implementation against the spec and reports a verdict |
 
-The local coder is a weak model. It implements badly when a phase is large, bundles several features, or leaves choices open. Every rule below follows from that: keep phases small, and decide everything in the spec so the coder has nothing to design.
+The local coder is a weak model. It implements badly when a phase is large, bundles several features, or leaves choices open, and it follows instructions only when each one is a single action.
+
+**Division of work (the user's decision):** the coder writes the production code. The architect does not. The architect writes the tests, which define correct behavior, and the steps. So each phase is tiny, one unit of code, and the spec leaves the body of that unit to the coder. Give production code in full only as a fallback, after an attempt at that phase has failed verification twice, and tell the user when you do.
 
 ## Before writing anything
 
@@ -24,103 +26,93 @@ The local coder is a weak model. It implements badly when a phase is large, bund
 
 ## Sizing a phase
 
-A phase is one concept the coder can finish in one session. Split it when it exceeds any of these limits:
+A phase asks the coder to write **one unit**: one function, one class or dataclass, one ORM table, one migration, or one CLI command. Split until that is true. Further limits:
 
-- 3 files created or modified in total, tests included (`docs/progress.md` not counted)
-- about 300 lines of new production code
-- 1 Alembic migration
+- 3 files created or modified, tests included (`docs/progress.md` not counted). There is no exception for files given in full: an attempt at a five-file phase stopped after three.
+- 5 numbered requirements, each one sentence with an example
 - 1 new dependency
-- 1 CLI command group (a few subcommands of the same noun)
-- 6 numbered requirements
+- about 150 lines of spec, not counting the test block
 
-The file limit has no exception for files given verbatim: the first attempt at a five-file phase stopped after three files.
-- about 150 lines of spec
+Order sub-phases so each ends with format, lint, and tests passing, and each depends only on phases before it. Start a new area with its easiest unit, so the first attempt is a fair one.
 
-Also split when a phase mixes layers that can be built and tested separately (for example domain helpers, then ORM and migration, then repositories, then CLI), or when one part is risky enough that it deserves its own review.
-
-Order sub-phases so each ends in a state where `ruff check .`, `ruff format --check .`, and `pytest` pass, and each depends only on phases before it.
-
-**Numbering.** Roadmap numbers are referenced from `AGENTS.md`, `docs/testing.md`, and other specs, so never renumber. A removed phase keeps its number. Split a roadmap phase into lettered sub-phases: `phase-02a-coverage-gate.md`, `phase-02c-money-helpers.md`. List the sub-phases in the roadmap under the parent number, and delete the superseded parent spec once its sub-phases cover it.
+**Numbering.** Roadmap numbers are referenced from `AGENTS.md`, `docs/testing.md`, and other specs, so never renumber. A removed phase keeps its number. Split a roadmap phase into lettered sub-phases: `phase-02c-format-cents.md`, `phase-02d-parse-money.md`. List them in the roadmap under the parent number, and delete the superseded parent spec once its sub-phases cover it.
 
 ## Precision rules for specs
 
 The coder takes the spec literally and fills every gap with a guess. Remove the gaps.
 
-- **Exact paths** for every file to create or modify, and a closed list of files the coder may touch. Anything outside the list is out of scope.
-- **Exact signatures** with type hints for every public function, class, and dataclass field. Exact names for tables, columns, constraints, CLI options, and exit codes.
-- **Behavior as tables** of input to output, including every error case with the exception type and the exact message text.
-- **Algorithms as ordered steps** when the order of checks changes the result.
-- **Numbered requirements** (`R1`, `R2`, ...), one testable statement each. The verification guide refers to these ids.
-- **Tests verbatim.** Give each test file as a complete code block. When a phase adds tests to an existing file, give the whole file (old tests plus new) and say "replace whole content"; "append" and "edit" are applied badly. A table of test names and assertions is not enough: the coder drops rows, changes fixtures, and rewrites the arrange step. Tables are for data (inputs and outputs), never for code.
-- **Critical modules verbatim.** For a module listed under "Critical modules" in `docs/testing.md`, give the production file as a complete code block too. Ordered steps and tables were not enough: the coder wrote a different algorithm and tests to match it. Keep a short "What the code does" section so a reader can check the block against the intent.
-- **Work order.** A numbered list of steps, one file per step. Each step creates the file, runs `python -m ruff format <that file>`, and then lists checks with the exact output to expect, starting with `python -m ruff format --check <that file>` printing `1 file already formatted`. A copied block often has no final newline, and the formatter is what adds it, so formatting cannot be a later step. The coder does not start a step until the checks of the previous one pass.
+- **Exact paths** for every file to create or modify, and a closed list of files the coder may touch.
+- **The contract is the test file.** Give each test file as a complete code block, and make it the full definition of correct: every accepted and rejected input, every rule that a test can express (an input that breaks a `float` implementation, a constant error message, a return type). When a phase adds tests to an existing file, give the whole file and say "replace whole content"; "append" and "edit" are applied badly. The coder may never change a test.
+- **The unit is the coder's.** Give the exact signature and docstring as a stub that raises `NotImplementedError`, a few numbered requirements (`R1`, `R2`, ...) in plain sentences with examples, and the hard rules a test cannot express. A "Suggested approach" is welcome when the order of checks matters, marked as optional. Do not give the body.
+- **No open choices outside the body.** Names, paths, messages, exit codes, table and column names are all fixed by the spec. Banned wording: "as appropriate", "or similar", "if needed", "consider", "etc.", "handle errors gracefully".
+- **Steps, one action each.** The body of a spec is a `## Steps` section of headings `### Step N: Write`, `### Step N: Code`, and `### Step N: Run`. A Write step creates or replaces one file from the block it holds, unindented. A Code step is the one place the coder writes code: "replace the line `raise NotImplementedError` with your implementation". A Run step holds one command in backticks on its own line, then `Expect:` with the exact output. Never put two actions in one step: the coder does the first and treats the rest as commentary.
+- **Red, then green.** The order is: write the tests, format them, write the stub, run the tests and expect the exact failure count, Code, format, run the tests and expect the exact passed count.
+- **Format right after each write.** Every step that writes or changes a Python file is followed by a Run step `python -m ruff format <file>`. A copied block often has no final newline, and the formatter is what adds it.
+- **Closing checks are steps too.** The last steps are, in order: `python -m ruff format .` (the safety net that repairs a skipped per-file format), `python -m ruff format --check .`, `python -m ruff check .`, `python -m pytest`, any rule search (`git grep`) with "no output" expected, and `git status --short` with the exact lines expected. A separate "Before you stop" checklist was ignored twice, so there is none.
+- **Expect only what the coder cannot change.** Passed and failed counts and the number of formatted files are exact, because the tests and file list are given. Total coverage depends on the coder's body, so expect `Required test coverage of 85.0% reached` and the unit's own row at `100%`, not a total.
+- **Repair table and final report.** After the steps, a table maps each Run step whose output can differ to one repair: "run step N again", "replace the whole file with the block in step N", or for the coder's own code "read the first failing test, change only the body, redo steps N to M". The spec ends by asking for a report listing each step number with the last line of output seen, which makes a skipped step visible.
+- **Out of scope is explicit** and names the tempting next steps the coder must not build.
+- **Dependencies** are listed with version bounds, or the spec says "None new".
 - **Files ruff does not format** (`.toml`, `.md`, `.ini`, `.txt` fixtures): never ask for an edit by hand when one command will do, and give a command that tests the bytes. Final newline, fix and check:
   `python -c "from pathlib import Path; p = Path('FILE'); b = p.read_bytes(); p.write_bytes(b if b.endswith(b'\n') else b + b'\n')"`
   `python -c "from pathlib import Path; print(Path('FILE').read_bytes().endswith(b'\n'))"` prints `True`
-- **Progress entry verbatim.** The work order ends by pasting a complete `docs/progress.md` entry given in the spec, with the test count and coverage from the trial run already filled in. The coder replaces only the date. "Record the percentage" is an open choice and gets dropped.
+- **Progress entry given in full.** One Write step pastes a complete `docs/progress.md` entry given in the spec, with the test count and coverage from the trial run already filled in. The coder replaces only the date. "Record the percentage" is an open choice and gets dropped.
 - **No destructive git.** Every spec's "Out of scope" says: never run `git restore`, `git checkout`, `git reset`, `git stash`, or `git clean`; a mistake in one file is fixed by editing that file. The coder once undid a one-line error by restoring every tracked file.
-- **Before you stop.** The spec ends with a checklist the coder must run and satisfy: format, lint, tests with the **exact** passed count, the scope check, and the progress entry. The coder stops early unless told what finished looks like.
-- **No open choices.** Banned wording: "as appropriate", "or similar", "if needed", "consider", "etc.", "handle errors gracefully". If there are two reasonable designs, pick one and say so.
-- **Out of scope is explicit** and names the tempting next steps the coder must not build.
-- **Dependencies** are listed with version bounds, or the spec says "None new".
 - **Restate the rules that bite** in this phase (integer cents, sign convention, no `metadata.create_all` in tests, no logging of amounts) instead of relying on the coder to recall `AGENTS.md`.
 - **Commands** go one per line with no shell chaining, so they run unchanged in PowerShell (the development platform) and in zsh (the deployment platform). Call tools through the interpreter (`python -m pytest`, `python -m ruff`), since the scripts are not on PATH unless the virtual environment is activated, and say so.
 - **Never tell the coder to fix style by hand.** Sorting imports, wrapping lines, and final newlines are done by a command in the step that writes the file.
-- **Trial-run every spec.** Before publishing, follow the published file literally in a throwaway clone outside the repository: extract each code block (without a final newline, as a copy would be), run every command of the work order and the "Before you stop" list, and run the guide's probes and searches. Every exact figure in the spec and the guide (passed counts, files formatted, coverage) comes from that run. Re-run after any edit to the spec.
+- **Mind the formatter's file count.** This `ruff` version counts and formats every `.py` file and every Markdown file outside `docs/` (the only excluded folder), including this skill. A new `.md` or `.py` file anywhere else adds one to every "N files already formatted" figure, and a `python` fence in such a Markdown file gets reformatted. Keep new documents under `docs/`, and take the figure from the trial run.
+- **Trial-run every spec.** Before publishing, follow the published file literally in a throwaway clone outside the repository, using the script and procedure under "Trial-running a spec" at the end of this file, and run the guide's probes and searches there. Every exact figure in the spec and the guide (passed counts, files formatted, coverage) comes from that run. Re-run after any edit to the spec.
 
 ## Spec template
 
-Save as `docs/phases/phase-NN[x]-<slug>.md`.
+Save as `docs/phases/phase-NN[x]-<slug>.md`. `docs/phases/phase-02c-format-cents.md` and `docs/phases/phase-02d-parse-money.md` are the models to copy.
 
-```markdown
-# Phase NNx: <name>
+````markdown
+# Phase NNx: <unit>
 
 ## Goal
-Two or three sentences: what exists after this phase that did not before.
+"Write one <unit> that <does what>. The tests are given. You write the <body>. The work is to do the N steps in order."
 
 ## Read first
-Exact files, including the existing source files this phase calls or modifies.
-
 ## Starting state
-What already exists that this phase relies on: modules, signatures, tables, fixtures.
+The previous phase is committed, `git status --short` prints nothing, `python -m pytest` ends with `<N> passed`.
 
 ## Files
 | Path | Action |
-|---|---|
-| `src/finances/...` | create |
-| `tests/unit/test_....py` | create |
-Do not create or modify any other file, except `docs/progress.md`.
+Do not create or modify any other file.
 
-## Out of scope
-## Dependencies
+## What to build
+The signature, then R1..R5. Optionally "Suggested approach".
 
-## Requirements
-R1. ...
-R2. ...
-(signatures in code blocks, behavior in tables)
+## Rules
+Do not change the test file. Do not change <existing units>. No destructive git commands.
 
-## Tests
-Each test file as a complete code block, to be copied unchanged.
+## How to work
+One action per step (Write, Code, or Run); all steps in order; compare each output with "Expect".
 
-## Work order
-1. Create <file> from the R<n> block. Then run: `python -m ruff format <file>`
-   Checks: `python -m ruff format --check <file>` prints `1 file already formatted`;
-   `<test command>` ends with `<N> passed`.
-2. ...
-N. Add the progress entry given here verbatim (replace only the date).
+## Steps
+### Step 1: Write      the test file, in full
+### Step 2: Run        format the test file
+### Step 3: Write      the stub
+### Step 4: Run        the tests; expect `<N> failed`
+### Step 5: Code       replace `raise NotImplementedError` with your implementation
+### Step 6: Run        format the source file
+### Step 7: Run        the tests; expect `<N> passed`
+### Step 8: Write      the progress entry, given in full
+### Steps 9 onward     format all, format check, lint, full tests, rule searches, git status
 
-## Before you stop
-Every item must be true. If one is not, fix it and run the whole list again.
-- [ ] `python -m ruff check .` prints `All checks passed!`
-- [ ] `python -m ruff format --check .` reports nothing to reformat
-- [ ] `python -m pytest` ends with `<N> passed` (exactly N) and the coverage required
-- [ ] `git status --short` lists exactly: <the lines git will print for this phase> and `docs/progress.md`
-- [ ] `docs/progress.md` ends with the entry for this phase (heading given verbatim)
-```
+## If a Run step prints something else
+| Step | Do this, then run the step again |
+
+## Final report
+````
 
 ## Verification guide
 
-Write it at the same time as the spec, and save it as `docs/verification/phase-NN[x]-<slug>.md`. It is not in the coder's "Read first" list, so the coder cannot code to the checks.
+Write it at the same time as the spec, and save it as `docs/verification/phase-NN[x]-<slug>.md`. It is not in the coder's "Read first" list, so the coder cannot code to the checks. `docs/verification/phase-02d-parse-money.md` is the model.
+
+The coder's body is judged by behavior and rules, never by resemblance to a reference implementation. That puts the weight on the probe script: before publishing, run it against your reference implementation (must print `FAILURES 0`) and against at least one plausible wrong one (must report failures).
 
 The verifier has not seen your reasoning, so the guide must stand alone. It tells the verifier what to run, what to read, and what a failure looks like. The verifier reports and does not fix.
 
@@ -172,14 +164,16 @@ PASS, or FAIL with one line per finding: requirement id or section, file and lin
 what was expected, what was found.
 
 ## If the verdict is FAIL
-A repair sent back to the coder is either the instruction to replace a whole file with a
-block from the spec, or a single command to run. Do not describe an edit in a sentence.
+Each repair is one of: "run step N again"; "replace the whole content of <given file> with the
+block in step N"; for the coder's own code, the failing input with what was returned and what
+is required, then "change only the body of <unit>, then run steps N to M again" (at most three
+inputs); or the line that breaks a rule and the rule. Nothing else.
 ```
 
 Rules for writing the guide:
 
 - Every requirement in the spec has a checklist row, and every row names a concrete observation. "Looks correct" is not a check.
-- Compute the expected values for independent probes yourself and state them. Choose probes at boundaries the coder is likely to get wrong (signs, zero, year wrap, case, empty input, values that lose a cent in `float`, the 501st item of a chunked query).
+- Probes use inputs that are not in the given tests. Compute the expected values yourself and state them. Choose probes at boundaries the coder is likely to get wrong (signs, zero, year wrap, case, empty input, values that lose a cent in `float`, the 501st item of a chunked query).
 - When probes need more than a one-line command, give a complete script that prints `ok` or `FAIL` per line, and tell the verifier to save it outside the repository. Run that script yourself against a reference implementation first.
 - Commands must survive both PowerShell and zsh: avoid `$` inside double quotes, and keep `|` out of Markdown table cells (use a list for regex searches).
 - Where the real-sample tests apply, the guide asks only for pass, fail, and counts (AGENTS.md rule 6).
@@ -187,8 +181,8 @@ Rules for writing the guide:
 
 ## After a phase is implemented
 
-1. Read the new `docs/progress.md` entry and the diff. A verifier FAIL goes back to the coder as repairs, and each repair is either "replace the whole file with block R<n> of the spec" or a single command to run. A sentence describing an edit gets applied as a broken line. Every guide ends with this rule. Do not rewrite the spec to match a wrong implementation.
-2. If the coder struggled, the phase was too large or too loose. Make the following phases smaller or tighter, and turn the cause into a rule in this file. Read the verifier's findings for patterns (work left unfinished, checks not run, given code altered, files touched out of scope), not only for the individual defects.
+1. Read the new `docs/progress.md` entry and the diff. A verifier FAIL goes back to the coder as repairs in the fixed forms listed at the end of every guide. A free-form sentence describing an edit gets applied as a broken line. Do not rewrite the spec to match a wrong implementation.
+2. If the coder's own code fails verification twice on the same phase, give that unit in full as a fallback and tell the user. If the coder struggled, the phase was too large or too loose. Make the following phases smaller or tighter, and turn the cause into a rule in this file. Read the verifier's findings for patterns (work left unfinished, checks not run, given code altered, files touched out of scope), not only for the individual defects.
 3. Revise the next spec's "Starting state" to match what was actually built before handing it over.
 4. Keep the roadmap table and status line current.
 
@@ -201,3 +195,72 @@ Report to the user the spec path, the verification guide path, and anything deci
 > Coder: Read AGENTS.md, docs/architecture.md, docs/testing.md, docs/progress.md, and docs/phases/phase-NNx-<slug>.md. Implement only that phase. Stop when its acceptance criteria pass, then update docs/progress.md.
 
 > Verifier: Read AGENTS.md, docs/phases/phase-NNx-<slug>.md, and docs/verification/phase-NNx-<slug>.md. Follow the verification guide against the current diff. Do not modify files. Report the verdict.
+
+## Trial-running a spec
+
+Before a spec is published, follow it literally in a throwaway clone. The script below does what the local coder is asked to do: it writes each **Write** step's block to its file (without a final newline, as a copied block would be), puts your reference implementation in place at each **Code** step, and runs each **Run** step's command.
+
+1. Clone the repository into the scratchpad (`git clone -q . <scratch>/clone`). The clone holds only committed files, so copy the draft spec next to it.
+2. Save the script below in the scratchpad as `follow_spec.py`, and your reference implementation of the unit as a file there too. Do not save either in the repository: `ruff` would count them, and every "N files already formatted" figure in the specs would be off.
+3. From the clone root, with `PYTHONPATH` set to the clone's `src`, run `python follow_spec.py <spec.md> <code step>=<reference file>` using the project's virtual-environment interpreter.
+4. Compare each printed line with the step's "Expect". Copy the exact figures (failed and passed counts, files formatted, `git status` lines) into the spec and the verification guide.
+5. Run it again with the per-file format steps skipped (`skip=3,7`) to confirm the whole-repository format step repairs them.
+6. Check that the given tests reject a plausible wrong implementation (for money code, one that uses `float`; for a parser, one that trusts a library to reject bad input). If it passes the tests, add the inputs that expose it to the test file.
+7. Run the verification guide's probe script against the reference implementation and the wrong one, and run the guide's searches. Then delete the clone.
+
+The block is fenced as `text` so that `ruff` leaves it alone.
+
+```text
+"""Follow the "## Steps" section of a phase spec literally, the way the local coder should.
+
+Run from the root of a throwaway clone, never from the real repository:
+
+    python follow_spec.py <spec.md> [N=file ...] [skip=4,8]
+
+Write steps: the first path in backticks gets the step's code block, written without a final
+newline (as a copied block would be). No block means an empty file. "at the end of" in the
+step text means the block is appended after two blank lines (one for docs/progress.md).
+Code steps: the coder writes code. Pass N=file to say what the target file holds afterwards.
+Run steps: the command in backticks on its own line is run with this interpreter in place of
+`python`. The last line of output is printed, plus coverage and git status lines.
+Compare the printed lines with each step's "Expect", then copy the figures into the spec.
+"""
+
+import re
+import subprocess
+import sys
+from pathlib import Path
+
+spec = Path(sys.argv[1]).read_text(encoding="utf-8")
+supplied = dict(arg.split("=", 1) for arg in sys.argv[2:] if not arg.startswith("skip="))
+skip = {n for arg in sys.argv[2:] if arg.startswith("skip=") for n in arg[5:].split(",")}
+body = spec[spec.index("## Steps") : spec.index("## If a Run step")]
+parts = re.split(r"^### Step (\d+): (Write|Code|Run)\n", body, flags=re.M)[1:]
+
+for number, kind, text in zip(parts[0::3], parts[1::3], parts[2::3], strict=True):
+    if number in skip:
+        print(number, "SKIPPED")
+        continue
+    block = re.search(r"```\w*\n(.*?)```", text, re.S)
+    if kind == "Run":
+        command = re.search(r"^`(.+)`$", text, re.M).group(1)
+        command = re.sub(r"^python ", f'"{sys.executable}" ', command)
+        result = subprocess.run(command, shell=True, capture_output=True, text=True)
+        lines = (result.stdout + result.stderr).strip().splitlines()
+        shown = [line for line in lines if "Total coverage" in line or line.endswith("%")]
+        if command.startswith("git"):
+            shown = lines
+        print(number, f"exit={result.returncode}", *shown[-4:], *lines[-1:], sep="\n    ")
+        continue
+    path = Path(re.search(r"`([^`\s]+/[^`\s]+)`", text).group(1))
+    if kind == "Code":
+        path.write_text(Path(supplied[number]).read_text(encoding="utf-8"), encoding="utf-8")
+    elif "at the end of" in text:
+        gap = "\n\n" if path.suffix == ".md" else "\n\n\n"
+        entry = block.group(1).replace("YYYY-MM-DD", "2000-01-01").rstrip("\n")
+        path.write_text(path.read_text(encoding="utf-8").rstrip("\n") + gap + entry, encoding="utf-8")
+    else:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(block.group(1).rstrip("\n") if block else "", encoding="utf-8")
+    print(number, kind.lower(), path)
+```
