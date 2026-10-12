@@ -12,8 +12,9 @@ Write one function, `parse_money`, that turns money text into an integer number 
 ## Starting state
 
 - Phase 2c is done and committed. `git status --short` prints nothing.
-- `python -m pytest` ends with `30 passed`.
+- `.venv/bin/python -m pytest` ends with `30 passed`.
 - `src/finances/domain/money.py` contains `format_cents`.
+- These commands are written for macOS. On Windows, replace `.venv/bin/python` with `.\.venv\Scripts\python`.
 
 ## Files
 
@@ -65,7 +66,8 @@ _AMOUNT = re.compile(r"(?:[0-9]{1,3}(?:,[0-9]{3})+|[0-9]+)(?:\.[0-9]{1,2})?|\.[0
 - Each step is **one action**: **Write** (use the block given), **Code** (write code yourself), or **Run** (one command).
 - Do all 15 steps, in order. Do not skip a Run step, and do not merge steps.
 - After each Run step, compare the output with "Expect". If it differs, use the table under "If a Run step prints something else".
-- Activate the virtual environment first, so `python` is the project's interpreter.
+- Type every command exactly as written, starting with `.venv/bin/python`. Do not shorten it to `python`, `python3`, `ruff`, or `pytest`: those are other programs on this machine, or missing.
+- Do not activate the virtual environment and do not create one. `.venv/` already exists (git does not list it because it is ignored).
 
 ## Steps
 
@@ -188,7 +190,7 @@ def test_round_trip(n: int) -> None:
 
 ### Step 2: Run
 
-`python -m ruff format tests/unit/test_money.py`
+`.venv/bin/python -m ruff format tests/unit/test_money.py`
 
 Expect: `1 file reformatted` or `1 file left unchanged`. Both are fine.
 
@@ -204,7 +206,7 @@ def parse_money(text: str) -> int:
 
 ### Step 4: Run
 
-`python -m pytest tests/unit/test_money.py --no-cov`
+`.venv/bin/python -m pytest tests/unit/test_money.py --no-cov`
 
 Expect: the last line contains `59 failed, 14 passed`. Most tests fail because the function is not written yet.
 
@@ -214,19 +216,19 @@ In `src/finances/domain/money.py`, replace the line `raise NotImplementedError` 
 
 ### Step 6: Run
 
-`python -m ruff format src/finances/domain/money.py`
+`.venv/bin/python -m ruff format src/finances/domain/money.py`
 
 Expect: `1 file reformatted` or `1 file left unchanged`. Both are fine.
 
 ### Step 7: Run
 
-`python -m ruff check --fix src/finances/domain/money.py`
+`.venv/bin/python -m ruff check --fix src/finances/domain/money.py`
 
 Expect: the last line is `All checks passed!`. A line saying an error was fixed is fine.
 
 ### Step 8: Run
 
-`python -m pytest tests/unit/test_money.py --no-cov`
+`.venv/bin/python -m pytest tests/unit/test_money.py --no-cov`
 
 Expect: the last line contains `73 passed`
 
@@ -243,25 +245,25 @@ Add this entry at the end of `docs/progress.md`, after one blank line. Replace `
 
 ### Step 10: Run
 
-`python -m ruff format .`
+`.venv/bin/python -m ruff format .`
 
 Expect: `18 files left unchanged`. If it says a file was reformatted, that is fine: go on to step 11.
 
 ### Step 11: Run
 
-`python -m ruff format --check .`
+`.venv/bin/python -m ruff format --check .`
 
 Expect: `18 files already formatted`
 
 ### Step 12: Run
 
-`python -m ruff check .`
+`.venv/bin/python -m ruff check .`
 
 Expect: `All checks passed!`
 
 ### Step 13: Run
 
-`python -m pytest`
+`.venv/bin/python -m pytest`
 
 Expect: the last line contains `89 passed`, the output contains `Required test coverage of 85.0% reached`, and the row for `src/finances/domain/money.py` ends with `100%`.
 
@@ -287,11 +289,12 @@ Expect exactly these three lines and nothing else:
 
 | Step | Do this, then run the step again |
 |---|---|
+| any | If the output says `command not found`, `No such file`, or `No module named ruff` (or `pytest`), the command was not typed as written. Type it again starting with `.venv/bin/python`. If `.venv/bin/python` itself is missing, stop and report that; do not create a virtual environment |
 | 4 | If it reports an import error or a syntax error, the function from step 3 is missing or misplaced: redo step 3 |
 | 7 | The error names a line: fix that line, then redo step 6 |
 | 8 | Read the first failing test: it shows the input and what was expected. Change only the body of `parse_money`, then redo steps 6 and 7. If `test_format_cents` fails, you changed `format_cents`: put it back |
 | 11 | Run step 10 again |
-| 12 | Run `python -m ruff check --fix .`. If an error remains, it names a file and a line: fix that line |
+| 12 | Run `.venv/bin/python -m ruff check --fix .`. If an error remains, it names a file and a line: fix that line |
 | 13, `money.py` below `100%` | The "Missing" column lists lines of your function that no test reaches. Remove that code, then redo steps 6 to 8 |
 | 14 | Each line printed breaks R4 or the logging rule. Rewrite that line without it, then redo steps 6 to 8 |
 | 15 | A path that is not in the list is a file you must not have changed. Open it and undo your edit by hand. Do not use a git command |

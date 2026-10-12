@@ -47,8 +47,8 @@ The coder takes the spec literally and fills every gap with a guess. Remove the 
 - **No open choices outside the body.** Names, paths, messages, exit codes, table and column names are all fixed by the spec. Banned wording: "as appropriate", "or similar", "if needed", "consider", "etc.", "handle errors gracefully".
 - **Steps, one action each.** The body of a spec is a `## Steps` section of headings `### Step N: Write`, `### Step N: Code`, and `### Step N: Run`. A Write step creates or replaces one file from the block it holds, unindented. A Code step is the one place the coder writes code: "replace the line `raise NotImplementedError` with your implementation". A Run step holds one command in backticks on its own line, then `Expect:` with the exact output. Never put two actions in one step: the coder does the first and treats the rest as commentary.
 - **Red, then green.** The order is: write the tests, format them, write the stub, run the tests and expect the exact failure count, Code, format, run the tests and expect the exact passed count.
-- **Format right after each write.** Every step that writes or changes a Python file is followed by a Run step `python -m ruff format <file>`. A copied block often has no final newline, and the formatter is what adds it.
-- **Closing checks are steps too.** The last steps are, in order: `python -m ruff format .` (the safety net that repairs a skipped per-file format), `python -m ruff format --check .`, `python -m ruff check .`, `python -m pytest`, any rule search (`git grep`) with "no output" expected, and `git status --short` with the exact lines expected. A separate "Before you stop" checklist was ignored twice, so there is none.
+- **Format right after each write.** Every step that writes or changes a Python file is followed by a Run step `.venv/bin/python -m ruff format <file>`. A copied block often has no final newline, and the formatter is what adds it.
+- **Closing checks are steps too.** The last steps are, in order: `.venv/bin/python -m ruff format .` (the safety net that repairs a skipped per-file format), `.venv/bin/python -m ruff format --check .`, `.venv/bin/python -m ruff check .`, `.venv/bin/python -m pytest`, any rule search (`git grep`) with "no output" expected, and `git status --short` with the exact lines expected. A separate "Before you stop" checklist was ignored twice, so there is none.
 - **Expect only what the coder cannot change.** Passed and failed counts and the number of formatted files are exact, because the tests and file list are given. Total coverage depends on the coder's body, so expect `Required test coverage of 85.0% reached` and the unit's own row at `100%`, not a total.
 - **Repair table and final report.** After the steps, a table maps each Run step whose output can differ to one repair: "run step N again", "replace the whole file with the block in step N", or for the coder's own code "read the first failing test, change only the body, redo steps N to M". The spec ends by asking for a report listing each step number with the last line of output seen, which makes a skipped step visible.
 - **Out of scope is explicit** and names the tempting next steps the coder must not build.
@@ -59,7 +59,8 @@ The coder takes the spec literally and fills every gap with a guess. Remove the 
 - **Progress entry given in full.** One Write step pastes a complete `docs/progress.md` entry given in the spec, with the test count and coverage from the trial run already filled in. The coder replaces only the date. "Record the percentage" is an open choice and gets dropped.
 - **No destructive git.** Every spec's "Out of scope" says: never run `git restore`, `git checkout`, `git reset`, `git stash`, or `git clean`; a mistake in one file is fixed by editing that file. The coder once undid a one-line error by restoring every tracked file.
 - **Restate the rules that bite** in this phase (integer cents, sign convention, no `metadata.create_all` in tests, no logging of amounts) instead of relying on the coder to recall `AGENTS.md`.
-- **Commands** go one per line with no shell chaining, so they run unchanged in PowerShell (the development platform) and in zsh (the deployment platform). Call tools through the interpreter (`python -m pytest`, `python -m ruff`), since the scripts are not on PATH unless the virtual environment is activated, and say so.
+- **Commands** are written exactly as they must be typed on the machine the coder runs on, which is macOS: `.venv/bin/python -m pytest`, `.venv/bin/python -m ruff ...`, `.venv/bin/fin ...`. Never write `python`, `ruff`, or `pytest` bare, and never tell the coder to activate the virtual environment: each command runs in a new shell, so activation is lost, `python` does not exist, and `python3` and a bare `ruff` are different installations. For three phases the format steps looked skipped when they had in fact failed for this reason. One command per line, no chaining. Give the Windows prefix (`.\.venv\Scripts\python`) once, in "Starting state".
+- **Check the environment yourself before blaming the coder.** When a step is reported as skipped, first run that exact command in a fresh shell from the repository root. Every spec's repair table starts with an "any step" row for `command not found` and `No module named`.
 - **Never tell the coder to fix style by hand.** Sorting imports, wrapping lines, and final newlines are done by a command in the step that writes the file.
 - **Mind the formatter's file count.** This `ruff` version counts and formats every `.py` file and every Markdown file outside `docs/` (the only excluded folder), including this skill. A new `.md` or `.py` file anywhere else adds one to every "N files already formatted" figure, and a `python` fence in such a Markdown file gets reformatted. Keep new documents under `docs/`, and take the figure from the trial run.
 - **Trial-run every spec.** Before publishing, follow the published file literally in a throwaway clone outside the repository, using the script and procedure under "Trial-running a spec" at the end of this file, and run the guide's probes and searches there. Every exact figure in the spec and the guide (passed counts, files formatted, coverage) comes from that run. Re-run after any edit to the spec.
@@ -76,7 +77,7 @@ Save as `docs/phases/phase-NN[x]-<slug>.md`. `docs/phases/phase-02c-format-cents
 
 ## Read first
 ## Starting state
-The previous phase is committed, `git status --short` prints nothing, `python -m pytest` ends with `<N> passed`.
+The previous phase is committed, `git status --short` prints nothing, `.venv/bin/python -m pytest` ends with `<N> passed`.
 
 ## Files
 | Path | Action |
@@ -90,6 +91,7 @@ Do not change the test file. Do not change <existing units>. No destructive git 
 
 ## How to work
 One action per step (Write, Code, or Run); all steps in order; compare each output with "Expect".
+Type every command exactly as written, starting with `.venv/bin/python`. Do not activate or create a virtual environment.
 
 ## Steps
 ### Step 1: Write      the test file, in full
@@ -175,7 +177,7 @@ Rules for writing the guide:
 - Every requirement in the spec has a checklist row, and every row names a concrete observation. "Looks correct" is not a check.
 - Probes use inputs that are not in the given tests. Compute the expected values yourself and state them. Choose probes at boundaries the coder is likely to get wrong (signs, zero, year wrap, case, empty input, values that lose a cent in `float`, the 501st item of a chunked query).
 - When probes need more than a one-line command, give a complete script that prints `ok` or `FAIL` per line, and tell the verifier to save it outside the repository. Run that script yourself against a reference implementation first.
-- Commands must survive both PowerShell and zsh: avoid `$` inside double quotes, and keep `|` out of Markdown table cells (use a list for regex searches).
+- Commands in a guide follow the same rule as in a spec: they start with `.venv/bin/python`. Avoid `$` inside double quotes, and keep `|` out of Markdown table cells (use a list for regex searches).
 - Where the real-sample tests apply, the guide asks only for pass, fail, and counts (AGENTS.md rule 6).
 - Include only the project-rule checks that this phase can violate.
 
@@ -222,7 +224,7 @@ newline (as a copied block would be). No block means an empty file. "at the end 
 step text means the block is appended after two blank lines (one for docs/progress.md).
 Code steps: the coder writes code. Pass N=file to say what the target file holds afterwards.
 Run steps: the command in backticks on its own line is run with this interpreter in place of
-`python`. The last line of output is printed, plus coverage and git status lines.
+`.venv/bin/python` (the clone has no virtual environment of its own). The last line of output is printed, plus coverage and git status lines.
 Compare the printed lines with each step's "Expect", then copy the figures into the spec.
 """
 
@@ -244,7 +246,7 @@ for number, kind, text in zip(parts[0::3], parts[1::3], parts[2::3], strict=True
     block = re.search(r"```\w*\n(.*?)```", text, re.S)
     if kind == "Run":
         command = re.search(r"^`(.+)`$", text, re.M).group(1)
-        command = re.sub(r"^python ", f'"{sys.executable}" ', command)
+        command = re.sub(r"^\.venv/bin/python ", f'"{sys.executable}" ', command)
         result = subprocess.run(command, shell=True, capture_output=True, text=True)
         lines = (result.stdout + result.stderr).strip().splitlines()
         shown = [line for line in lines if "Total coverage" in line or line.endswith("%")]

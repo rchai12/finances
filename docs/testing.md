@@ -36,9 +36,11 @@ Bugs here silently corrupt money data, so they get the strictest gates (95% bran
 
 ## Commands
 
-```powershell
-pytest                                   # unit + integration + e2e + golden, with coverage
-$env:FIN_REAL_SAMPLES=1; pytest -m real_samples; Remove-Item Env:FIN_REAL_SAMPLES
-.\scripts\check.ps1                      # everything a commit needs (Phase 10)
-.\scripts\mutation.ps1                   # mutation run on critical modules (Phase 10)
+Every command names the virtual environment's interpreter (`AGENTS.md`, "Running commands"). On Windows, replace `.venv/bin/python` with `.\.venv\Scripts\python`.
+
+```zsh
+.venv/bin/python -m pytest                         # unit + integration + e2e + golden, with coverage
+FIN_REAL_SAMPLES=1 .venv/bin/python -m pytest -m real_samples
 ```
+
+Phase 10 adds one script that runs everything a commit needs, and a mutation run on the critical modules.

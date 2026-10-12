@@ -10,6 +10,15 @@ This file applies to every phase. Read it, then `docs/architecture.md`, then the
 - Do not add dependencies that the phase spec does not list. If you believe one is needed, stop and ask.
 - When finished, append an entry to `docs/progress.md`: phase number, date, what was built, any deviations from the spec, and any follow-ups.
 
+## Running commands
+
+- The project's interpreter is `.venv/bin/python`. Every command names it: `.venv/bin/python -m pytest`, `.venv/bin/python -m ruff check .`, `.venv/bin/fin doctor`.
+- Never type `python`, `python3`, `ruff`, or `pytest` on their own. On this machine `python` does not exist, `python3` is a different interpreter without the project's packages, and a bare `ruff` is a different installation.
+- Do not activate the virtual environment. Each command runs in a new shell, so activation is lost before the next command.
+- `.venv/` already exists. It is gitignored, so `git status` and `git ls-files` do not show it. Do not create another virtual environment and do not reinstall packages unless the phase spec has a step for it.
+- If a command prints `command not found` or `No module named ...`, it was not typed as written. Stop and fix the command; do not skip the step.
+- On Windows the same commands start with `.\.venv\Scripts\python`.
+
 ## Privacy rules (non-negotiable)
 
 1. **No network calls** anywhere except inside `src/finances/sync/` (the aggregator client, Phase 17), which contacts only the configured aggregator. No telemetry, analytics, crash reporting, or update checks. The MCP server (Phase 14) uses the stdio transport only and never opens a port; the web UI (Phase 16) binds to 127.0.0.1 only, and remote access is provided outside the app by a private VPN. This app never calls an LLM.
@@ -37,7 +46,7 @@ This file applies to every phase. Read it, then `docs/architecture.md`, then the
 - Database access goes through SQLAlchemy 2.0 style code in `src/finances/db/`. No dialect-specific SQL.
 - Every schema change ships as an Alembic migration. Never edit a migration that a previous phase already shipped.
 - All configuration comes from `finances.config.get_settings()` (environment variables with prefix `FIN_`). No hardcoded paths, no secrets in code. The aggregator token lives in the OS keyring only.
-- Use `pathlib.Path`. Development happens on Windows and the app is deployed on macOS (a Mac Studio); code must run on both.
+- Use `pathlib.Path`. Development and deployment happen on macOS; code must also run on Windows.
 
 ## Code style
 

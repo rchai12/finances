@@ -10,13 +10,13 @@ The coder wrote the body of `parse_money`. The test file and the function's `def
 
 ## 1. Gates
 
-Activate the virtual environment first, then run each command on its own line.
+Run each command on its own line, exactly as written. Do not activate the virtual environment: name its interpreter in every command. (On Windows, `.\.venv\Scripts\python` replaces `.venv/bin/python`.)
 
 | Command | Expected |
 |---|---|
-| `python -m ruff check .` | `All checks passed!` |
-| `python -m ruff format --check .` | `18 files already formatted` |
-| `python -m pytest` | exit code 0, exactly `89 passed`, 0 skipped, 0 xfailed, `Required test coverage of 85.0% reached`, and the row for `src/finances/domain/money.py` at `100%` with nothing under `Missing` |
+| `.venv/bin/python -m ruff check .` | `All checks passed!` |
+| `.venv/bin/python -m ruff format --check .` | `18 files already formatted` |
+| `.venv/bin/python -m pytest` | exit code 0, exactly `89 passed`, 0 skipped, 0 xfailed, `Required test coverage of 85.0% reached`, and the row for `src/finances/domain/money.py` at `100%` with nothing under `Missing` |
 
 ## 2. Scope audit
 
@@ -43,7 +43,7 @@ Activate the virtual environment first, then run each command on its own line.
 
 None of these inputs are in the given tests. They catch a body that special-cases the listed examples, goes through `float` (`0.57` and `8.20` each come out one cent low that way), or leans on `Decimal` to reject bad text (`Decimal` accepts `1__0`, `inf`, `1E2`, and non-ASCII digits).
 
-Save the script in a temporary directory **outside the repository**, run it with `python <path>`, and delete it afterwards. Every line must end in `ok`; the last line must be `FAILURES 0`.
+Save the script in a temporary directory **outside the repository**, run it from the repository root with `.venv/bin/python <path>`, and delete it afterwards. Every line must end in `ok`; the last line must be `FAILURES 0`.
 
 ```python
 from finances.domain.money import format_cents, parse_money
