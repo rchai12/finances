@@ -22,3 +22,15 @@ def test_doctor_creates_data_dir(monkeypatch, tmp_path) -> None:
     assert result.exit_code == 0
     assert data_dir.is_dir()
     get_settings.cache_clear()
+
+
+def test_doctor_exits_1_when_a_check_fails(monkeypatch, tmp_settings) -> None:
+    monkeypatch.setattr(
+        "finances.cli.main.run_checks",
+        lambda settings: [("Probe", False, "bad FAIL")],
+    )
+
+    result = runner.invoke(app, ["doctor"])
+
+    assert result.exit_code == 1
+    assert "Probe" in result.stdout

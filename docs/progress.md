@@ -20,3 +20,8 @@ Template:
 - Built: pyproject.toml with pytest-cov>=5 dependency, tests/conftest.py with tmp_settings fixture, and tests/unit/test_diagnostics.py with five tests. TOTAL coverage: 93.70%.
 - Deviations from spec (and why): None
 - Follow-ups / known issues: None
+
+## Phase 2b: Tests for Phase 1 gaps (2026-10-12)
+- Built: three tests for untested Phase 1 branches (`mask_url` with a port, `mask_url` with an IPv6 host, `fin doctor` exit code 1), and the final newline of `pyproject.toml`. 16 tests pass. TOTAL coverage: 98.43%.
+- Deviations from spec (and why): None
+- Follow-ups / known issues: None

@@ -42,3 +42,13 @@ def test_mask_url_hides_password() -> None:
 def test_mask_url_without_password_is_unchanged() -> None:
     url = "sqlite:///data/finances.db"
     assert mask_url(url) == url
+
+
+def test_mask_url_keeps_port() -> None:
+    masked = mask_url("postgresql://user:secret@host:5432/db")
+    assert masked == "postgresql://user:***@host:5432/db"
+
+
+def test_mask_url_ipv6_host() -> None:
+    masked = mask_url("postgresql://user:secret@[::1]:5432/db")
+    assert masked == "postgresql://user:***@[::1]:5432/db"
