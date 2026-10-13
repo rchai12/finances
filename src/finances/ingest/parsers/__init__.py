@@ -44,3 +44,8 @@ def detect_parser(pages: list[str]) -> StatementParser:
         return matches[0]
     names = ", ".join(parser.name for parser in matches)
     raise StatementError(f"statement matches more than one parser: {names}")
+
+
+from finances.ingest.parsers.capital_one import CapitalOneCardParser  # noqa: E402
+
+register(CapitalOneCardParser())
