@@ -66,3 +66,20 @@ def parse_month_day(text: str, period_start: date, period_end: date) -> date:
     else:
         raise StatementError("unrecognized date text")
     return infer_year(month, day, period_start, period_end)
+
+
+_LABELED_MONEY = r"\s+((?:[-+=] *)*\$(?:[0-9]{1,3}(?:,[0-9]{3})+|[0-9]+)\.[0-9]{2})(?![0-9])"
+
+
+def find_labeled_amount(lines: list[str], label: str) -> int | None:
+    """Return the amount printed after label on the first line that has one, or None."""
+    pattern = re.compile(r"(?:^|(?<=\s\s))" + re.escape(label) + _LABELED_MONEY)
+    for line in lines:
+        match = pattern.search(line)
+        if match is None:
+            continue
+        try:
+            return parse_amount(match.group(1))
+        except ValueError:
+            continue
+    return None

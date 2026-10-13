@@ -49,3 +49,9 @@ def detect_parser(pages: list[str]) -> StatementParser:
 from finances.ingest.parsers.capital_one import CapitalOneCardParser  # noqa: E402
 
 register(CapitalOneCardParser())
+
+from finances.ingest.parsers.boa import BoaCardParser  # noqa: E402
+from finances.ingest.parsers.citi import CitiCardParser  # noqa: E402
+
+register(BoaCardParser())
+register(CitiCardParser())
