@@ -1,0 +1,60 @@
+Citi                                                  www.citicards.com
+Costco Anywhere Visa Card by Citi
+Account number ending in: 4444
+Billing Period: 12/13/26-01/12/27
+
+Account Summary
+Previous balance                      $500.00
+Payments                              -$500.00
+Credits                               -$19.99
+Purchases                             +$256.25
+Cash advances                         +$0.00
+Fees                                  +$29.00
+Interest                              +$11.87
+New balance                           $277.13
+Credit Limit                          $10,000.00
+
+CARDHOLDER SUMMARY
+MARIA DE LA CRUZ      Card ending in 4444      New Charges      $174.25
+LEE O'NEIL      Card ending in 6666      New Charges      $82.00
+
+ACCOUNT ACTIVITY
+Sale    Post
+Date    Date    Description                                  Amount
+Payments, Credits and Adjustments
+12/28   12/28   ONLINE PAYMENT, THANK YOU                   -$500.00
+01/04   01/05   FOOBAR OUTDOORS PLANO TX                    -$19.99
+MARIA DE LA CRUZ
+Standard Purchases
+12/12   12/13   ACME WHSE #1234 PLANO TX                    $150.75
+12/31   01/02   FOOBAR PIZZA PLANO TX                       $23.50
+Page 1 of 3Citi                                                  www.citicards.com
+Costco Anywhere Visa Card by Citi
+Account number ending in: 4444
+Billing Period: 12/13/26-01/12/27
+
+ACCOUNT ACTIVITY (continued)
+Sale    Post
+Date    Date    Description                                  Amount
+LEE O'NEIL
+Standard Purchases
+01/10   01/11   ACME GAS #1234 PLANO TX                     $41.00
+        01/11   ACME GAS #1234 PLANO TX                     $41.00
+Fees Charged
+01/12   01/12   LATE FEE                                    $29.00
+TOTAL FEES FOR THIS PERIOD                      $29.00
+Interest Charged
+01/12   01/12   INTEREST CHARGED TO STANDARD PURCH          $11.87
+TOTAL INTEREST FOR THIS PERIOD                  $11.87
+
+2026 totals year-to-date
+Total fees charged in 2026      $0.00
+Total interest charged in 2026      $0.00Citi                                                  www.citicards.com
+Costco Anywhere Visa Card by Citi
+Account number ending in: 4444
+Billing Period: 12/13/26-01/12/27
+
+Costco Cash Rewards Summary
+Rewards balance from last statement      $12.34
+09/10   Rewards earned this period      $7.59
+Purchases      1% on all other purchases

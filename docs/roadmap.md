@@ -14,7 +14,7 @@ Status: Phases 1 and 2 are built. The specs for Phases 3 to 10 were written befo
 | 2 | Database and accounts | **Done.** Money helpers, `accounts` schema + migration, repositories, `fin db upgrade`, `fin accounts add/list` | sub-phases below |
 | 3 | Statement import core | PDF text, parser registry, reconciliation, dedup, `fin import statement/folder` | sub-phases below |
 | 4 | Capital One parser | Multi-cardholder card statements, year wrap, interest and fee lines, declared section totals; the opt-in check of real statements | [phase-04](phases/phase-04-capital-one-parser.md) (re-issued for the current format) |
-| 5 | BoA + Citi parsers | Two more card formats | [phase-05](phases/phase-05-boa-citi-parsers.md) |
+| 5 | BoA + Citi parsers | Two more card formats, and the shared `find_labeled_amount` helper | [phase-05](phases/phase-05-boa-citi-parsers.md) (re-issued for the current format) |
 | 6 | Truist + Marcus parsers | Checking/savings; all PDF samples import | [phase-06](phases/phase-06-deposit-parsers.md) |
 | 7 | *Removed* | Was "CSV import". The aggregator feed (Phase 17) replaces it. The old spec is kept as reference for Phases 8 and 17 | |
 | 8 | Statements supersede provisional rows | In-place upgrade of aggregator rows by a reconciled statement; order of arrival does not matter | draft written for CSV: [phase-08](phases/phase-08-statement-supersedes-csv.md), to be re-issued |
@@ -67,6 +67,7 @@ Phase 2 now creates only the `accounts` table. `import_batches`, `transactions`,
 | 3b | Statement checks and reading | `reconcile` with `ReconcileResult` (opening balance plus lines must equal closing, to the cent; declared section totals must match); `fingerprint_lines` for deduplication; `extract_pages` (adds `pypdf`); the parser registry (`register`, `unregister`, `registered_parsers`, `detect_parser`); test fixtures that build real PDFs | [phase-03b](phases/phase-03b-statement-checks-and-reading.md) |
 | 3c | Storing and importing statements | Domain and ORM classes for `statements`, `transactions`, and `balance_snapshots`; migration `0002`; eight repository functions; `import_statement` (read, recognize, match an account, reconcile, deduplicate, store) and `import_folder`; a fake bank parser for tests | [phase-03c](phases/phase-03c-storing-and-importing-statements.md) |
 | 3d | Import commands | `fin import statement`, `fin import folder`, `fin statements list`, `fin transactions list`, and one shared database check for all commands | [phase-03d](phases/phase-03d-import-commands.md). Independent of Phase 4; either can be built first |
+| 3e | Table width | One `print_table` function for all five tables: fitted to a terminal, one line per row everywhere else. Replaces the fixed 200-column consoles from 3d | [phase-03e](phases/phase-03e-table-width.md). Independent of Phase 5; either can be built first |
 
 3c joins the storage layer and the import service, which were planned separately: the service is the only user of the new repositories. The commands stay in 3d because they are a thin layer over finished functions.
 

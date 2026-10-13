@@ -1,0 +1,52 @@
+Bank of America                                        www.bankofamerica.com
+Customized Cash Rewards Visa Signature
+Account# 4400 0000 0000 1111
+March 29 - April 28, 2026
+
+Account Summary
+Previous Balance                          $1,559.05
+Payments and Other Credits                -$945.24
+Purchases and Adjustments                 $1,540.09
+Fees Charged                              $29.00
+Interest Charged                          $12.34
+New Balance Total                         $2,195.24
+Total Credit Line                         $20,000.00
+Statement Closing Date                    04/28/2026
+
+Transactions
+Transaction   Posting                                      Reference   Account
+Date          Date      Description                        Number      Number      Amount
+Payments and Other Credits
+04/03   04/06   EXAMPLESOFT*STORE REDMOND WA                3012   1111   -43.19
+04/07   04/07   PAYMENT FROM CHK 9999 CONF#M00000000        4733   1111   -902.05
+TOTAL PAYMENTS AND OTHER CREDITS FOR THIS PERIOD          -$945.24
+Purchases and Adjustments
+03/28   03/30   ACME GROCERY #123 DECATUR GA                7838   2222   36.49
+04/01   04/02   FOOBAR CAFE ATLANTA GA                      1190   1111   12.75
+continued on next page...
+Page 1 of 2Bank of America                                        www.bankofamerica.com
+Customized Cash Rewards Visa Signature
+Account# 4400 0000 0000 1111
+March 29 - April 28, 2026
+
+Transactions (continued)
+Transaction   Posting                                      Reference   Account
+Date          Date      Description                        Number      Number      Amount
+04/01   04/02   FOOBAR CAFE ATLANTA GA                      1191   1111   12.75
+04/10   04/11   EXAMPLE AIRLINES 0061234567890 TX           5521   2222   412.60
+04/20   04/21   ACME HARDWARE #88 2026 MARIETTA GA          0042   1111   1,065.50
+TOTAL PURCHASES AND ADJUSTMENTS FOR THIS PERIOD           $1,540.09
+Fees Charged
+04/15   04/15   LATE FEE FOR PAYMENT DUE 04/10                            29.00
+TOTAL FEES CHARGED FOR THIS PERIOD                        $29.00
+Interest Charged
+04/28   04/28   INTEREST CHARGED ON PURCHASES                             12.34
+04/28   04/28   INTEREST CHARGED ON BALANCE TRANSFERS                     0.00
+TOTAL INTEREST CHARGED FOR THIS PERIOD                    $12.34
+
+2026 Totals Year-to-Date
+Total fees charged in 2026      $29.00
+Total interest charged in 2026      $12.34
+
+Rewards
+04/28   04/28   CASH BACK EARNED THIS PERIOD                    12.00

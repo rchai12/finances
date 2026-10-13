@@ -63,8 +63,10 @@ Record each result here, one line per phase:
 
 - 3b (9 public units, 22 requirements, tests given for two of four parts): passed at the first attempt, nothing built beyond the spec.
 - 3c (about 22 units, 32 requirements, five parts across four layers, one given test file): passed. About twice 3b, so a whole cohesive layer per spec works.
-- 3d (four commands in three modules, 19 requirements, 41 given tests that fix every line of output and reach 100% of the CLI, no tests left to the coder): result pending. Written after Phase 4 and independent of it.
-- 4 (one parser module, 18 requirements, 42 given tests on five fixtures, the coder writes the tests for errors and edge cases): result pending. First phase whose correctness finally depends on real statements the architect cannot see.
+- 3d (four commands in three modules, 19 requirements, 41 given tests that fix every line of output and reach 100% of the CLI, no tests left to the coder): built and accepted; the number of repair rounds was not reported. The coder fixed the table width in code (`Console(width=200, height=25)`) to make the pinned rows pass, so a spec that pins table output must also say how the width is set.
+- 4 (one parser module, 18 requirements, 42 given tests on five fixtures, the coder writes the tests for errors and edge cases): built and accepted; 72 tests added. Not yet run on real statements (none on the build machine).
+- 5 (two parser modules and one shared helper, 29 requirements, 106 given tests on five fixtures, two test files left to the coder): result pending. About twice Phase 4.
+- 3e (a fix-up: one function, four modules changed to use it, 5 requirements, 24 given tests, none left to the coder): result pending.
 
 Order sub-phases so each depends only on phases before it.
 

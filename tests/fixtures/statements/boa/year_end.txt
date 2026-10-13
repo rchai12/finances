@@ -1,0 +1,36 @@
+Bank of America                                        www.bankofamerica.com
+Customized Cash Rewards Visa Signature
+Account# 4400 0000 0000 3333
+December 20 - January 19, 2027
+
+Account Summary
+Previous Balance                          $0.00
+Payments and Other Credits                $0.00
+Purchases and Adjustments                 $160.49
+Fees Charged                              $0.00
+Interest Charged                          $0.00
+New Balance Total                         $160.49
+Total Credit Line                         $20,000.00
+Statement Closing Date                    04/28/2026
+
+Transactions
+Transaction   Posting                                      Reference   Account
+Date          Date      Description                        Number      Number      Amount
+Payments and Other Credits
+TOTAL PAYMENTS AND OTHER CREDITS FOR THIS PERIOD          $0.00
+Purchases and Adjustments
+12/19   12/20   ACME TOYS #7 AUSTIN TX                      2001   3333   89.99
+12/31   01/02   FOOBAR LIQUOR AUSTIN TX                     2002   3333   45.50
+01/15   01/16   ACME GYM 512-555-0100 TX                    2003   3333   25.00
+TOTAL PURCHASES AND ADJUSTMENTS FOR THIS PERIOD           $160.49
+Fees Charged
+TOTAL FEES CHARGED FOR THIS PERIOD                        $0.00
+Interest Charged
+TOTAL INTEREST CHARGED FOR THIS PERIOD                    $0.00
+
+2026 Totals Year-to-Date
+Total fees charged in 2026      $29.00
+Total interest charged in 2026      $12.34
+
+Rewards
+04/28   04/28   CASH BACK EARNED THIS PERIOD                    12.00

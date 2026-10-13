@@ -1,0 +1,35 @@
+Bank of America                                        www.bankofamerica.com
+Customized Cash Rewards Visa Signature
+Account# 4400 0000 0000 5555
+June 1 - June 30, 2026
+
+Account Summary
+Previous Balance                          -$20.00
+Payments and Other Credits                -$15.00
+Purchases and Adjustments                 $7.25
+Fees Charged                              $0.00
+Interest Charged                          $0.00
+New Balance Total                         -$27.75
+Total Credit Line                         $20,000.00
+Statement Closing Date                    04/28/2026
+
+Transactions
+Transaction   Posting                                      Reference   Account
+Date          Date      Description                        Number      Number      Amount
+Payments and Other Credits
+06/12   06/13   ACME OUTLET REFUND DALLAS TX                9100   5555   -15.00
+TOTAL PAYMENTS AND OTHER CREDITS FOR THIS PERIOD          -$15.00
+Purchases and Adjustments
+06/20   06/21   FOOBAR SNACKS DALLAS TX                     9101   5555   7.25
+TOTAL PURCHASES AND ADJUSTMENTS FOR THIS PERIOD           $7.25
+Fees Charged
+TOTAL FEES CHARGED FOR THIS PERIOD                        $0.00
+Interest Charged
+TOTAL INTEREST CHARGED FOR THIS PERIOD                    $0.00
+
+2026 Totals Year-to-Date
+Total fees charged in 2026      $29.00
+Total interest charged in 2026      $12.34
+
+Rewards
+04/28   04/28   CASH BACK EARNED THIS PERIOD                    12.00
