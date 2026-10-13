@@ -1,0 +1,56 @@
+Capital One                                                  capitalone.com
+Quicksilver Credit Card      Visa Signature ending in 1111
+Dec 24, 2025 - Jan 23, 2026      31 days in Billing Cycle
+
+Payment Information                              Account Summary
+Payment Due Date      Feb 20, 2026              Previous Balance      $250.00
+New Balance      $242.58                    Payments      - $250.00
+Minimum Payment Due      $25.00            Other Credits      - $15.65
+                                                 Transactions      + $258.10
+                                                 Cash Advances      + $0.00
+                                                 Fees Charged      + $0.00
+                                                 Interest Charged      + $0.13
+                                                 New Balance      = $242.58
+
+Rewards Summary      Previous Balance      1,234      Earned This Period      56
+
+JANE DOE #1111: Payments, Credits and Adjustments
+Trans Date      Post Date      Description                                  Amount
+Jan 11      Jan 12      CAPITAL ONE MOBILE PYMT                       - $250.00
+Jan 15      Jan 16      ACME STORE REFUND                             - $15.65
+
+JANE DOE #1111: Transactions
+Trans Date      Post Date      Description                                  Amount
+Dec 23      Dec 24      ACME VENDING DallasGrapevineTX                $3.00
+Jan 5      Jan 6      FOOBAR CHICKEN #123TUCKERGA                   $38.96
+Jan 7      Jan 8      ACME COFFEE                                   $4.50
+
+Additional Information on the next page
+Page 1 of 2Capital One                                                  capitalone.com
+Quicksilver Credit Card      Visa Signature ending in 1111
+Dec 24, 2025 - Jan 23, 2026      31 days in Billing Cycle
+
+Transactions (Continued)
+Trans Date      Post Date      Description                                  Amount
+Jan 10      Jan 11      FOOBAR GROCERY #45                            $127.80
+Jan 14      Jan 15      EXAMPLESTREAM.COM                             $15.99
+Jan 20      Jan 21      ACME GAS #9                                   $41.25
+Jan 22      Jan 23      FOOBAR BOOKS                                  $22.10
+Jan 22      Jan 23      ACME COFFEE                                   $4.50
+JANE DOE #1111: Total Transactions                    $258.10
+
+Total Transactions for This Period                    $258.10
+
+Fees
+Total Fees for This Period                            $0.00
+
+Interest Charged
+Interest Charge on Purchases                        $0.13
+Interest Charge on Cash Advances                        $0.00
+Interest Charge on Other Balances                        $0.00
+Total Interest for This Period                        $0.13
+
+Total Fees charged in 2026      $35.00
+Total Interest charged in 2026      $1.20
+
+Page 2 of 2

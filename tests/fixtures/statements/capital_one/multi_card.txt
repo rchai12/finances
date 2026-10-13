@@ -1,0 +1,56 @@
+Capital One                                                  capitalone.com
+Savor Credit Card      World Elite Mastercard ending in 1111
+Mar 5, 2026 - Apr 4, 2026      31 days in Billing Cycle
+
+Payment Information                              Account Summary
+Payment Due Date      May 1, 2026              Previous Balance      $300.00
+New Balance      $196.74                    Payments      - $300.00
+Minimum Payment Due      $25.00            Other Credits      - $20.00
+                                                 Transactions      + $181.74
+                                                 Cash Advances      + $0.00
+                                                 Fees Charged      + $35.00
+                                                 Interest Charged      + $0.00
+                                                 New Balance      = $196.74
+
+Rewards Summary      Previous Balance      1,234      Earned This Period      56
+
+JANE DOE #1111: Payments, Credits and Adjustments
+Trans Date      Post Date      Description                                  Amount
+Mar 20      Mar 20      CAPITAL ONE AUTOPAY PYMT                      - $300.00
+
+JANE DOE #1111: Transactions
+Trans Date      Post Date      Description                                  Amount
+Mar 6      Mar 7      ACME COFFEE                                   $5.25
+Mar 30      Apr 1      FOOBAR GROCERY                                $80.00
+JANE DOE #1111: Total Transactions                    $85.25
+
+JOHN DOE #2222: Transactions
+Trans Date      Post Date      Description                                  Amount
+Mar 10      Mar 11      ACME HARDWARE                                 $45.10
+Apr 2      Apr 3      FOOBAR DINER                                  $31.40
+JOHN DOE #2222: Total Transactions                    $76.50
+
+ALEX ROE #3333: Payments, Credits and Adjustments
+Trans Date      Post Date      Description                                  Amount
+Mar 25      Mar 26      ACME STORE RETURN                             - $20.00
+
+ALEX ROE #3333: Transactions
+Trans Date      Post Date      Description                                  Amount
+Mar 12      Mar 13      EXAMPLE TOYS                                  $19.99
+ALEX ROE #3333: Total Transactions                    $19.99
+
+Total Transactions for This Period                    $181.74
+
+Fees
+Total Fees for This Period                            $35.00
+
+Interest Charged
+Interest Charge on Purchases                        $0.00
+Interest Charge on Cash Advances                        $0.00
+Interest Charge on Other Balances                        $0.00
+Total Interest for This Period                        $0.00
+
+Total Fees charged in 2026      $35.00
+Total Interest charged in 2026      $1.20
+
+Page 1 of 1

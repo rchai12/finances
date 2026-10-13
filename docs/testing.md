@@ -11,7 +11,7 @@ Applies to every phase. Phase specs list the specific tests; this file sets the 
 | End-to-end | `tests/e2e/` | Multi-step CLI workflows (accounts → sync → statement) through Typer's `CliRunner` | Every `pytest` run |
 | Property-based | inside unit/integration, using `hypothesis` (Phase 9) | Invariants over generated inputs | Every `pytest` run (bounded examples) |
 | Golden (snapshot) | `tests/golden/` (Phase 9) | Full parser output for each synthetic fixture compared to a stored expected JSON | Every `pytest` run |
-| Real samples | marker `real_samples`, opt-in via `FIN_REAL_SAMPLES=1` | Every file in `data/samples/` detects, parses, reconciles | Manually, locally only. Never in CI |
+| Real samples | `tests/real_samples/check_real_samples.py`, run by naming the file | Every PDF in `data/samples/` is read, recognized, parsed, and reconciled; the output is sample numbers, parser names, counts, and differences in cents only | Manually, on the machine that holds the statements. Never part of the normal run, never in CI |
 | Mutation | `cosmic-ray` (Phase 10), not pytest | Whether the tests actually catch bugs in critical modules | Manually / before tagging a release |
 
 ## Rules
@@ -40,7 +40,7 @@ Every command names the virtual environment's interpreter (`AGENTS.md`, "Running
 
 ```zsh
 .venv/bin/python -m pytest                         # unit + integration + e2e + golden, with coverage
-FIN_REAL_SAMPLES=1 .venv/bin/python -m pytest -m real_samples
+.venv/bin/python -m pytest tests/real_samples/check_real_samples.py --no-cov -rA   # real statements, opt-in
 ```
 
 Phase 10 adds one script that runs everything a commit needs, and a mutation run on the critical modules.

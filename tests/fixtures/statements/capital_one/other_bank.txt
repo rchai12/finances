@@ -1,0 +1,6 @@
+Example Bank                                        examplebank.com
+Statement Period      09/01/2026 to 09/30/2026
+Account ending in 9999
+Previous Balance      $100.00
+New Balance      $90.00
+09/05      ACME COFFEE      $10.00

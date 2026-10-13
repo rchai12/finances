@@ -99,8 +99,9 @@ def test_two_matches_name_parsers_in_registration_order(parser_registry: None) -
     assert str(excinfo.value) == "statement matches more than one parser: zeta, alpha"
 
 
-def test_the_registry_is_empty_outside_the_fixture() -> None:
-    assert registered_parsers() == []
+def test_no_test_parser_is_left_in_the_registry() -> None:
+    modules = [type(parser).__module__ for parser in registered_parsers()]
+    assert all(module.startswith("finances.ingest.parsers.") for module in modules)
 
 
 def test_statement_parser_is_a_protocol_with_exactly_those_members() -> None:

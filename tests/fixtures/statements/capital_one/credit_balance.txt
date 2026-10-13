@@ -1,0 +1,40 @@
+Capital One                                                  capitalone.com
+Quicksilver Credit Card      Visa Signature ending in 5555
+May 1, 2026 - May 31, 2026      31 days in Billing Cycle
+
+Payment Information                              Account Summary
+Payment Due Date      Jun 27, 2026              Previous Balance      - $50.00
+New Balance      - $67.50                    Payments      - $0.00
+Minimum Payment Due      $25.00            Other Credits      - $30.00
+                                                 Transactions      + $12.50
+                                                 Cash Advances      + $0.00
+                                                 Fees Charged      + $0.00
+                                                 Interest Charged      + $0.00
+                                                 New Balance      = - $67.50
+
+Rewards Summary      Previous Balance      1,234      Earned This Period      56
+
+SAM LEE #5555: Payments, Credits and Adjustments
+Trans Date      Post Date      Description                                  Amount
+May 10      May 11      FOOBAR OUTLET REFUND                          - $30.00
+
+SAM LEE #5555: Transactions
+Trans Date      Post Date      Description                                  Amount
+May 20      May 21      ACME SNACKS                                   $12.50
+SAM LEE #5555: Total Transactions                    $12.50
+
+Total Transactions for This Period                    $12.50
+
+Fees
+Total Fees for This Period                            $0.00
+
+Interest Charged
+Interest Charge on Purchases                        $0.00
+Interest Charge on Cash Advances                        $0.00
+Interest Charge on Other Balances                        $0.00
+Total Interest for This Period                        $0.00
+
+Total Fees charged in 2026      $35.00
+Total Interest charged in 2026      $1.20
+
+Page 1 of 1
