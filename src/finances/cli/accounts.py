@@ -6,8 +6,8 @@ import typer
 from rich.console import Console
 from rich.table import Table
 
+from finances.cli.common import require_current_schema
 from finances.db.engine import get_engine, session_scope
-from finances.db.migrate import current_revision, head_revision
 from finances.db.repositories import AccountExistsError, create_account, list_accounts
 from finances.domain.models import AccountType
 
@@ -26,12 +26,7 @@ def add(
     ] = None,
 ) -> None:
     """Add an account."""
-    # First check database is up to date
-    current = current_revision()
-    head = head_revision()
-    if current != head:
-        typer.echo("Error: database is not up to date (run: fin db upgrade)", err=True)
-        raise typer.Exit(code=1) from None
+    require_current_schema()
 
     with session_scope(get_engine()) as session:
         try:
@@ -47,12 +42,7 @@ def list_command(
     show_all: Annotated[bool, typer.Option("--all", help="Include inactive accounts.")] = False,
 ) -> None:
     """List the accounts."""
-    # First check database is up to date
-    current = current_revision()
-    head = head_revision()
-    if current != head:
-        typer.echo("Error: database is not up to date (run: fin db upgrade)", err=True)
-        raise typer.Exit(code=1)
+    require_current_schema()
 
     with session_scope(get_engine()) as session:
         accounts = list_accounts(session, include_inactive=show_all)
