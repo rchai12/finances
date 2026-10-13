@@ -1,5 +1,7 @@
 # Phase 3: Statement import core
 
+> **Superseded draft. Do not implement.** Phase 3 is being re-issued as sub-phases 3a to 3h (see `docs/roadmap.md`). This file is kept as source material until they are all written.
+
 ## Goal
 
 Shared machinery for importing PDF statements: text extraction, a common parsed-statement model, a parser registry, year inference, reconciliation, dedup, and an import service plus CLI. **No real bank parser yet.** Phases 4 to 6 each add bank parsers that plug into this.

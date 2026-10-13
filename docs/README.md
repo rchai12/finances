@@ -20,8 +20,8 @@
    > Read AGENTS.md, docs/phases/phase-NN-*.md, and docs/verification/phase-NN-*.md.
    > Follow the verification guide against the current diff. Do not modify files. Report the verdict.
 
-   A FAIL goes back to the coding agent as repairs: each one replaces a whole file with a block from the spec, or is a single command.
+   A FAIL goes back to the coding agent with the verifier's findings, in the form the guide's last section gives.
 3. Commit.
 4. The architect writes or adjusts the next phase spec and its verification guide based on what was actually built.
 
-The architect's rules for sizing and writing specs and verification guides are in `.claude/skills/phase-architect/SKILL.md`.
+The architect's rules for sizing and writing specs and verification guides are in `.claude/skills/phase-architect/SKILL.md`. The stricter step-by-step format used for Phases 2a to 3a, when the coder was a small local model, is the user-level skill `local-coder-specs`; those specs remain here as its examples.

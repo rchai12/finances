@@ -4,15 +4,15 @@ Each phase is sized for one focused coding session: a few modules, their tests, 
 
 **Input decision:** a third-party **aggregator** is the daily feed. Its rows are provisional. Monthly **PDF statements** are the audit and the record (see `docs/statement-formats.md`): each is reconciled against its own opening and closing balances, then upgrades the matching provisional rows in place. Statements also supply what the feed lacks, such as the cardholder on shared cards.
 
-Status: the specs for Phases 2 to 10 were written before the small-phase rules and before the agent redesign. Each is re-issued as lettered sub-phases, with a verification guide, before the coder receives it. Phases 11 and later are outlines.
+Status: Phases 1 and 2 are built. The specs for Phases 3 to 10 were written before the small-phase rules and before the agent redesign. Each is re-issued as lettered sub-phases, with a verification guide, before the coder receives it. Phases 11 and later are outlines.
 
 **Build order:** 2 → 3 → 4 → 17 → 8 → 9 → 10 → 11 → 12 → 13 → 14 → 19 → 16 → 20. Phases 5 and 6 (more statement parsers) can be built any time after 4, when audit coverage for those banks is wanted.
 
 | # | Phase | Outcome | Spec |
 |---|---|---|---|
 | 1 | Project skeleton | Installable package, config, logging, `fin doctor`, tests run | [phase-01](phases/phase-01-skeleton.md) |
-| 2 | Database and accounts | Money helpers, `accounts` schema + migration, repositories, `fin db upgrade`, `fin accounts add/list` | sub-phases below |
-| 3 | Statement import core | PDF text, parser registry, reconciliation, dedup, `fin import statement/folder` | [phase-03](phases/phase-03-statement-import-core.md) |
+| 2 | Database and accounts | **Done.** Money helpers, `accounts` schema + migration, repositories, `fin db upgrade`, `fin accounts add/list` | sub-phases below |
+| 3 | Statement import core | PDF text, parser registry, reconciliation, dedup, `fin import statement/folder` | sub-phases below |
 | 4 | Capital One parser | Multi-cardholder card statements, year wrap | [phase-04](phases/phase-04-capital-one-parser.md) |
 | 5 | BoA + Citi parsers | Two more card formats | [phase-05](phases/phase-05-boa-citi-parsers.md) |
 | 6 | Truist + Marcus parsers | Checking/savings; all PDF samples import | [phase-06](phases/phase-06-deposit-parsers.md) |
@@ -53,9 +53,28 @@ Verification guides have the same file name under `verification/`.
 | 2l | `find_accounts_by_last4` and `list_accounts` | The other two account repository functions | [phase-02l](phases/phase-02l-find-and-list-accounts.md) |
 | 2m | The database and account commands | `fin db upgrade`, `fin accounts add`, `fin accounts list`, and the "Database schema" line in `fin doctor`. Two planned sub-phases joined into one (32 steps, four Code steps) to speed things up. This finishes Phase 2 | [phase-02m](phases/phase-02m-cli-commands.md) |
 
-From 2c on, the spec gives the tests and the steps, and the coder writes the implementation. Sub-phases began at one unit of code each and have grown as the coder proved able: two or three units from 2g, four in 2m.
+From 2c on, the spec gives the tests and the steps, and the coder writes the implementation. Sub-phases began at one unit of code each and have grown as the coder proved able: two or three units from 2g, four in 2m. That step-by-step format is kept as the `local-coder-specs` skill.
 
 Phase 2 now creates only the `accounts` table. `import_batches`, `transactions`, and `balance_snapshots` each arrive with their own migration in the Phase 3 sub-phase that first uses them, so their columns can account for the aggregator feed.
+
+### Phase 3 sub-phases
+
+3a was specified for the small local model that built Phase 2. From 3b the coder is a more capable agent, so the remaining work is planned as three larger sub-phases instead of seven. Their size is a starting point and will be adjusted from the results.
+
+| # | Sub-phase | What it delivers | Spec |
+|---|---|---|---|
+| 3a | Statement model and parsing helpers | `Section`, `StatementLine`, `ParsedStatement`; `parse_amount`, `infer_year`, `parse_month_day` | [phase-03a](phases/phase-03a-statement-model-and-helpers.md) |
+| 3b | Statement checks and reading | `reconcile` with `ReconcileResult` (opening balance plus lines must equal closing, to the cent; declared section totals must match); `fingerprint_lines` for deduplication; `extract_pages` (adds `pypdf`); the parser registry (`register`, `registered_parsers`, `detect_parser`); a fake parser for tests and the opt-in real-sample test harness | to be written after 3a is built |
+| 3c | Statement storage | Domain and ORM classes for `statements`, `transactions`, and `balance_snapshots`; migration `0002`; repositories to save and find statements, insert and list transactions, check existing fingerprints, and record balance snapshots | to be written |
+| 3d | Importing statements | Account matching by last four digits; `import_statement` (reconcile, deduplicate, write in one transaction) and `import_folder`; the commands `fin import statement`, `fin import folder`, `fin statements list`, `fin transactions list` | to be written |
+
+Changes from the original Phase 3 draft, made for the aggregator design and for simplicity:
+
+- The table of imported files is named `statements`, not `import_batches`. With CSV import gone, a statement is the only kind of file imported; aggregator pulls get their own record in Phase 17.
+- `transactions` gains a pending flag and keeps an external id, so aggregator rows fit without a redesign. Its `source` is `statement` or `aggregator`.
+- `transactions` stores one description (as printed, whitespace collapsed). The separate normalized description waits for Phase 11, which defines merchant normalization.
+- `find_labeled_amount` moves to Phase 4, where the first real parser shows what it needs.
+- `infer_year` also tries the year after the period ends, so a row dated in early January is found on a statement that closes in late December.
 
 Testing rules for every phase are in [testing.md](testing.md). Each later phase adds its critical modules to the coverage and mutation gates from Phase 10.
 
