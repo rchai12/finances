@@ -51,9 +51,9 @@ Verification guides have the same file name under `verification/`.
 | 2j | Running migrations from code | `head_revision`, `upgrade_to_head`, `current_revision` in `db/migrate.py`, plus `db_url` and `db_engine` test fixtures. Three Code steps | [phase-02j](phases/phase-02j-run-migrations.md) |
 | 2k | `get_account_by_name` and `create_account` | The first two repository functions in `db/repositories.py`, tested against a migrated temporary database. First spec with a per-module 100% coverage step | [phase-02k](phases/phase-02k-create-and-get-account.md) |
 | 2l | `find_accounts_by_last4` and `list_accounts` | The other two account repository functions | [phase-02l](phases/phase-02l-find-and-list-accounts.md) |
-| 2m onward | `fin db upgrade` and the doctor schema check; `fin accounts add` and `fin accounts list` | Two sub-phases, which finish Phase 2 | to be written after 2l is built |
+| 2m | The database and account commands | `fin db upgrade`, `fin accounts add`, `fin accounts list`, and the "Database schema" line in `fin doctor`. Two planned sub-phases joined into one (32 steps, four Code steps) to speed things up. This finishes Phase 2 | [phase-02m](phases/phase-02m-cli-commands.md) |
 
-From 2c on, a sub-phase asks for one unit of code. The spec gives the tests and the steps; the coder writes the implementation.
+From 2c on, the spec gives the tests and the steps, and the coder writes the implementation. Sub-phases began at one unit of code each and have grown as the coder proved able: two or three units from 2g, four in 2m.
 
 Phase 2 now creates only the `accounts` table. `import_batches`, `transactions`, and `balance_snapshots` each arrive with their own migration in the Phase 3 sub-phase that first uses them, so their columns can account for the aggregator feed.
 

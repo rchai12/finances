@@ -6,7 +6,13 @@ from sqlalchemy.orm import Session
 
 from finances.db.engine import session_scope
 from finances.db.orm import AccountRow
-from finances.db.repositories import AccountExistsError, create_account, get_account_by_name
+from finances.db.repositories import (
+    AccountExistsError,
+    create_account,
+    find_accounts_by_last4,
+    get_account_by_name,
+    list_accounts,
+)
 from finances.domain.models import Account, AccountType
 
 EXISTS = "an account with this name already exists"
@@ -195,3 +201,101 @@ def test_create_account_rejects_a_bad_last4(db_engine: Engine, last4: str) -> No
             create_account(session, "Test Account", "Test Bank", AccountType.OTHER, last4=last4)
     assert str(excinfo.value) == "last4 must be exactly 4 digits"
     assert count_rows(db_engine) == 0
+
+
+def names(accounts: list[Account]) -> list[str]:
+    return [account.name for account in accounts]
+
+
+def test_find_accounts_by_last4_returns_the_matching_account(db_engine: Engine) -> None:
+    add_row(db_engine, "Test Checking", last4="1234")
+    add_row(db_engine, "Test Savings", last4="5678")
+    with session_scope(db_engine) as session:
+        accounts = find_accounts_by_last4(session, "1234")
+    assert type(accounts) is list
+    assert [type(account) for account in accounts] == [Account]
+    assert names(accounts) == ["Test Checking"]
+
+
+def test_find_accounts_by_last4_returns_every_match_in_id_order(db_engine: Engine) -> None:
+    add_row(db_engine, "Zebra Card", last4="1234", type="credit_card")
+    add_row(db_engine, "Other Card", last4="9999", type="credit_card")
+    add_row(db_engine, "Apple Card", last4="1234", type="credit_card")
+    with session_scope(db_engine) as session:
+        accounts = find_accounts_by_last4(session, "1234")
+    assert [account.id for account in accounts] == [1, 3]
+    assert names(accounts) == ["Zebra Card", "Apple Card"]
+
+
+def test_find_accounts_by_last4_includes_inactive_accounts(db_engine: Engine) -> None:
+    add_row(db_engine, "Closed Card", last4="1234", is_active=False)
+    with session_scope(db_engine) as session:
+        accounts = find_accounts_by_last4(session, "1234")
+    assert names(accounts) == ["Closed Card"]
+    assert accounts[0].is_active is False
+
+
+def test_find_accounts_by_last4_no_match_gives_an_empty_list(db_engine: Engine) -> None:
+    with session_scope(db_engine) as session:
+        assert find_accounts_by_last4(session, "1234") == []
+    add_row(db_engine, "Test Checking", last4="1234")
+    with session_scope(db_engine) as session:
+        assert find_accounts_by_last4(session, "0000") == []
+
+
+def test_find_accounts_by_last4_ignores_accounts_without_last4(db_engine: Engine) -> None:
+    add_row(db_engine, "No Digits")
+    with session_scope(db_engine) as session:
+        assert find_accounts_by_last4(session, "1234") == []
+
+
+@pytest.mark.parametrize("last4", ["", "123", "12345", "12a4", " 1234"])
+def test_find_accounts_by_last4_rejects_bad_input(db_engine: Engine, last4: str) -> None:
+    add_row(db_engine, "Test Checking", last4="1234")
+    with session_scope(db_engine) as session:
+        with pytest.raises(ValueError) as excinfo:
+            find_accounts_by_last4(session, last4)
+    assert str(excinfo.value) == "last4 must be exactly 4 digits"
+
+
+def test_list_accounts_is_empty_when_there_are_no_accounts(db_engine: Engine) -> None:
+    with session_scope(db_engine) as session:
+        accounts = list_accounts(session)
+    assert type(accounts) is list
+    assert accounts == []
+
+
+def test_list_accounts_sorted_by_name_ignoring_case(db_engine: Engine) -> None:
+    for name in ["cherry", "Banana", "apple", "Date"]:
+        add_row(db_engine, name)
+    with session_scope(db_engine) as session:
+        accounts = list_accounts(session)
+    assert type(accounts) is list
+    assert [type(account) for account in accounts] == [Account] * 4
+    assert names(accounts) == ["apple", "Banana", "cherry", "Date"]
+
+
+def test_list_accounts_leaves_out_inactive_by_default(db_engine: Engine) -> None:
+    add_row(db_engine, "Open One")
+    add_row(db_engine, "Closed", is_active=False)
+    add_row(db_engine, "Open Two")
+    with session_scope(db_engine) as session:
+        assert names(list_accounts(session)) == ["Open One", "Open Two"]
+        assert names(list_accounts(session, False)) == ["Open One", "Open Two"]
+        assert names(list_accounts(session, include_inactive=False)) == ["Open One", "Open Two"]
+
+
+def test_list_accounts_include_inactive_returns_all(db_engine: Engine) -> None:
+    add_row(db_engine, "Open One")
+    add_row(db_engine, "Closed", is_active=False)
+    add_row(db_engine, "Open Two")
+    with session_scope(db_engine) as session:
+        accounts = list_accounts(session, include_inactive=True)
+    assert names(accounts) == ["Closed", "Open One", "Open Two"]
+    assert [account.is_active for account in accounts] == [False, True, True]
+
+
+def test_list_accounts_is_empty_when_every_account_is_inactive(db_engine: Engine) -> None:
+    add_row(db_engine, "Closed", is_active=False)
+    with session_scope(db_engine) as session:
+        assert list_accounts(session) == []

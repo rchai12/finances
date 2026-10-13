@@ -70,3 +70,8 @@ Template:
 - Built: `AccountExistsError`, `get_account_by_name`, and `create_account` in `src/finances/db/repositories.py`; `tests/integration/test_repositories.py`. 267 tests pass. `repositories.py` coverage: 100%.
 - Deviations from spec (and why): None
 - Follow-ups / known issues: None
+
+## Phase 2l: find_accounts_by_last4 and list_accounts (2026-10-13)
+- Built: `find_accounts_by_last4` and `list_accounts` in `src/finances/db/repositories.py`, with their tests in `tests/integration/test_repositories.py`. 282 tests pass. `repositories.py` coverage: 100%.
+- Deviations from spec (and why): None
+- Follow-ups / known issues: None

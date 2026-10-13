@@ -41,8 +41,10 @@ A phase asks the coder to write **two or three related units** in one source fil
 - 2i: a second library the coder has not used here (Alembic), 24 steps, the given tests compare the result with the ORM class. Passed at the first attempt.
 - 2j: three Code steps in one file, a private helper allowed, 23 steps. **Failed the first verification, passed after one repair round.** The functions behaved correctly. The misses were: a requirement no test checked (dispose every engine), dead code written for a "do nothing" requirement (re-raising an error another function already raises), and the closing full-test step skipped, so 92% coverage of the module went unnoticed. The size was not the cause; the three rules below marked "from 2j" are.
 - 2k: two Code steps, eight requirements, every one tested, and a per-module coverage step. Passed at the first attempt, which confirms the three rules from 2j.
+- 2l: the same shape as 2k. Passed at the first attempt.
+- 2m: **the user asked for more speed** (Phase 2 took about three hours of implementation), so two planned sub-phases were joined: four Code steps in three source files, twelve requirements, eight files, 32 steps. Result pending. If it passes, plan Phase 3 at this size (about four units per sub-phase). If it fails, read which part needed the repair: a failure in the last parts points at length, a failure in the first at something else.
 
-Do not push the step count past about 25: the failures so far were process slips, which grow with length. Push difficulty and reduce guidance instead. If a phase fails, note which dimension broke (number of steps, number of units, number of files, a new kind of step, or missing guidance) and go back one size on that dimension only.
+Speed matters to the user as much as first-pass success: each sub-phase costs a coder run, a verifier run, and a commit, so fewer and larger sub-phases are cheaper as long as they pass. Grow the size while phases keep passing, and when joining phases keep the method unchanged (one action per step, a test run after each Code step, the coverage step, every requirement tested). If a phase fails, note which dimension broke (number of steps, number of units, number of files, a new kind of step, or missing guidance) and go back one size on that dimension only.
 
 Order sub-phases so each ends with format, lint, and tests passing, and each depends only on phases before it. Start a new area with its easiest unit, so the first attempt is a fair one.
 
@@ -66,6 +68,9 @@ The coder takes the spec literally and fills every gap with a guess. Remove the 
   `.venv/bin/python -m pytest <test file> -o addopts="" --import-mode=importlib --cov=<dotted module> --cov-branch --cov-report=term-missing --cov-fail-under=100`
   with `Expect: the output contains "Required test coverage of 100% reached"`. A percentage in one row of a long table gets overlooked; a single pass or fail line does not. The repair is "delete the lines listed under Missing": unreached lines are code no requirement asked for.
 - **Guard against the fixed answer.** When today's correct result is a constant (the newest migration is `"0001"`), a body that returns the constant passes. Add a test that changes the input the function should read (point a module constant at a temporary folder with different content) and say in the requirement that a fixed value is wrong.
+- **Give the wiring, leave the behavior.** In a command-line phase, the option names, help texts, command registration, and module-level objects are given in the stub and in `main.py`; the coder writes only what each command does. The same split applies wherever a framework needs boilerplate (Typer, Alembic's `env.py`).
+- **Pin the terminal width in CLI tests.** Rich wraps table cells at 80 columns and cuts long values, so an expected string can be split across lines. Build the runner as `CliRunner(env={"COLUMNS": "200"})`.
+- **Exact output on both streams.** For a command, the tests assert the whole of `result.stdout` and `result.stderr` where the text is fixed, the exit code, and `isinstance(result.exception, SystemExit)` so a traceback cannot pass as an error exit. Run the real program once in the trial: library log lines on standard error (Alembic's, here) only show up there.
 - **Stub before fixtures.** When a shared fixture in `tests/conftest.py` imports a new module, the step that writes that module's stub comes first. Otherwise every test in the project fails to collect.
 - **Search steps must not match given text.** Run each `git grep` step against the stub: a pattern that matches a given docstring fails on a correct implementation.
 - **Wrong variants that turn out right.** When a variant you expected to fail passes every test, check whether it is in fact correct before adding a test against it (unnamed constraints get their names from the naming convention; a folder check on `:memory:` is harmless). If it is correct, say so in the verification guide so the verifier does not report it.
@@ -270,7 +275,7 @@ for number, kind, text in zip(parts[0::3], parts[1::3], parts[2::3], strict=True
     block = re.search(r"```\w*\n(.*?)```", text, re.S)
     if kind == "Run":
         command = re.search(r"^`(.+)`$", text, re.M).group(1)
-        command = re.sub(r"^\.venv/bin/python ", f'"{sys.executable}" ', command)
+        command = re.sub(r"^\.venv/bin/", str(Path(sys.executable).parent) + "/", command)
         result = subprocess.run(command, shell=True, capture_output=True, text=True)
         lines = (result.stdout + result.stderr).strip().splitlines()
         shown = [line for line in lines if "Total coverage" in line or line.endswith("%")]

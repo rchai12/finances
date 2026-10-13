@@ -76,3 +76,33 @@ def create_account(
 
     # Return the Account domain object
     return to_account(row)
+
+
+def find_accounts_by_last4(session: Session, last4: str) -> list[Account]:
+    """Return the accounts with these last four digits, active or not, in id order."""
+    # Validate the last4 parameter first
+    validate_last4(last4)
+
+    # Query for accounts with matching last4, ordered by id
+    stmt = select(AccountRow).where(AccountRow.last4 == last4).order_by(AccountRow.id)
+    rows = session.scalars(stmt).all()
+
+    # Convert to Account objects
+    return [to_account(row) for row in rows]
+
+
+def list_accounts(session: Session, include_inactive: bool = False) -> list[Account]:
+    """Return the accounts sorted by name, leaving out inactive ones unless asked."""
+    # Build base query
+    stmt = select(AccountRow)
+
+    # Filter by active status if needed
+    if not include_inactive:
+        stmt = stmt.where(AccountRow.is_active.is_(True))
+
+    # Order by name (case-insensitive) and return all
+    stmt = stmt.order_by(func.lower(AccountRow.name))
+    rows = session.scalars(stmt).all()
+
+    # Convert to Account objects
+    return [to_account(row) for row in rows]
