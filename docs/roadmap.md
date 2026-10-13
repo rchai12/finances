@@ -50,7 +50,8 @@ Verification guides have the same file name under `verification/`.
 | 2i | The first migration | Alembic dependency, given `env.py`, and migration `0001` whose `upgrade` and `downgrade` the coder writes; tests compare the migrated database with the ORM class | [phase-02i](phases/phase-02i-first-migration.md) |
 | 2j | Running migrations from code | `head_revision`, `upgrade_to_head`, `current_revision` in `db/migrate.py`, plus `db_url` and `db_engine` test fixtures. Three Code steps | [phase-02j](phases/phase-02j-run-migrations.md) |
 | 2k | `get_account_by_name` and `create_account` | The first two repository functions in `db/repositories.py`, tested against a migrated temporary database. First spec with a per-module 100% coverage step | [phase-02k](phases/phase-02k-create-and-get-account.md) |
-| 2l onward | `find_accounts_by_last4` and `list_accounts`; `fin db upgrade` and the doctor check; `fin accounts add` and `fin accounts list` | About three sub-phases at this size | to be written after 2k is built |
+| 2l | `find_accounts_by_last4` and `list_accounts` | The other two account repository functions | [phase-02l](phases/phase-02l-find-and-list-accounts.md) |
+| 2m onward | `fin db upgrade` and the doctor schema check; `fin accounts add` and `fin accounts list` | Two sub-phases, which finish Phase 2 | to be written after 2l is built |
 
 From 2c on, a sub-phase asks for one unit of code. The spec gives the tests and the steps; the coder writes the implementation.
 

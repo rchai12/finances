@@ -40,7 +40,7 @@ A phase asks the coder to write **two or three related units** in one source fil
 - 2h: the same size with harder logic (branches, side effects, a real temporary database) and "library facts" in place of a suggested approach. Passed at the first attempt. Library facts without a recipe are now the default.
 - 2i: a second library the coder has not used here (Alembic), 24 steps, the given tests compare the result with the ORM class. Passed at the first attempt.
 - 2j: three Code steps in one file, a private helper allowed, 23 steps. **Failed the first verification, passed after one repair round.** The functions behaved correctly. The misses were: a requirement no test checked (dispose every engine), dead code written for a "do nothing" requirement (re-raising an error another function already raises), and the closing full-test step skipped, so 92% coverage of the module went unnoticed. The size was not the cause; the three rules below marked "from 2j" are.
-- 2k: two Code steps, eight requirements, every one tested, and a per-module coverage step. Result pending.
+- 2k: two Code steps, eight requirements, every one tested, and a per-module coverage step. Passed at the first attempt, which confirms the three rules from 2j.
 
 Do not push the step count past about 25: the failures so far were process slips, which grow with length. Push difficulty and reduce guidance instead. If a phase fails, note which dimension broke (number of steps, number of units, number of files, a new kind of step, or missing guidance) and go back one size on that dimension only.
 
