@@ -17,6 +17,15 @@ from finances.ingest.statement import ParsedStatement, Section, StatementError, 
 
 _ENV_KEYS = ("FIN_ENVIRONMENT", "FIN_DATA_DIR", "FIN_DATABASE_URL", "FIN_LOG_LEVEL")
 
+_TERMINAL_KEYS = ("FORCE_COLOR", "NO_COLOR", "TTY_COMPATIBLE", "TTY_INTERACTIVE")
+
+
+@pytest.fixture(autouse=True)
+def plain_terminal(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Remove the variables that make Rich treat a test's output as a colour terminal."""
+    for key in _TERMINAL_KEYS:
+        monkeypatch.delenv(key, raising=False)
+
 
 @pytest.fixture
 def tmp_settings(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> Iterator[Settings]:

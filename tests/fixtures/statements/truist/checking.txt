@@ -1,0 +1,46 @@
+T r u   i s   t .c   o   m
+Truist Bank, Member FDIC                              Your account statement
+For 09/11/2026
+TRUIST ONE CHECKING - LEVEL 1 1000000001111
+
+Account summary
+Your previous balance as of 08/12/2026                    $2,552.23
+Checks                                                  - 475.50
+Other withdrawals, debits and service charges           - 13,434.39
+Deposits, credits and interest                          + 13,405.75
+Your new balance as of 09/11/2026                         = $2,048.09
+
+Checks
+DATE     CHECK #     AMOUNT($)   DATE     CHECK #     AMOUNT($)
+08/20     1041     125.00      08/27     1042     40.00
+09/03    *1045     310.50
+* indicates a skip in sequential check numbers above this item
+Total checks                                            = $475.50
+
+Other withdrawals, debits and service charges
+DATE    DESCRIPTION                                                        AMOUNT($)
+08/17   DEBIT CARD PURCHASE ACME*TERMINAL3 08-15 DALLAS TX 2979               200.00
+08/17   INTERNET PAYMENT TRANSFER EXAMPLE SAVINGS BA 000300000001111          11,000.00
+08/20   DEBIT CARD RECURRING PYMT STREAMCO.COM 08-19 866-555-0100 CA 2979     9.99
+continued
+PAGE 1 OF 2T r u   i s   t .c   o   m
+Truist Bank, Member FDIC                              Your account statement
+For 09/11/2026
+TRUIST ONE CHECKING - LEVEL 1 1000000001111
+
+Other withdrawals, debits and service charges (continued)
+DATE    DESCRIPTION                                                        AMOUNT($)
+09/01   ACH CORP DEBIT PAYMENT EXAMPLE CARD CUSTOMER ID 4400000000009999      2,150.00
+09/04   DEBIT CARD PURCHASE FOOBAR GROCERY 24-7 09-03 PLANO TX 3141           62.40
+09/10   MAINTENANCE FEE                                                       12.00
+Total other withdrawals, debits and service charges     = $13,434.39
+
+Deposits, credits and interest
+DATE    DESCRIPTION                                                        AMOUNT($)
+08/14   INCOMING WIRE TRANSFER WIRE REF# 20260814-00000000                    13,000.00
+08/28   ACH CORP CREDIT PAYROLL EXAMPLE EMPLOYER INC                          390.00
+09/08   DEBIT CARD PURCHASE RETURN ACME OUTLET 09-06 DALLAS TX 2979           15.75
+Total deposits, credits and interest                    = $13,405.75
+
+Important: questions about your statement
+10/01   Call the number on your card by this date          1.00

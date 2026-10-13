@@ -15,7 +15,7 @@ Status: Phases 1 and 2 are built. The specs for Phases 3 to 10 were written befo
 | 3 | Statement import core | PDF text, parser registry, reconciliation, dedup, `fin import statement/folder` | sub-phases below |
 | 4 | Capital One parser | Multi-cardholder card statements, year wrap, interest and fee lines, declared section totals; the opt-in check of real statements | [phase-04](phases/phase-04-capital-one-parser.md) (re-issued for the current format) |
 | 5 | BoA + Citi parsers | Two more card formats, and the shared `find_labeled_amount` helper | [phase-05](phases/phase-05-boa-citi-parsers.md) (re-issued for the current format) |
-| 6 | Truist + Marcus parsers | Checking/savings; all PDF samples import | [phase-06](phases/phase-06-deposit-parsers.md) |
+| 6 | Truist + Marcus parsers | Checking and savings statements: section-driven signs, checks, debit card details, running-balance signs; every kind of statement has a parser | [phase-06](phases/phase-06-deposit-parsers.md) (re-issued for the current format) |
 | 7 | *Removed* | Was "CSV import". The aggregator feed (Phase 17) replaces it. The old spec is kept as reference for Phases 8 and 17 | |
 | 8 | Statements supersede provisional rows | In-place upgrade of aggregator rows by a reconciled statement; order of arrival does not matter | draft written for CSV: [phase-08](phases/phase-08-statement-supersedes-csv.md), to be re-issued |
 | 9 | Test hardening | Property-based, fuzz, golden snapshot, migration, and end-to-end workflow tests for the import pipeline | [phase-09](phases/phase-09-test-hardening.md) |

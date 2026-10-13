@@ -1,0 +1,14 @@
+Marcus by Goldman Sachs                    ONLINE SAVINGS ACCOUNT STATEMENT
+Goldman Sachs Bank USA, Member FDIC
+Statement Period      12/01/2026 to 12/31/2026
+Account Number      300100004444
+
+ACCOUNT ACTIVITY
+Date          Description                                        Credits      Debits      Balance
+12/01/2026   Beginning Balance                                                  $1,000.00
+12/31/2026   Interest Paid                                           $3.54              $1,003.54
+12/31/2026   Ending Balance                                                     $1,003.54
+
+INTEREST SUMMARY
+Annual Percentage Yield Earned      4.25%
+Interest Paid Year to Date      $123.45      $1,000.00

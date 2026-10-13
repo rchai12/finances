@@ -1,0 +1,25 @@
+Truist Bank, Member FDIC                              Your account statement
+For 01/12/2027
+TRUIST CONFIDENCE SAVINGS 4110000003333
+
+Account summary
+Your previous balance as of 12/11/2026                    $500.00
+Checks                                                  - 0.00
+Other withdrawals, debits and service charges           - 125.99
+Deposits, credits and interest                          + 251.04
+Your new balance as of 01/12/2027                         = $625.05
+
+Other withdrawals, debits and service charges
+DATE    DESCRIPTION                                                        AMOUNT($)
+12/15   INTERNET PAYMENT TRANSFER TO EXAMPLE CHECKING 1000000001111           100.00
+01/04   DEBIT CARD PURCHASE ACME TOYS 12-30 AUSTIN TX 2979                    25.99
+Total other withdrawals, debits and service charges     = $125.99
+
+Deposits, credits and interest
+DATE    DESCRIPTION                                                        AMOUNT($)
+12/31   INTEREST PAYMENT                                                      1.04
+01/08   MOBILE DEPOSIT                                                        250.00
+Total deposits, credits and interest                    = $251.04
+
+Important: questions about your statement
+10/01   Call the number on your card by this date          1.00

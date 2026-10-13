@@ -65,8 +65,9 @@ Record each result here, one line per phase:
 - 3c (about 22 units, 32 requirements, five parts across four layers, one given test file): passed. About twice 3b, so a whole cohesive layer per spec works.
 - 3d (four commands in three modules, 19 requirements, 41 given tests that fix every line of output and reach 100% of the CLI, no tests left to the coder): built and accepted; the number of repair rounds was not reported. The coder fixed the table width in code (`Console(width=200, height=25)`) to make the pinned rows pass, so a spec that pins table output must also say how the width is set.
 - 4 (one parser module, 18 requirements, 42 given tests on five fixtures, the coder writes the tests for errors and edge cases): built and accepted; 72 tests added. Not yet run on real statements (none on the build machine).
-- 5 (two parser modules and one shared helper, 29 requirements, 106 given tests on five fixtures, two test files left to the coder): result pending. About twice Phase 4.
-- 3e (a fix-up: one function, four modules changed to use it, 5 requirements, 24 given tests, none left to the coder): result pending.
+- 5 (two parser modules and one shared helper, 29 requirements, 106 given tests on five fixtures, two test files left to the coder): built and accepted, 155 tests added. About twice Phase 4, so two similar modules per spec works.
+- 3e (a fix-up: one function, four modules changed to use it, 5 requirements, 24 given tests, none left to the coder): built and accepted.
+- 6 (two parser modules, 26 requirements, 94 given tests on six fixtures, two test files left to the coder): result pending. Same size as Phase 5; three parts of one layout are guesses the spec names as such.
 
 Order sub-phases so each depends only on phases before it.
 
@@ -159,6 +160,7 @@ These hold for any coder. Each one comes from a failure in an earlier phase.
 - **A test input must make the wrong version visibly wrong.** Two cases from the 3b trial: a `float` sum passed a large-number test because the result happened to round back to the right integer, and plain PDF extraction passed until the test PDF had text in separate columns. After writing a test against a specific mistake, run that mistake and see the test fail.
 - **A probe script never crashes.** Wrap each section so that an unexpected exception prints a `FAIL` line and the run continues to `FAILURES N`. A traceback tells the verifier nothing about the other checks.
 - **New files change the formatter's count.** This `ruff` version counts every `.py` file and every Markdown file outside `docs/`. Keep documents under `docs/`, and never add a file to the repository while a phase is being implemented or verified against a spec that states a count (the local-format specs do).
+- **Tests must not depend on the shell's colour variables.** The coder's shell exported `FORCE_COLOR=0`, which Rich treats as a terminal, and 18 tests failed until the coder unset it by hand. `tests/conftest.py` now removes `FORCE_COLOR`, `NO_COLOR`, `TTY_COMPATIBLE`, and `TTY_INTERACTIVE` for every test. When a test fails only on the coder's machine, look for an environment variable before blaming the code.
 
 What the local format required and this one does not: single-action steps, a stub for every unit, the expected output of every command, a repair table, tests for everything given in full, a fixed order of work, and "facts you will need" for each library call. Add any of these back to one spec when that spec's subject warrants it.
 
