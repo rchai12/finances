@@ -64,7 +64,7 @@ Phase 2 now creates only the `accounts` table. `import_batches`, `transactions`,
 | # | Sub-phase | What it delivers | Spec |
 |---|---|---|---|
 | 3a | Statement model and parsing helpers | `Section`, `StatementLine`, `ParsedStatement`; `parse_amount`, `infer_year`, `parse_month_day` | [phase-03a](phases/phase-03a-statement-model-and-helpers.md) |
-| 3b | Statement checks and reading | `reconcile` with `ReconcileResult` (opening balance plus lines must equal closing, to the cent; declared section totals must match); `fingerprint_lines` for deduplication; `extract_pages` (adds `pypdf`); the parser registry (`register`, `registered_parsers`, `detect_parser`); a fake parser for tests and the opt-in real-sample test harness | to be written after 3a is built |
+| 3b | Statement checks and reading | `reconcile` with `ReconcileResult` (opening balance plus lines must equal closing, to the cent; declared section totals must match); `fingerprint_lines` for deduplication; `extract_pages` (adds `pypdf`); the parser registry (`register`, `unregister`, `registered_parsers`, `detect_parser`); test fixtures that build real PDFs | [phase-03b](phases/phase-03b-statement-checks-and-reading.md) |
 | 3c | Statement storage | Domain and ORM classes for `statements`, `transactions`, and `balance_snapshots`; migration `0002`; repositories to save and find statements, insert and list transactions, check existing fingerprints, and record balance snapshots | to be written |
 | 3d | Importing statements | Account matching by last four digits; `import_statement` (reconcile, deduplicate, write in one transaction) and `import_folder`; the commands `fin import statement`, `fin import folder`, `fin statements list`, `fin transactions list` | to be written |
 
@@ -74,6 +74,8 @@ Changes from the original Phase 3 draft, made for the aggregator design and for 
 - `transactions` gains a pending flag and keeps an external id, so aggregator rows fit without a redesign. Its `source` is `statement` or `aggregator`.
 - `transactions` stores one description (as printed, whitespace collapsed). The separate normalized description waits for Phase 11, which defines merchant normalization.
 - `find_labeled_amount` moves to Phase 4, where the first real parser shows what it needs.
+- The opt-in real-sample test harness also moves to Phase 4. It cannot do anything until a parser exists, and it should be written on the machine that holds `data/samples/`.
+- Fingerprints use one scheme for every line (account, posted date, amount, normalized description, card digits, reference, and an occurrence number). The draft had a second scheme for lines with a reference number; with CSV import gone it had no purpose, and four-digit reference numbers are not unique.
 - `infer_year` also tries the year after the period ends, so a row dated in early January is found on a statement that closes in late December.
 
 Testing rules for every phase are in [testing.md](testing.md). Each later phase adds its critical modules to the coverage and mutation gates from Phase 10.
