@@ -2,7 +2,7 @@
 
 import re
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import date, datetime
 from enum import StrEnum
 
 
@@ -38,3 +38,81 @@ def validate_last4(last4: str | None) -> str | None:
         raise ValueError("last4 must be exactly 4 digits")
 
     return last4
+
+
+class DataSource(StrEnum):
+    """Where a stored transaction or balance came from."""
+
+    STATEMENT = "statement"
+    AGGREGATOR = "aggregator"
+
+
+@dataclass(frozen=True)
+class Statement:
+    """One imported statement file, as stored."""
+
+    id: int
+    account_id: int
+    source_filename: str
+    file_sha256: str
+    parser_name: str
+    period_start: date
+    period_end: date
+    opening_balance_cents: int
+    closing_balance_cents: int
+    lines_parsed: int
+    rows_inserted: int
+    rows_duplicate: int
+    imported_at: datetime
+
+
+@dataclass(frozen=True)
+class NewTransaction:
+    """A transaction about to be stored. Amounts are from the account holder's side."""
+
+    account_id: int
+    statement_id: int | None
+    posted_date: date
+    transaction_date: date | None
+    amount_cents: int
+    description: str
+    section: str | None
+    card_last4: str | None
+    cardholder: str | None
+    external_id: str | None
+    source: DataSource
+    is_pending: bool
+    fingerprint: str
+
+
+@dataclass(frozen=True)
+class Transaction:
+    """One transaction, as stored."""
+
+    id: int
+    account_id: int
+    statement_id: int | None
+    posted_date: date
+    transaction_date: date | None
+    amount_cents: int
+    description: str
+    section: str | None
+    card_last4: str | None
+    cardholder: str | None
+    external_id: str | None
+    source: DataSource
+    is_pending: bool
+    fingerprint: str
+    created_at: datetime
+
+
+@dataclass(frozen=True)
+class BalanceSnapshot:
+    """An account balance as of one date, as stored."""
+
+    id: int
+    account_id: int
+    as_of_date: date
+    balance_cents: int
+    source: DataSource
+    created_at: datetime

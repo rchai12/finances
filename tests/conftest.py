@@ -1,5 +1,6 @@
 import io
 from collections.abc import Callable, Iterator
+from datetime import date
 from pathlib import Path
 
 import pytest
@@ -9,7 +10,10 @@ from sqlalchemy import Engine
 from finances.config import Settings, get_settings
 from finances.db.engine import get_engine
 from finances.db.migrate import upgrade_to_head
+from finances.domain.models import AccountType
 from finances.ingest.parsers import register, registered_parsers, unregister
+from finances.ingest.parsers.helpers import parse_amount
+from finances.ingest.statement import ParsedStatement, Section, StatementError, StatementLine
 
 _ENV_KEYS = ("FIN_ENVIRONMENT", "FIN_DATA_DIR", "FIN_DATABASE_URL", "FIN_LOG_LEVEL")
 
@@ -109,3 +113,119 @@ def parser_registry() -> Iterator[None]:
         unregister(parser.name)
     for parser in saved:
         register(parser)
+
+
+FAKE_ROWS = (
+    "2026-01-05|2026-01-04|purchases|-4.50|2222|-|ACME COFFEE #12",
+    "2026-01-06|-|purchases|-25.99|2222|7838|FOOBAR   GROCERY",
+    "2026-01-05|2026-01-04|purchases|-4.50|2222|-|ACME COFFEE #12",
+    "2026-01-20|-|payments_credits|50.00|-|-|PAYMENT THANK YOU",
+)
+
+
+class FakeBankParser:
+    """A parser for a made-up text format, so import tests need no real bank layout.
+
+    FAKEBANK STATEMENT
+    ACCOUNT <last4> <account type>
+    PERIOD <start> <end>
+    OPENING <amount>
+    CLOSING <amount>
+    TOTAL <section> <amount>          (optional, any number)
+    ROW <posted>|<transaction or ->|<section>|<amount>|<card last4 or ->|<reference or ->|<text>
+    """
+
+    name = "fake_bank"
+
+    def detect(self, first_page: str) -> bool:
+        return first_page.lstrip().startswith("FAKEBANK STATEMENT")
+
+    def parse(self, pages: list[str]) -> ParsedStatement:
+        try:
+            return self._parse([line.strip() for page in pages for line in page.splitlines()])
+        except (KeyError, ValueError, IndexError):
+            raise StatementError("fake statement is malformed") from None
+
+    def _parse(self, lines: list[str]) -> ParsedStatement:
+        fields = {}
+        totals = {}
+        rows = []
+        for line in lines:
+            keyword, _, rest = line.partition(" ")
+            if keyword == "TOTAL":
+                section, amount = rest.split()
+                totals[Section(section)] = parse_amount(amount)
+            elif keyword == "ROW":
+                posted, transaction, section, amount, card, reference, text = rest.split("|", 6)
+                rows.append(
+                    StatementLine(
+                        posted_date=date.fromisoformat(posted),
+                        transaction_date=None
+                        if transaction == "-"
+                        else date.fromisoformat(transaction),
+                        description=text,
+                        amount_cents=parse_amount(amount),
+                        section=Section(section),
+                        card_last4=None if card == "-" else card,
+                        external_ref=None if reference == "-" else reference,
+                    )
+                )
+            elif keyword in {"ACCOUNT", "PERIOD", "OPENING", "CLOSING"}:
+                fields[keyword] = rest.split()
+        return ParsedStatement(
+            parser_name=self.name,
+            institution="Fake Bank",
+            account_type=AccountType(fields["ACCOUNT"][1]),
+            account_last4=fields["ACCOUNT"][0],
+            period_start=date.fromisoformat(fields["PERIOD"][0]),
+            period_end=date.fromisoformat(fields["PERIOD"][1]),
+            opening_balance_cents=parse_amount(fields["OPENING"][0]),
+            closing_balance_cents=parse_amount(fields["CLOSING"][0]),
+            lines=rows,
+            declared_section_totals=totals,
+        )
+
+
+def _fake_statement_lines(
+    *,
+    last4: str = "1111",
+    account_type: str = "credit_card",
+    start: str = "2026-01-01",
+    end: str = "2026-01-31",
+    opening: str = "-100.00",
+    closing: str = "-84.99",
+    rows: tuple[str, ...] = FAKE_ROWS,
+    totals: tuple[str, ...] = (),
+) -> list[str]:
+    return [
+        "FAKEBANK STATEMENT",
+        f"ACCOUNT {last4} {account_type}",
+        f"PERIOD {start} {end}",
+        f"OPENING {opening}",
+        f"CLOSING {closing}",
+        *(f"TOTAL {total}" for total in totals),
+        *(f"ROW {row}" for row in rows),
+    ]
+
+
+@pytest.fixture
+def fake_bank(parser_registry: None) -> FakeBankParser:
+    """Register the fake bank parser for this test and return it."""
+    parser = FakeBankParser()
+    register(parser)
+    return parser
+
+
+@pytest.fixture
+def fake_statement_pdf() -> Callable[..., bytes]:
+    """Return a function that builds a fake bank statement as PDF bytes.
+
+    With no arguments it is a balanced card statement for last4 1111: four rows (two of
+    them identical), opening -100.00, closing -84.99. Keyword arguments replace parts of
+    it: last4, account_type, start, end, opening, closing, rows, totals.
+    """
+
+    def build(**changes: object) -> bytes:
+        return _build_pdf([_fake_statement_lines(**changes)])
+
+    return build
