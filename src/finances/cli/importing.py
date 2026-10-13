@@ -4,10 +4,9 @@ from pathlib import Path
 from typing import Annotated
 
 import typer
-from rich.console import Console
 from rich.table import Table
 
-from finances.cli.common import require_current_schema
+from finances.cli.common import print_table, require_current_schema
 from finances.db.engine import get_engine, session_scope
 from finances.ingest.service import (
     ImportStatus,
@@ -17,7 +16,6 @@ from finances.ingest.service import (
 )
 
 app = typer.Typer(help="Import statements.", no_args_is_help=True)
-console = Console(width=200, height=25)
 
 _STATUS = {
     ImportStatus.IMPORTED: "imported",
@@ -79,7 +77,7 @@ def folder(
         table.add_column(heading)
     for result in results:
         table.add_row(*_folder_cells(result))
-    console.print(table)
+    print_table(table)
     failed = False
     for result in results:
         if result.status is ImportStatus.FAILED:

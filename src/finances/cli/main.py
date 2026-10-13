@@ -2,11 +2,11 @@ import logging
 from typing import Annotated
 
 import typer
-from rich.console import Console
 from rich.table import Table
 
 from finances import __version__
 from finances.cli.accounts import app as accounts_app
+from finances.cli.common import print_table
 from finances.cli.db import app as db_app
 from finances.cli.importing import app as import_app
 from finances.cli.listing import statements_app, transactions_app
@@ -20,7 +20,6 @@ app.add_typer(accounts_app, name="accounts")
 app.add_typer(import_app, name="import")
 app.add_typer(statements_app, name="statements")
 app.add_typer(transactions_app, name="transactions")
-console = Console()
 
 
 @app.callback(invoke_without_command=True)
@@ -45,6 +44,6 @@ def doctor() -> None:
     table.add_column("Result")
     for name, _ok, detail in checks:
         table.add_row(name, detail)
-    console.print(table)
+    print_table(table)
     if any(not ok for _name, ok, _detail in checks):
         raise typer.Exit(code=1)

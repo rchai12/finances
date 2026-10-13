@@ -3,16 +3,14 @@
 from typing import Annotated
 
 import typer
-from rich.console import Console
 from rich.table import Table
 
-from finances.cli.common import require_current_schema
+from finances.cli.common import print_table, require_current_schema
 from finances.db.engine import get_engine, session_scope
 from finances.db.repositories import AccountExistsError, create_account, list_accounts
 from finances.domain.models import AccountType
 
 app = typer.Typer(help="Manage accounts.", no_args_is_help=True)
-console = Console()
 
 
 @app.command()
@@ -61,4 +59,4 @@ def list_command(
             last4 = f"\u2022\u2022{account.last4}" if account.last4 else ""
             active = "yes" if account.is_active else "no"
             table.add_row(account.name, account.institution, account.type.value, last4, active)
-        console.print(table)
+        print_table(table)
