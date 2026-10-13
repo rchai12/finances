@@ -1,3 +1,4 @@
+import logging
 from typing import Annotated
 
 import typer
@@ -5,11 +6,15 @@ from rich.console import Console
 from rich.table import Table
 
 from finances import __version__
+from finances.cli.accounts import app as accounts_app
+from finances.cli.db import app as db_app
 from finances.config import get_settings
 from finances.diagnostics import run_checks
 from finances.log import setup_logging
 
 app = typer.Typer(add_completion=False)
+app.add_typer(db_app, name="db")
+app.add_typer(accounts_app, name="accounts")
 console = Console()
 
 
@@ -21,6 +26,7 @@ def main(
     ] = False,
 ) -> None:
     setup_logging(get_settings().log_level)
+    logging.getLogger("alembic").setLevel(logging.WARNING)
     if version:
         typer.echo(f"finances {__version__}")
         raise typer.Exit()
