@@ -85,3 +85,8 @@ Template:
 - Built: `StatementError`, `Section`, `StatementLine`, and `ParsedStatement` in `src/finances/ingest/statement.py`; `collapse_ws`, `parse_amount`, `infer_year`, and `parse_month_day` in `src/finances/ingest/parsers/helpers.py`; `tests/unit/test_statement.py` and `tests/unit/test_parser_helpers.py`. 450 tests pass. `finances.ingest` coverage: 100%.
 - Deviations from spec (and why): None
 - Follow-ups / known issues: None
+
+## Phase 3b: statement checks and reading (2026-10-13)
+- Built: `ReconcileResult` and `reconcile` in `src/finances/ingest/reconcile.py`; `fingerprint_lines` in `src/finances/ingest/dedup.py`; `extract_pages` in `src/finances/ingest/pdf_text.py`; `StatementParser`, `register`, `unregister`, `registered_parsers`, and `detect_parser` in `src/finances/ingest/parsers/__init__.py`; `pypdf` dependency; PDF and registry fixtures in `tests/conftest.py`; tests in `tests/unit/test_reconcile.py`, `tests/unit/test_dedup.py`, `tests/unit/test_pdf_text.py`, and `tests/unit/test_parser_registry.py`. 516 tests pass. `finances.ingest` coverage: 100%.
+- Deviations from spec (and why): The parser registry is a dict keyed by parser name, which keeps registration order. No private helpers.
+- Follow-ups / known issues: None
