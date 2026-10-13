@@ -61,7 +61,8 @@ That is roughly two of the sub-phases planned for the local model joined into on
 
 Record each result here, one line per phase:
 
-- 3b onward: no results yet.
+- 3b (9 public units, 22 requirements, tests given for two of four parts): passed at the first attempt, nothing built beyond the spec.
+- 3c (about 22 units, 32 requirements, five parts across four layers, one given test file): result pending. It is roughly twice 3b. If it passes cleanly, a whole roadmap phase per spec is the next size to try.
 
 Order sub-phases so each depends only on phases before it.
 
@@ -143,6 +144,8 @@ These hold for any coder. Each one comes from a failure in an earlier phase.
 - **CLI output is pinned.** Tests build the runner as `CliRunner(env={"COLUMNS": "200"})` so Rich does not wrap expected text, and assert stdout, stderr, the exit code, and `isinstance(result.exception, SystemExit)`.
 - **Framework wiring is specified, not given.** Say which Typer app a command registers on and which options it takes; the coder writes the wiring. Give boilerplate in full only where one wrong line breaks everything downstream (Alembic's `env.py` was such a file).
 - **Coverage has blind spots.** Files a library loads by path (Alembic's `env.py`, migration files) are not in the coverage table. Require a test that executes every function in them.
+- **Tests must not pin today's newest migration.** Adding migration `0002` broke 26 older tests that compared against `"0001"` or an exact table list. Tests about one migration upgrade to that revision by name; tests about "the newest" ask `head_revision()`; table checks ask for a subset. When a phase adds something that existing tests enumerate (a migration, a `doctor` check, a command), run the old suite against the reference implementation first, fix the tests as a separate architect change that passes both before and after, and say so in the spec's "Starting state".
+- **Measure what the probe script reaches.** Run it under `coverage run --branch` against the reference implementation. Any line of the new code it does not reach is a behavior it cannot check.
 - **A test input must make the wrong version visibly wrong.** Two cases from the 3b trial: a `float` sum passed a large-number test because the result happened to round back to the right integer, and plain PDF extraction passed until the test PDF had text in separate columns. After writing a test against a specific mistake, run that mistake and see the test fail.
 - **A probe script never crashes.** Wrap each section so that an unexpected exception prints a `FAIL` line and the run continues to `FAILURES N`. A traceback tells the verifier nothing about the other checks.
 - **New files change the formatter's count.** This `ruff` version counts every `.py` file and every Markdown file outside `docs/`. Keep documents under `docs/`, and never add a file to the repository while a phase is being implemented or verified against a spec that states a count (the local-format specs do).

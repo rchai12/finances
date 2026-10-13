@@ -48,14 +48,16 @@ def url(tmp_path: Path) -> str:
 
 @pytest.fixture
 def migrated(url: str) -> str:
-    command.upgrade(make_config(url), "head")
+    """A database upgraded to revision 0001 only, whatever later migrations exist."""
+    command.upgrade(make_config(url), "0001")
     return url
 
 
-def test_there_is_one_migration_named_0001(url: str) -> None:
+def test_0001_is_the_first_migration(url: str) -> None:
     scripts = ScriptDirectory.from_config(make_config(url))
-    assert scripts.get_heads() == ["0001"]
     assert scripts.get_base() == "0001"
+    assert scripts.get_revision("0001").down_revision is None
+    assert len(scripts.get_heads()) == 1
 
 
 def test_migration_file_is_self_contained() -> None:
@@ -123,8 +125,9 @@ def test_no_indexes_and_no_foreign_keys(migrated: str) -> None:
     assert foreign_keys == []
 
 
-def test_migrated_database_matches_the_orm(migrated: str) -> None:
-    engine = get_engine(migrated)
+def test_fully_migrated_database_matches_the_orm(url: str) -> None:
+    command.upgrade(make_config(url), "head")
+    engine = get_engine(url)
     with engine.connect() as connection:
         differences = compare_metadata(MigrationContext.configure(connection), Base.metadata)
     engine.dispose()
@@ -132,7 +135,7 @@ def test_migrated_database_matches_the_orm(migrated: str) -> None:
 
 
 def test_upgrade_twice_changes_nothing(migrated: str) -> None:
-    command.upgrade(make_config(migrated), "head")
+    command.upgrade(make_config(migrated), "0001")
     assert table_names(migrated) == ["accounts", "alembic_version"]
 
 
@@ -174,5 +177,5 @@ def test_downgrade_removes_the_accounts_table(migrated: str) -> None:
 def test_downgrade_then_upgrade_restores_the_table(migrated: str) -> None:
     config = make_config(migrated)
     command.downgrade(config, "base")
-    command.upgrade(config, "head")
+    command.upgrade(config, "0001")
     assert table_names(migrated) == ["accounts", "alembic_version"]

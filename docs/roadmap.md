@@ -65,8 +65,10 @@ Phase 2 now creates only the `accounts` table. `import_batches`, `transactions`,
 |---|---|---|---|
 | 3a | Statement model and parsing helpers | `Section`, `StatementLine`, `ParsedStatement`; `parse_amount`, `infer_year`, `parse_month_day` | [phase-03a](phases/phase-03a-statement-model-and-helpers.md) |
 | 3b | Statement checks and reading | `reconcile` with `ReconcileResult` (opening balance plus lines must equal closing, to the cent; declared section totals must match); `fingerprint_lines` for deduplication; `extract_pages` (adds `pypdf`); the parser registry (`register`, `unregister`, `registered_parsers`, `detect_parser`); test fixtures that build real PDFs | [phase-03b](phases/phase-03b-statement-checks-and-reading.md) |
-| 3c | Statement storage | Domain and ORM classes for `statements`, `transactions`, and `balance_snapshots`; migration `0002`; repositories to save and find statements, insert and list transactions, check existing fingerprints, and record balance snapshots | to be written |
-| 3d | Importing statements | Account matching by last four digits; `import_statement` (reconcile, deduplicate, write in one transaction) and `import_folder`; the commands `fin import statement`, `fin import folder`, `fin statements list`, `fin transactions list` | to be written |
+| 3c | Storing and importing statements | Domain and ORM classes for `statements`, `transactions`, and `balance_snapshots`; migration `0002`; eight repository functions; `import_statement` (read, recognize, match an account, reconcile, deduplicate, store) and `import_folder`; a fake bank parser for tests | [phase-03c](phases/phase-03c-storing-and-importing-statements.md) |
+| 3d | Import commands | `fin import statement`, `fin import folder`, `fin statements list`, `fin transactions list` | to be written after 3c is built |
+
+3c joins the storage layer and the import service, which were planned separately: the service is the only user of the new repositories. The commands stay in 3d because they are a thin layer over finished functions.
 
 Changes from the original Phase 3 draft, made for the aggregator design and for simplicity:
 
@@ -75,6 +77,7 @@ Changes from the original Phase 3 draft, made for the aggregator design and for 
 - `transactions` stores one description (as printed, whitespace collapsed). The separate normalized description waits for Phase 11, which defines merchant normalization.
 - `find_labeled_amount` moves to Phase 4, where the first real parser shows what it needs.
 - The opt-in real-sample test harness also moves to Phase 4. It cannot do anything until a parser exists, and it should be written on the machine that holds `data/samples/`.
+- There is no way to import a statement that does not reconcile. The draft had an override flag; it can be added if a real statement ever needs it, and until then an unreconciled statement always means a parser mistake.
 - Fingerprints use one scheme for every line (account, posted date, amount, normalized description, card digits, reference, and an occurrence number). The draft had a second scheme for lines with a reference number; with CSV import gone it had no purpose, and four-digit reference numbers are not unique.
 - `infer_year` also tries the year after the period ends, so a row dated in early January is found on a statement that closes in late December.
 

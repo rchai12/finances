@@ -10,6 +10,9 @@ from finances.db.migrate import current_revision, head_revision, upgrade_to_head
 
 OTHER_URL = "postgresql://user:secret@host/db"
 MESSAGE = "only SQLite databases are supported"
+VERSIONS = finances.db.migrate.MIGRATIONS / "versions"
+HEAD = max(path.name[:4] for path in VERSIONS.glob("*.py"))
+MIGRATED_TABLES = {"accounts", "alembic_version"}
 REVISION = """revision = "{revision}"
 down_revision = {down}
 
@@ -34,15 +37,16 @@ def table_names(url: str) -> list[str]:
     return names
 
 
-def test_head_revision_is_0001() -> None:
-    assert head_revision() == "0001"
+def test_head_revision_is_the_newest_migration() -> None:
+    assert HEAD >= "0001"
+    assert head_revision() == HEAD
 
 
 def test_head_revision_is_the_same_from_another_folder(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     monkeypatch.chdir(tmp_path)
-    assert head_revision() == "0001"
+    assert head_revision() == HEAD
     assert list(tmp_path.iterdir()) == []
 
 
@@ -58,18 +62,18 @@ def test_head_revision_reads_the_migrations_folder(
 
 
 def test_upgrade_to_head_returns_the_new_revision(db_url: str) -> None:
-    assert upgrade_to_head(db_url) == "0001"
+    assert upgrade_to_head(db_url) == HEAD
 
 
 def test_upgrade_to_head_creates_the_tables(db_url: str) -> None:
     upgrade_to_head(db_url)
-    assert table_names(db_url) == ["accounts", "alembic_version"]
+    assert MIGRATED_TABLES <= set(table_names(db_url))
 
 
 def test_upgrade_to_head_twice_changes_nothing(db_url: str) -> None:
     upgrade_to_head(db_url)
-    assert upgrade_to_head(db_url) == "0001"
-    assert table_names(db_url) == ["accounts", "alembic_version"]
+    assert upgrade_to_head(db_url) == HEAD
+    assert MIGRATED_TABLES <= set(table_names(db_url))
 
 
 def test_upgrade_to_head_works_from_another_folder(
@@ -78,19 +82,19 @@ def test_upgrade_to_head_works_from_another_folder(
     elsewhere = tmp_path / "elsewhere"
     elsewhere.mkdir()
     monkeypatch.chdir(elsewhere)
-    assert upgrade_to_head(db_url) == "0001"
+    assert upgrade_to_head(db_url) == HEAD
     assert list(elsewhere.iterdir()) == []
 
 
 def test_upgrade_to_head_creates_missing_folders(tmp_path: Path) -> None:
     target = tmp_path / "a" / "b" / "app.db"
-    assert upgrade_to_head(sqlite_url(target)) == "0001"
+    assert upgrade_to_head(sqlite_url(target)) == HEAD
     assert target.is_file()
 
 
 def test_upgrade_to_head_accepts_a_percent_sign(tmp_path: Path) -> None:
     target = tmp_path / "100%" / "app.db"
-    assert upgrade_to_head(sqlite_url(target)) == "0001"
+    assert upgrade_to_head(sqlite_url(target)) == HEAD
     assert target.is_file()
     assert [path.name for path in tmp_path.iterdir()] == ["100%"]
 
@@ -98,9 +102,9 @@ def test_upgrade_to_head_accepts_a_percent_sign(tmp_path: Path) -> None:
 def test_upgrade_to_head_uses_the_configured_database_by_default(
     tmp_settings: Settings,
 ) -> None:
-    assert upgrade_to_head() == "0001"
+    assert upgrade_to_head() == HEAD
     assert (tmp_settings.data_dir / "finances.db").is_file()
-    assert table_names(tmp_settings.effective_database_url) == ["accounts", "alembic_version"]
+    assert MIGRATED_TABLES <= set(table_names(tmp_settings.effective_database_url))
 
 
 def test_upgrade_to_head_rejects_other_backends() -> None:
@@ -116,7 +120,7 @@ def test_current_revision_is_none_for_a_new_database(db_url: str) -> None:
 
 def test_current_revision_after_an_upgrade(db_url: str) -> None:
     upgrade_to_head(db_url)
-    assert current_revision(db_url) == "0001"
+    assert current_revision(db_url) == HEAD
 
 
 def test_current_revision_is_none_when_the_record_is_empty(db_url: str) -> None:
@@ -132,7 +136,7 @@ def test_current_revision_accepts_a_percent_sign(tmp_path: Path) -> None:
     url = sqlite_url(tmp_path / "100%" / "app.db")
     assert current_revision(url) is None
     upgrade_to_head(url)
-    assert current_revision(url) == "0001"
+    assert current_revision(url) == HEAD
 
 
 def test_current_revision_uses_the_configured_database_by_default(
@@ -140,7 +144,7 @@ def test_current_revision_uses_the_configured_database_by_default(
 ) -> None:
     assert current_revision() is None
     upgrade_to_head()
-    assert current_revision() == "0001"
+    assert current_revision() == HEAD
 
 
 def test_current_revision_rejects_other_backends() -> None:
@@ -150,7 +154,7 @@ def test_current_revision_rejects_other_backends() -> None:
 
 
 def test_db_engine_fixture_is_migrated(db_engine: Engine, db_url: str) -> None:
-    assert sorted(inspect(db_engine).get_table_names()) == ["accounts", "alembic_version"]
+    assert MIGRATED_TABLES <= set(inspect(db_engine).get_table_names())
     assert current_revision(db_url) == head_revision()
 
 

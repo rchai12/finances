@@ -2,8 +2,10 @@ from typer.testing import CliRunner
 
 from finances.cli.main import app
 from finances.config import Settings, get_settings
+from finances.db.migrate import head_revision
 
 runner = CliRunner(env={"COLUMNS": "200"})
+HEAD = head_revision()
 
 
 def test_version() -> None:
@@ -34,13 +36,13 @@ def test_doctor_fails_before_the_first_upgrade(tmp_settings: Settings) -> None:
     result = runner.invoke(app, ["doctor"])
     assert result.exit_code == 1
     assert "Database schema" in result.stdout
-    assert "none -> 0001 FAIL (run: fin db upgrade)" in result.stdout
+    assert f"none -> {HEAD} FAIL (run: fin db upgrade)" in result.stdout
 
 
 def test_db_upgrade_reports_the_revision(tmp_settings: Settings) -> None:
     result = runner.invoke(app, ["db", "upgrade"])
     assert result.exit_code == 0
-    assert "Database is at revision 0001" in result.stdout
+    assert f"Database is at revision {HEAD}" in result.stdout
     assert (tmp_settings.data_dir / "finances.db").is_file()
 
 
@@ -55,14 +57,14 @@ def test_db_upgrade_twice_is_fine(tmp_settings: Settings) -> None:
     runner.invoke(app, ["db", "upgrade"])
     result = runner.invoke(app, ["db", "upgrade"])
     assert result.exit_code == 0
-    assert "Database is at revision 0001" in result.stdout
+    assert f"Database is at revision {HEAD}" in result.stdout
 
 
 def test_doctor_passes_after_an_upgrade(tmp_settings: Settings) -> None:
     runner.invoke(app, ["db", "upgrade"])
     result = runner.invoke(app, ["doctor"])
     assert result.exit_code == 0
-    assert "0001 OK" in result.stdout
+    assert f"{HEAD} OK" in result.stdout
 
 
 def test_db_upgrade_reports_an_unsupported_database(tmp_settings: Settings, monkeypatch) -> None:

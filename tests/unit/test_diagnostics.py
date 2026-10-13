@@ -8,10 +8,11 @@ from sqlalchemy import text
 import finances.diagnostics
 from finances.config import Settings
 from finances.db.engine import get_engine
-from finances.db.migrate import upgrade_to_head
+from finances.db.migrate import head_revision, upgrade_to_head
 from finances.diagnostics import run_checks
 
 Version = collections.namedtuple("Version", "major minor micro")
+HEAD = head_revision()
 
 
 def test_python_version_ok(tmp_settings: Settings) -> None:
@@ -67,22 +68,22 @@ def test_there_are_five_checks_in_order(tmp_settings: Settings) -> None:
 
 def test_database_schema_fails_before_the_first_upgrade(tmp_settings: Settings) -> None:
     checks = run_checks(tmp_settings)
-    assert checks[4] == ("Database schema", False, "none -> 0001 FAIL (run: fin db upgrade)")
+    assert checks[4] == ("Database schema", False, f"none -> {HEAD} FAIL (run: fin db upgrade)")
 
 
 def test_database_schema_is_ok_after_an_upgrade(tmp_settings: Settings) -> None:
     upgrade_to_head(tmp_settings.effective_database_url)
     checks = run_checks(tmp_settings)
-    assert checks[4] == ("Database schema", True, "0001 OK")
+    assert checks[4] == ("Database schema", True, f"{HEAD} OK")
 
 
 def test_database_schema_shows_an_old_revision(
     tmp_settings: Settings, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     upgrade_to_head(tmp_settings.effective_database_url)
-    monkeypatch.setattr(finances.diagnostics, "head_revision", lambda: "0002")
+    monkeypatch.setattr(finances.diagnostics, "head_revision", lambda: "9999")
     checks = run_checks(tmp_settings)
-    assert checks[4] == ("Database schema", False, "0001 -> 0002 FAIL (run: fin db upgrade)")
+    assert checks[4] == ("Database schema", False, f"{HEAD} -> 9999 FAIL (run: fin db upgrade)")
 
 
 def test_database_schema_uses_the_settings_it_is_given(
@@ -90,7 +91,7 @@ def test_database_schema_uses_the_settings_it_is_given(
 ) -> None:
     other = Settings(data_dir=tmp_path / "other")
     upgrade_to_head(other.effective_database_url)
-    assert run_checks(other)[4] == ("Database schema", True, "0001 OK")
+    assert run_checks(other)[4] == ("Database schema", True, f"{HEAD} OK")
     assert run_checks(tmp_settings)[4][1] is False
 
 
