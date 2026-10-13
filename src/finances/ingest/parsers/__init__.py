@@ -55,3 +55,9 @@ from finances.ingest.parsers.citi import CitiCardParser  # noqa: E402
 
 register(BoaCardParser())
 register(CitiCardParser())
+
+from finances.ingest.parsers.marcus import MarcusSavingsParser  # noqa: E402
+from finances.ingest.parsers.truist import TruistDepositParser  # noqa: E402
+
+register(TruistDepositParser())
+register(MarcusSavingsParser())
