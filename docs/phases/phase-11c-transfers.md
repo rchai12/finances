@@ -459,7 +459,7 @@ runner = CliRunner(env={"COLUMNS": "200"})
 NOT_MIGRATED = "Error: database is not up to date (run: fin db upgrade)\n"
 LIST = ["Pair", "Date", "From", "To", "Amount", "Out", "In", "How"]
 REVIEW = ["Out", "Out date", "From", "In", "In date", "To", "Amount"]
-TO_SAVINGS = ["3", "2026-05-05", "Test Checking", "{}", "2026-05-0{}", "Test Savings", "$20.00"]
+TO_SAVINGS = ["3", "2026-05-05", "Test Checking", "{}", "2026-05-0{1}", "Test Savings", "$20.00"]
 
 
 def run(*args: object):

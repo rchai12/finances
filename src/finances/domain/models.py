@@ -220,3 +220,17 @@ class CategoryAssignment:
     category_id: int
     source: str
     rule_id: int | None
+
+
+AUTO = "auto"
+CONFIRMED = "confirmed"
+
+
+@dataclass(frozen=True)
+class TransferPair:
+    """An outflow and an inflow of the same money between two of the household's accounts."""
+
+    id: int
+    out_transaction_id: int
+    in_transaction_id: int
+    status: str

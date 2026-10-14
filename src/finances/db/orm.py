@@ -30,6 +30,7 @@ from finances.domain.models import (
     SeenFeedAccount,
     Statement,
     Transaction,
+    TransferPair,
 )
 from finances.domain.text import (
     CATEGORY_NAME_LIMIT,
@@ -451,4 +452,44 @@ def to_category_assignment(row: TransactionCategoryRow) -> CategoryAssignment:
         category_id=row.category_id,
         source=row.source,
         rule_id=row.rule_id,
+    )
+
+
+class TransferPairRow(Base):
+    """One row of the transfer_pairs table: an outflow and an inflow that are one transfer."""
+
+    __tablename__ = "transfer_pairs"
+    __table_args__ = (
+        UniqueConstraint("out_transaction_id", name="uq_transfer_pairs_out_transaction_id"),
+        UniqueConstraint("in_transaction_id", name="uq_transfer_pairs_in_transaction_id"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    out_transaction_id: Mapped[int] = mapped_column(ForeignKey("transactions.id"), nullable=False)
+    in_transaction_id: Mapped[int] = mapped_column(ForeignKey("transactions.id"), nullable=False)
+    status: Mapped[str] = mapped_column(String(10), nullable=False)
+
+
+class TransferRejectionRow(Base):
+    """One row of the transfer_rejections table: two transactions that are not a transfer."""
+
+    __tablename__ = "transfer_rejections"
+    __table_args__ = (
+        UniqueConstraint(
+            "out_transaction_id", "in_transaction_id", name="uq_transfer_rejections_pair"
+        ),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    out_transaction_id: Mapped[int] = mapped_column(ForeignKey("transactions.id"), nullable=False)
+    in_transaction_id: Mapped[int] = mapped_column(ForeignKey("transactions.id"), nullable=False)
+
+
+def to_transfer_pair(row: TransferPairRow) -> TransferPair:
+    """Return the domain TransferPair for a row of the transfer_pairs table."""
+    return TransferPair(
+        id=row.id,
+        out_transaction_id=row.out_transaction_id,
+        in_transaction_id=row.in_transaction_id,
+        status=row.status,
     )

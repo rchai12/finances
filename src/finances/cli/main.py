@@ -18,6 +18,7 @@ from finances.cli.importing import app as import_app
 from finances.cli.listing import statements_app, transactions_app
 from finances.cli.people import app as people_app
 from finances.cli.sync import app as sync_app
+from finances.cli.transfers import transfers_app
 from finances.cli.web import app as web_app
 from finances.config import get_settings
 from finances.diagnostics import run_checks
@@ -34,6 +35,7 @@ app.add_typer(people_app, name="people")
 app.add_typer(web_app, name="web")
 app.add_typer(categories_app, name="categories")
 app.add_typer(rules_app, name="rules")
+app.add_typer(transfers_app, name="transfers")
 app.command("categorize")(categorize_command)
 app.command("uncategorized")(uncategorized_command)
 

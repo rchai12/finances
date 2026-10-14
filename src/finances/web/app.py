@@ -23,6 +23,7 @@ from finances.analysis.people import (
     list_transactions_with_people,
 )
 from finances.categorize.service import categorize
+from finances.categorize.transfers import pair_transfers
 from finances.db.engine import get_engine, session_scope
 from finances.db.migrate import current_revision, head_revision
 from finances.db.repositories import (
@@ -806,6 +807,7 @@ def create_app(port: int) -> ASGIApp:
             if any(item.report is not None for item in runs):
                 with session_scope(engine) as session:
                     categorize(session)
+                    pair_transfers(session)
             with session_scope(engine) as session:
                 rows = run_rows(runs, account_names(session))
                 waiting = waiting_counts(session, runs)
