@@ -57,7 +57,11 @@ def describe(node: ast.stmt) -> str | None:
         return f"class {node.name}({bases}){shown}"
     if isinstance(node, ast.Assign | ast.AnnAssign):
         targets = node.targets if isinstance(node, ast.Assign) else [node.target]
-        names = [t.id for t in targets if isinstance(t, ast.Name) and t.id.isupper()]
+        names = [
+            t.id
+            for t in targets
+            if isinstance(t, ast.Name) and t.id.isupper() and not t.id.startswith("_")
+        ]
         if names and node.value is not None:
             value = ast.unparse(node.value)
             return f"{', '.join(names)} = {value if len(value) <= 60 else value[:57] + '...'}"
