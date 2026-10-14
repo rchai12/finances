@@ -37,33 +37,66 @@ The account in the app must exist first (`fin accounts list`; add it with `fin a
 
 ## 4. Run it every morning
 
-macOS runs a user job with `launchd`. Save this as `~/Library/LaunchAgents/local.finances.sync.plist`, with the two paths changed to this repository:
-
-```xml
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-  <key>Label</key><string>local.finances.sync</string>
-  <key>ProgramArguments</key>
-  <array>
-    <string>/Users/YOU/Desktop/Projects/finances/.venv/bin/fin</string>
-    <string>sync</string>
-    <string>run</string>
-  </array>
-  <key>WorkingDirectory</key><string>/Users/YOU/Desktop/Projects/finances</string>
-  <key>StartCalendarInterval</key>
-  <dict><key>Hour</key><integer>7</integer><key>Minute</key><integer>0</integer></dict>
-  <key>StandardOutPath</key><string>/tmp/finances-sync.log</string>
-  <key>StandardErrorPath</key><string>/tmp/finances-sync.log</string>
-</dict>
-</plist>
-```
-
-Then load it once:
+From the repository root:
 
 ```
-launchctl load ~/Library/LaunchAgents/local.finances.sync.plist
+scripts/install-sync-schedule.sh              # daily at 07:00
+scripts/install-sync-schedule.sh 6 30         # or another time
+scripts/install-sync-schedule.sh 7 0 --now    # install, then run once straight away to test
 ```
 
-The job runs as you, so it can read your Keychain while you are logged in. The log holds the same table `fin sync run` prints, which includes account names and counts; delete it if you do not want that kept. The agent cannot trigger a sync.
+The script writes a `launchd` job (`~/Library/LaunchAgents/local.finances.sync.plist`) that runs `.venv/bin/fin sync run` as you, inside your login session, so it can read the Keychain. It finds the repository's paths by itself, so the same command works on any Mac (see "Moving to another Mac" below). Running it again replaces the earlier job.
+
+- The Mac must be on and you logged in. If it is asleep at the set time, the run happens when it wakes.
+- Output goes to `data/logs/sync.log`, which is never committed. It holds the same table `fin sync run` prints: account names, counts, and drift.
+- To stop it: `scripts/uninstall-sync-schedule.sh`.
+- To see whether it ran: `launchctl print gui/$(id -u)/local.finances.sync | grep -E "runs =|last exit code"`.
+
+The agent cannot trigger a sync.
+
+## Moving to another Mac
+
+For example, to the Mac Studio. What lives where:
+
+| Thing | Where | Moves with the repository? |
+|---|---|---|
+| The code | the Git repository | yes |
+| The database (accounts, transactions, statements, mappings) | `data/finances.db` | no: `data/` is never committed |
+| Real statements | `data/samples/` | no |
+| SimpleFIN access, one entry per person | the macOS Keychain | no, and it should not be copied |
+| The daily job | `~/Library/LaunchAgents/local.finances.sync.plist` | no: the script writes it |
+
+On the new Mac, from the repository root after cloning it:
+
+1. Install the project:
+
+   ```
+   python3 -m venv .venv
+   .venv/bin/python -m pip install -e ".[dev]"
+   ```
+
+2. Bring the data over, one of two ways:
+   - **Copy it:** copy `data/finances.db` (and `data/samples/` if you want the PDFs there too) from the old Mac, over a private connection or a drive you control, never through a cloud folder or email. Your accounts and mappings come with it; skip step 4.
+   - **Start fresh:** leave `data/` empty. Steps 3 to 5 rebuild it.
+3. Bring the database up to date (this creates it when it does not exist):
+
+   ```
+   .venv/bin/fin db upgrade
+   ```
+
+4. If you started fresh: add the accounts with `fin accounts add` (same names and last four digits as before), and import the statements with `fin import folder data/samples`.
+5. Link each person again, each at the keyboard with a **new** setup token from their own SimpleFIN account (step 1 above). Keychain entries are never copied between machines.
+6. If you started fresh, map the accounts again (step 2 above). If you copied the database, the mappings are already there; check with `fin sync status`.
+7. Test, then schedule:
+
+   ```
+   .venv/bin/fin sync run
+   scripts/install-sync-schedule.sh 7 0 --now
+   ```
+
+Then retire the old Mac:
+
+- Run `scripts/uninstall-sync-schedule.sh` there, so the two machines do not both sync.
+- Run `.venv/bin/fin sync unlink --link <name>` there for each person.
+- On SimpleFIN's site, each person deletes the app connection that belonged to the old Mac. Its access stays valid until it is deleted, even after `unlink`.
+
