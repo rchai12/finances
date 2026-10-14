@@ -445,3 +445,96 @@ def latest_feed_pull(
         stmt = stmt.where(FeedPullRow.balance_cents.is_not(None))
     row = session.scalars(stmt.order_by(FeedPullRow.id.desc()).limit(1)).first()
     return to_feed_pull(row) if row is not None else None
+
+
+def list_provisional_transactions(
+    session: Session, account_id: int, start: date, end: date
+) -> list[Transaction]:
+    """Return the account's posted aggregator rows dated from start to end, in id order."""
+    stmt = (
+        select(TransactionRow)
+        .where(
+            TransactionRow.account_id == account_id,
+            TransactionRow.source == DataSource.AGGREGATOR.value,
+            TransactionRow.is_pending.is_(False),
+            TransactionRow.posted_date >= start,
+            TransactionRow.posted_date <= end,
+        )
+        .order_by(TransactionRow.id)
+    )
+    return [to_transaction(row) for row in session.scalars(stmt).all()]
+
+
+def confirm_transaction(
+    session: Session,
+    transaction_id: int,
+    *,
+    statement_id: int,
+    posted_date: date,
+    transaction_date: date | None,
+    description: str,
+    section: str | None,
+    card_last4: str | None,
+    cardholder: str | None,
+    external_id: str | None,
+    fingerprint: str,
+) -> Transaction:
+    """Turn a stored row into a statement row in place, keeping its id. The caller commits."""
+    row = session.get(TransactionRow, transaction_id)
+    if row is None:
+        raise ValueError("transaction not found")
+    row.statement_id = statement_id
+    row.posted_date = posted_date
+    row.transaction_date = transaction_date
+    row.description = description
+    row.section = section
+    row.card_last4 = card_last4
+    row.cardholder = cardholder
+    row.external_id = external_id
+    row.fingerprint = fingerprint
+    row.source = DataSource.STATEMENT.value
+    row.is_pending = False
+    session.flush()
+    return to_transaction(row)
+
+
+def find_unlinked_statement_transactions(
+    session: Session, account_id: int, amount_cents: int, start: date, end: date
+) -> list[Transaction]:
+    """Return the account's statement rows of this amount, dated start to end, with no feed id."""
+    linked = select(FeedItemRow.id).where(FeedItemRow.transaction_id == TransactionRow.id)
+    stmt = (
+        select(TransactionRow)
+        .where(
+            TransactionRow.account_id == account_id,
+            TransactionRow.source == DataSource.STATEMENT.value,
+            TransactionRow.amount_cents == amount_cents,
+            TransactionRow.posted_date >= start,
+            TransactionRow.posted_date <= end,
+            ~linked.exists(),
+        )
+        .order_by(TransactionRow.id)
+    )
+    return [to_transaction(row) for row in session.scalars(stmt).all()]
+
+
+def link_feed_transaction(
+    session: Session, account_id: int, feed_id: str, transaction_id: int
+) -> None:
+    """Tie a feed id to a stored transaction. The caller commits."""
+    session.add(FeedItemRow(account_id=account_id, feed_id=feed_id, transaction_id=transaction_id))
+    session.flush()
+
+
+def statement_covers(session: Session, account_id: int, day: date) -> bool:
+    """Return whether a stored statement of the account has day inside its period."""
+    stmt = (
+        select(StatementRow.id)
+        .where(
+            StatementRow.account_id == account_id,
+            StatementRow.period_start <= day,
+            StatementRow.period_end >= day,
+        )
+        .limit(1)
+    )
+    return session.scalars(stmt).first() is not None

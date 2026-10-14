@@ -1,5 +1,7 @@
 """Store an aggregator feed as provisional transactions and measure balance drift."""
 
+from datetime import timedelta
+
 from sqlalchemy.orm import Session
 
 from finances.db.repositories import (
@@ -7,12 +9,16 @@ from finances.db.repositories import (
     delete_feed_transaction,
     feed_posted_total,
     find_feed_transactions,
+    find_unlinked_statement_transactions,
     get_account,
     insert_feed_transaction,
     latest_feed_pull,
+    link_feed_transaction,
     set_balance_snapshot,
+    statement_covers,
     update_feed_transaction,
 )
+from finances.domain.matching import MATCH_MAX_DAYS
 from finances.domain.models import (
     DataSource,
     FeedPull,
@@ -75,6 +81,23 @@ def _unchanged(stored: Transaction, item: FeedTransaction, description: str) -> 
     )
 
 
+def _statement_row(session: Session, account_id: int, item: FeedTransaction) -> Transaction | None:
+    """Return the unlinked statement row closest in day to the item, lowest id on ties."""
+    reach = timedelta(days=MATCH_MAX_DAYS)
+    rows = find_unlinked_statement_transactions(
+        session,
+        account_id,
+        item.amount_cents,
+        item.posted_date - reach,
+        item.posted_date + reach,
+    )
+    return min(
+        rows,
+        key=lambda row: (abs((row.posted_date - item.posted_date).days), row.id),
+        default=None,
+    )
+
+
 def apply_feed(session: Session, account_id: int, feed: AccountFeed) -> FeedPull:
     """Store what the feed delivers for one account. The caller commits."""
     if get_account(session, account_id) is None:
@@ -95,6 +118,22 @@ def apply_feed(session: Session, account_id: int, feed: AccountFeed) -> FeedPull
             candidate = stored_by_id.get(item.replaces_feed_id)
             if candidate is not None and candidate.source == DataSource.AGGREGATOR:
                 key, stored = item.replaces_feed_id, candidate
+        settled = not item.is_pending and (
+            stored is None or (stored.is_pending and stored.source == DataSource.AGGREGATOR)
+        )
+        if settled:
+            statement_row = _statement_row(session, account_id, item)
+            if statement_row is not None or statement_covers(session, account_id, item.posted_date):
+                if stored is not None:
+                    delete_feed_transaction(session, stored.id)
+                    del stored_by_id[key]
+                    removed += 1
+                else:
+                    unchanged += 1
+                if statement_row is not None:
+                    link_feed_transaction(session, account_id, item.feed_id, statement_row.id)
+                    stored_by_id[item.feed_id] = statement_row
+                continue
         fingerprint = feed_fingerprint(account_id, item.feed_id)
         if stored is None:
             new = NewTransaction(

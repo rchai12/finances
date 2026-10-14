@@ -2,7 +2,7 @@
 
 import hashlib
 from dataclasses import dataclass
-from datetime import date
+from datetime import date, timedelta
 from enum import StrEnum
 from pathlib import Path
 
@@ -12,14 +12,18 @@ from sqlalchemy.orm import Session
 from finances.db.engine import session_scope
 from finances.db.repositories import (
     add_balance_snapshot,
+    confirm_transaction,
     create_statement,
+    delete_feed_transaction,
     existing_fingerprints,
     find_accounts_by_last4,
     find_statement_by_hash,
     get_account_by_name,
     insert_transactions,
+    list_provisional_transactions,
 )
-from finances.domain.models import Account, DataSource, NewTransaction
+from finances.domain.matching import MATCH_MAX_DAYS, MatchItem, match_one_to_one
+from finances.domain.models import Account, DataSource, NewTransaction, Transaction
 from finances.ingest.dedup import fingerprint_lines
 from finances.ingest.parsers import detect_parser
 from finances.ingest.parsers.helpers import collapse_ws
@@ -51,6 +55,8 @@ class StatementImportResult:
     lines_parsed: int = 0
     inserted: int = 0
     duplicates: int = 0
+    upgraded: int = 0
+    dropped: int = 0
 
 
 def import_statement(
@@ -99,16 +105,17 @@ def import_statement(
         for line, fingerprint in zip(parsed.lines, fingerprints, strict=True)
         if fingerprint not in known
     ]
-    inserted = len(fresh)
-    duplicates = len(parsed.lines) - inserted
+    duplicates = len(parsed.lines) - len(fresh)
+    upgrades, to_insert, to_drop = _supersede(session, account.id, parsed, fresh)
+    counts = {
+        "inserted": len(to_insert),
+        "upgraded": len(upgrades),
+        "dropped": len(to_drop),
+        "duplicates": duplicates,
+    }
     if dry_run:
         return StatementImportResult(
-            stored_name,
-            ImportStatus.DRY_RUN,
-            "dry run: nothing written",
-            inserted=inserted,
-            duplicates=duplicates,
-            **read,
+            stored_name, ImportStatus.DRY_RUN, "dry run: nothing written", **counts, **read
         )
 
     statement = create_statement(
@@ -122,16 +129,20 @@ def import_statement(
         opening_balance_cents=parsed.opening_balance_cents,
         closing_balance_cents=parsed.closing_balance_cents,
         lines_parsed=len(parsed.lines),
-        rows_inserted=inserted,
+        rows_inserted=len(to_insert),
         rows_duplicate=duplicates,
     )
+    for line, fingerprint, candidate in upgrades:
+        _confirm(session, statement.id, line, fingerprint, candidate)
     insert_transactions(
         session,
         [
             _new_transaction(account.id, statement.id, line, fingerprint)
-            for line, fingerprint in fresh
+            for line, fingerprint in to_insert
         ],
     )
+    for candidate in to_drop:
+        delete_feed_transaction(session, candidate.id)
     add_balance_snapshot(
         session,
         account.id,
@@ -139,14 +150,7 @@ def import_statement(
         parsed.closing_balance_cents,
         DataSource.STATEMENT,
     )
-    return StatementImportResult(
-        stored_name,
-        ImportStatus.IMPORTED,
-        "imported",
-        inserted=inserted,
-        duplicates=duplicates,
-        **read,
-    )
+    return StatementImportResult(stored_name, ImportStatus.IMPORTED, "imported", **counts, **read)
 
 
 def import_folder(
@@ -203,6 +207,64 @@ def _reconcile_message(result: ReconcileResult) -> str:
         names = ", ".join(section.value for section in result.section_mismatches)
         message = f"{message}; section totals differ: {names}"
     return message
+
+
+Fresh = list[tuple[StatementLine, str]]
+
+
+def _supersede(
+    session: Session, account_id: int, parsed: ParsedStatement, fresh: Fresh
+) -> tuple[list[tuple[StatementLine, str, Transaction]], Fresh, list[Transaction]]:
+    """Split fresh lines into feed rows to upgrade and lines to insert, and find rows to drop."""
+    reach = timedelta(days=MATCH_MAX_DAYS)
+    candidates = list_provisional_transactions(
+        session, account_id, parsed.period_start - reach, parsed.period_end + reach
+    )
+    pairs = match_one_to_one(
+        [
+            MatchItem(index, line.amount_cents, line.posted_date)
+            for index, (line, _) in enumerate(fresh)
+        ],
+        [MatchItem(item.id, item.amount_cents, item.posted_date) for item in candidates],
+    )
+    by_id = {item.id: item for item in candidates}
+    upgrades = [(*fresh[index], by_id[candidate_id]) for index, candidate_id in pairs]
+    matched_lines = {index for index, _ in pairs}
+    matched_rows = {candidate_id for _, candidate_id in pairs}
+    to_insert = [item for index, item in enumerate(fresh) if index not in matched_lines]
+    to_drop = [
+        item
+        for item in candidates
+        if item.id not in matched_rows
+        and parsed.period_start <= item.posted_date <= parsed.period_end
+    ]
+    return upgrades, to_insert, to_drop
+
+
+def _confirm(
+    session: Session,
+    statement_id: int,
+    line: StatementLine,
+    fingerprint: str,
+    candidate: Transaction,
+) -> None:
+    confirm_transaction(
+        session,
+        candidate.id,
+        statement_id=statement_id,
+        posted_date=line.posted_date,
+        transaction_date=(
+            line.transaction_date
+            if line.transaction_date is not None
+            else candidate.transaction_date
+        ),
+        description=collapse_ws(line.description),
+        section=line.section.value,
+        card_last4=line.card_last4 if line.card_last4 is not None else candidate.card_last4,
+        cardholder=line.cardholder,
+        external_id=line.external_ref,
+        fingerprint=fingerprint,
+    )
 
 
 def _new_transaction(
