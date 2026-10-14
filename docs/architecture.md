@@ -40,7 +40,7 @@ It also works on its own through the `fin` CLI and, later, a local web UI.
 | Migrations | Alembic | Versioned schema; upgrades never lose imported data |
 | Local DB | SQLite file in `data/` | Zero setup |
 | PDF text | `pypdf` (layout extraction mode) | Pure Python; keeps statement columns aligned where `pdftotext` scrambles them |
-| Daily feed (later) | Third-party aggregator, provider not yet chosen | No manual downloads; the app's only outbound connection |
+| Daily feed | SimpleFIN Bridge, through the standard library's `urllib` | Built for individuals, read-only, about $15 a year; the app's only outbound connection |
 | Agent interface (later) | MCP server, official `mcp` Python SDK, stdio transport | Typed tools any agent framework can call; stdio opens no port |
 | Web UI (later) | FastAPI + Jinja2 + HTMX, bound to 127.0.0.1 | Little JavaScript |
 | Tests / lint | pytest, ruff | Standard |
@@ -128,7 +128,7 @@ The MCP server is how the agent reaches this app. Details are in the Phase 14 an
 
 Raw financial data stays on the household's machine, with one known exception upstream.
 
-- **Aggregator.** The aggregator company sees every transaction it delivers. This is accepted in exchange for not importing by hand, and nothing in this app can reduce it. The aggregator is the app's only outbound connection; all of that code lives in `src/finances/sync/`. Nothing else in the app touches the network, and the app sends the aggregator nothing except its credentials and sync requests.
+- **Aggregator.** The aggregator company (SimpleFIN Bridge, and the data provider behind it) sees every transaction it delivers. This is accepted in exchange for not importing by hand, and nothing in this app can reduce it. The aggregator is the app's only outbound connection; all of that code lives in `src/finances/sync/`. Nothing else in the app touches the network, and the app sends the aggregator nothing except its credentials and sync requests.
 - **Agent.** The MCP server hands raw data to whatever process launched it. That is acceptable only because the agent runs on a **local model** on the same machine. The app cannot check this. If the finance subagent, or the overarching agent that reads its answers, is ever moved to a hosted model, raw data leaves the machine through the agent, and this design must be revisited first.
 - **Remote access.** The app never listens on a public interface: the MCP server uses stdio and the web UI binds to 127.0.0.1. Remote access is provided outside the app, by an encrypted private network between the household's own devices (a WireGuard-based mesh VPN such as Tailscale) that forwards to the loopback port. A tunnel service that decrypts traffic on its own servers is not used, since it would see the data. The web UI still requires a login (Phase 20), so reaching the port is not enough.
 - **Logs.** Tool arguments and results, and aggregator responses, are never logged at INFO or above (`AGENTS.md` privacy rule 4).
@@ -158,5 +158,5 @@ Transfers between the household's own accounts (card payments from checking, mov
 
 ## Open decisions
 
-- **Aggregator provider.** Must cover Capital One, Bank of America, Citi, Truist, and Marcus, be available to an individual, and ideally report pending versus posted and a per-card identifier. Decide before Phase 17 is specified. Phase 17 comes early in the build order, so this is the next decision needed.
+- **Aggregator provider: decided, SimpleFIN Bridge** (Phase 17b). Still to confirm by linking: that all five banks connect, and the sign SimpleFIN gives a card balance (the drift check of Phase 17a will show a wrong sign). SimpleFIN reports pending transactions but no per-card identifier, so the cardholder on shared cards still comes from statements. As understood, SimpleFIN Bridge gets its bank connections from a larger aggregator, so two companies see the transactions.
 - **Remote access method.** The default above is a mesh VPN with the app on loopback. Confirm before Phase 20.

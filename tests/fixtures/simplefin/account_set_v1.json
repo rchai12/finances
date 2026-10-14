@@ -1,0 +1,27 @@
+{
+  "errors": [
+    "Example Card Bank: connection   may need attention"
+  ],
+  "accounts": [
+    {
+      "org": {
+        "domain": "example.invalid",
+        "sfin-url": "https://bridge.simplefin.org/simplefin",
+        "name": "Example Card Bank"
+      },
+      "id": "ACT-card-1",
+      "name": "Example Rewards Card",
+      "currency": "USD",
+      "balance": "-99.01",
+      "balance-date": 1780401600,
+      "transactions": [
+        {
+          "id": "TRN-9",
+          "posted": 1780315200,
+          "amount": "-99.01",
+          "description": "ACME HARDWARE"
+        }
+      ]
+    }
+  ]
+}

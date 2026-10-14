@@ -1,0 +1,89 @@
+{
+  "errlist": [
+    {
+      "code": "con.auth",
+      "msg": "Example  Savings Bank\nneeds you to sign in again.\u0007",
+      "conn_id": "CON-2"
+    }
+  ],
+  "connections": [
+    {
+      "conn_id": "CON-1",
+      "name": "Example Card Bank",
+      "org_id": "ORG-1",
+      "org_url": "example.invalid",
+      "sfin_url": "https://bridge.simplefin.org/simplefin"
+    },
+    {
+      "conn_id": "CON-2",
+      "name": "Example Savings Bank",
+      "org_id": "ORG-2",
+      "sfin_url": "https://bridge.simplefin.org/simplefin"
+    }
+  ],
+  "accounts": [
+    {
+      "id": "ACT-card-1",
+      "name": "Example Rewards Card",
+      "conn_id": "CON-1",
+      "currency": "USD",
+      "balance": "-1234.56",
+      "available-balance": "8765.44",
+      "balance-date": 1780282800,
+      "transactions": [
+        {
+          "id": "TRN-1",
+          "posted": 1780056000,
+          "amount": "-4.50",
+          "description": "ACME COFFEE #12",
+          "transacted_at": 1779991200
+        },
+        {
+          "id": "TRN-2",
+          "posted": 0,
+          "amount": "-25.99",
+          "description": "FOOBAR  GROCERY",
+          "transacted_at": 1780218000,
+          "pending": true
+        },
+        {
+          "id": "TRN-3",
+          "posted": 0,
+          "amount": "-10.00",
+          "description": "   ",
+          "pending": true
+        },
+        {
+          "id": "TRN-4",
+          "posted": 1780185600,
+          "amount": "500.00",
+          "description": "PAYMENT THANK YOU",
+          "pending": false,
+          "extra": {
+            "category": "Payment"
+          }
+        }
+      ],
+      "extra": {
+        "note": "synthetic"
+      }
+    },
+    {
+      "id": "ACT-sav-1",
+      "name": "Example Savings",
+      "conn_id": "CON-2",
+      "currency": "USD",
+      "balance": "10000",
+      "balance-date": 1780268400,
+      "transactions": []
+    },
+    {
+      "id": "ACT-eur-1",
+      "name": "Example Euro Account",
+      "conn_id": "CON-2",
+      "currency": "EUR",
+      "balance": "1.00",
+      "balance-date": 1780315200
+    }
+  ]
+}
