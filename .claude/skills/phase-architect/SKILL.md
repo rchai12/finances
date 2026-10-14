@@ -80,6 +80,7 @@ Record each result here, one line per phase:
 - 9 (a hardening phase: property and fuzz tests written and run by the architect first, five bugs they found fixed in six production modules, 15 requirements, 127 given tests replacing one earlier given file, two test files left to the coder): result pending. The bugs, not the tests, are the coder's work.
 - 16c (one header value, three requirements, 21 given tests): result pending. A repair for a bug the owner found in the first real browser: every form was refused, which no test client could show.
 - 16d (a migration, a pure guessing module, four repository functions, a command line, a page section with four forms, 20 requirements, 84 given tests, none left to the coder): result pending. The probe presses one button in real headless Chrome, as 16c's lesson asks.
+- 10 (slim: a check script, a coverage gate, a git hook with two shell scripts, two document edits, 12 requirements, 25 given tests, none left to the coder): result pending. The first phase specified without a reference build: given tests were written from the code, linted under the project's settings, and run against today's code, where they fail because the scripts do not exist; one spike settled the coverage report's format.
 
 Order sub-phases so each depends only on phases before it.
 
