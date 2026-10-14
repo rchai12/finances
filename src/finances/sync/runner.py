@@ -1,6 +1,6 @@
 """One sync: fetch every account from SimpleFIN and apply each mapped one."""
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import date, timedelta
 
 from sqlalchemy import Engine
@@ -19,6 +19,9 @@ from finances.sync.service import apply_feed
 from finances.sync.simplefin import ProviderAccount, SyncError, Transport, fetch_accounts
 
 SYNC_DAYS = 30
+KEYCHAIN_FAILED = "keychain"
+NOT_SET_UP = "not set up"
+AGGREGATOR_FAILED = "aggregator"
 
 
 @dataclass(frozen=True)
@@ -117,6 +120,8 @@ class LinkRun:
     link: str
     report: SyncReport | None
     error: str | None
+    failure: str | None = field(default=None, compare=False)
+    cause: str | None = field(default=None, compare=False)
 
 
 def run_links(
@@ -133,10 +138,10 @@ def run_links(
         try:
             access_url = load_access_url(link)
         except SyncError as error:
-            runs.append(LinkRun(link, None, f"link {link}: {error}"))
+            runs.append(LinkRun(link, None, f"link {link}: {error}", KEYCHAIN_FAILED, str(error)))
             continue
         if access_url is None:
-            runs.append(LinkRun(link, None, f"link {link} is not set up"))
+            runs.append(LinkRun(link, None, f"link {link} is not set up", NOT_SET_UP))
             continue
         try:
             with session_scope(engine) as session:
@@ -144,7 +149,7 @@ def run_links(
                     session, access_url, today=today, transport=transport, days=days, link=link
                 )
         except SyncError as error:
-            runs.append(LinkRun(link, None, f"link {link}: {error}"))
+            runs.append(LinkRun(link, None, f"link {link}: {error}", AGGREGATOR_FAILED, str(error)))
             continue
         runs.append(LinkRun(link, report, None))
     return runs

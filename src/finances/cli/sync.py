@@ -1,26 +1,23 @@
 """The `fin sync` commands."""
 
+from dataclasses import astuple
 from datetime import UTC, datetime
 from typing import Annotated, NoReturn
 
 import typer
 from rich.table import Table
-from sqlalchemy.orm import Session
 
 from finances.cli.common import print_table, require_current_schema
 from finances.db.engine import get_engine, session_scope
 from finances.db.repositories import (
+    account_names,
     get_account_by_name,
-    latest_feed_pull,
-    list_accounts,
     list_feed_accounts,
     list_feed_links,
-    list_new_feed_accounts,
     map_feed_account,
 )
 from finances.domain.feed_setup import new_accounts
-from finances.domain.models import DEFAULT_LINK, FeedPull
-from finances.domain.money import format_cents
+from finances.domain.models import DEFAULT_LINK
 from finances.sync import transport
 from finances.sync.links import (
     delete_access_url,
@@ -28,8 +25,9 @@ from finances.sync.links import (
     save_access_url,
     validate_link_name,
 )
-from finances.sync.runner import AccountSync, run_sync
+from finances.sync.runner import KEYCHAIN_FAILED, NOT_SET_UP, LinkRun, run_links
 from finances.sync.simplefin import SyncError, claim_access_url, fetch_accounts
+from finances.views.sync import run_rows, simplefin_messages, status_rows, waiting_counts
 
 app = typer.Typer(help="Pull transactions from SimpleFIN.", no_args_is_help=True)
 
@@ -66,10 +64,6 @@ def _access(link: str) -> str:
 
 def _today() -> datetime:
     return datetime.now(UTC)
-
-
-def _account_names(session: Session) -> dict[int, str]:
-    return {item.id: item.name for item in list_accounts(session, include_inactive=True)}
 
 
 @app.command("link")
@@ -116,7 +110,7 @@ def accounts_command(link: _LinkOption = DEFAULT_LINK) -> None:
     except SyncError as error:
         _fail(str(error))
     with session_scope(get_engine()) as session:
-        names = _account_names(session)
+        names = account_names(session)
         mapped = {
             item.provider_account_id: names[item.account_id]
             for item in list_feed_accounts(session, name)
@@ -184,42 +178,16 @@ def run_command(
     if not links:
         typer.echo("No mapped accounts.")
         return
-    today = _today().date()
-    results: list[tuple[str, AccountSync]] = []
-    messages: list[tuple[str, str]] = []
-    ran: list[str] = []
-    skipped = False
-    for name in links:
-        try:
-            access_url = load_access_url(name)
-        except SyncError as error:
-            typer.echo(f"Error: {error}", err=True)
-            skipped = True
-            continue
-        if access_url is None:
-            typer.echo(f"Error: {_not_set_up(name)}", err=True)
-            skipped = True
-            continue
-        try:
-            with session_scope(get_engine()) as session:
-                report = run_sync(
-                    session,
-                    access_url,
-                    today=today,
-                    transport=transport.urllib_transport,
-                    days=days,
-                    link=name,
-                )
-        except SyncError as error:
-            typer.echo(f"Error: link {name}: {error}", err=True)
-            skipped = True
-            continue
-        ran.append(name)
-        results += [(name, item) for item in report.accounts]
-        messages += [(name, message) for message in report.messages]
-    if results:
-        with session_scope(get_engine()) as session:
-            names = _account_names(session)
+    runs = run_links(
+        get_engine(), links, today=_today().date(), transport=transport.urllib_transport, days=days
+    )
+    for item in runs:
+        if item.failure is not None:
+            typer.echo(f"Error: {_failure_text(item)}", err=True)
+    with session_scope(get_engine()) as session:
+        rows = run_rows(runs, account_names(session))
+        waiting = waiting_counts(session, runs)
+    if rows:
         table = Table()
         for heading in (
             "Link",
@@ -233,46 +201,26 @@ def run_command(
             "Problem",
         ):
             table.add_column(heading)
-        for name, item in results:
-            table.add_row(*_run_cells(name, item, names))
+        for row in rows:
+            table.add_row(*astuple(row))
         print_table(table)
-    with session_scope(get_engine()) as session:
-        waiting = [(name, len(list_new_feed_accounts(session, name))) for name in ran]
     for name, count in waiting:
-        if count:
-            typer.echo(
-                f"SimpleFIN ({name}): {new_accounts(count)} to set up "
-                f"(open the SimpleFIN page, or run: fin sync accounts --link {name})"
-            )
-    for name, message in messages:
+        typer.echo(
+            f"SimpleFIN ({name}): {new_accounts(count)} to set up "
+            f"(open the SimpleFIN page, or run: fin sync accounts --link {name})"
+        )
+    for name, message in simplefin_messages(runs):
         typer.echo(f"SimpleFIN ({name}): {message}")
-    if skipped:
+    if any(item.failure is not None for item in runs):
         raise typer.Exit(code=1)
 
 
-def _run_cells(link: str, item: AccountSync, names: dict[int, str]) -> tuple[str, ...]:
-    pull = item.pull
-    counts = (
-        ("", "", "", "")
-        if pull is None
-        else (str(pull.inserted), str(pull.updated), str(pull.removed), str(pull.unchanged))
-    )
-    return (
-        link,
-        "" if item.account_id is None else names[item.account_id],
-        item.provider_account_id,
-        *counts,
-        _drift(pull),
-        item.problem or "",
-    )
-
-
-def _drift(pull: FeedPull | None) -> str:
-    return "" if pull is None or pull.drift_cents is None else format_cents(pull.drift_cents)
-
-
-def _balance_date(pull: FeedPull | None) -> str:
-    return "" if pull is None or pull.balance_date is None else pull.balance_date.isoformat()
+def _failure_text(item: LinkRun) -> str:
+    if item.failure == KEYCHAIN_FAILED:
+        return str(item.cause)
+    if item.failure == NOT_SET_UP:
+        return _not_set_up(item.link)
+    return f"link {item.link}: {item.cause}"
 
 
 @app.command("status")
@@ -280,24 +228,10 @@ def status_command() -> None:
     """Show each mapped account's last pull and drift."""
     require_current_schema()
     with session_scope(get_engine()) as session:
-        mappings = list_feed_accounts(session)
-        names = _account_names(session)
-        pulls = {
-            item.account_id: (
-                latest_feed_pull(session, item.account_id),
-                latest_feed_pull(session, item.account_id, with_balance=True),
-            )
-            for item in mappings
-        }
-    if not mappings:
+        rows = status_rows(session)
+    if not rows:
         typer.echo("No mapped accounts.")
         return
-    keychain = {}
-    for link in {item.link for item in mappings}:
-        try:
-            keychain[link] = "no" if load_access_url(link) is None else "yes"
-        except SyncError:
-            keychain[link] = "unknown"
     table = Table()
     for heading in (
         "Link",
@@ -309,15 +243,6 @@ def status_command() -> None:
         "Drift",
     ):
         table.add_column(heading)
-    for item in mappings:
-        last, balanced = pulls[item.account_id]
-        table.add_row(
-            item.link,
-            names[item.account_id],
-            item.provider_account_id,
-            keychain[item.link],
-            "never" if last is None else last.pulled_at.strftime("%Y-%m-%d %H:%M UTC"),
-            _balance_date(balanced),
-            _drift(balanced),
-        )
+    for row in rows:
+        table.add_row(*astuple(row))
     print_table(table)

@@ -1,11 +1,12 @@
 """The `fin accounts` commands."""
 
+from dataclasses import astuple
 from typing import Annotated, NoReturn
 
 import typer
 from rich.table import Table
 
-from finances.analysis.people import JOINT_FILTER, load_attribution
+from finances.analysis.people import JOINT_FILTER
 from finances.cli.common import print_table, require_current_schema
 from finances.db.engine import get_engine, session_scope
 from finances.db.repositories import (
@@ -13,11 +14,11 @@ from finances.db.repositories import (
     create_account,
     get_account_by_name,
     get_person_by_name,
-    list_accounts,
     set_account_owner,
 )
 from finances.domain.models import AccountType
 from finances.domain.people import JOINT
+from finances.views.accounts import account_rows
 
 app = typer.Typer(help="Manage accounts.", no_args_is_help=True)
 
@@ -52,28 +53,17 @@ def list_command(
     require_current_schema()
 
     with session_scope(get_engine()) as session:
-        accounts = list_accounts(session, include_inactive=show_all)
-        if not accounts:
-            typer.echo("No accounts.")
-            return
+        rows = account_rows(session, include_inactive=show_all)
+    if not rows:
+        typer.echo("No accounts.")
+        return
 
-        table = Table()
-        table.add_column("Name")
-        table.add_column("Institution")
-        table.add_column("Type")
-        table.add_column("Last 4")
-        table.add_column("Active")
-        table.add_column("Owner")
-
-        attribution = load_attribution(session)
-        for account in accounts:
-            last4 = f"\u2022\u2022{account.last4}" if account.last4 else ""
-            active = "yes" if account.is_active else "no"
-            owner = attribution.owner(account.id) or ""
-            table.add_row(
-                account.name, account.institution, account.type.value, last4, active, owner
-            )
-        print_table(table)
+    table = Table()
+    for heading in ("Name", "Institution", "Type", "Last 4", "Active", "Owner"):
+        table.add_column(heading)
+    for row in rows:
+        table.add_row(*astuple(row))
+    print_table(table)
 
 
 @app.command("set-owner")

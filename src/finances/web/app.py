@@ -21,21 +21,17 @@ from finances.analysis.people import (
     JOINT_FILTER,
     UNASSIGNED_FILTER,
     list_transactions_with_people,
-    load_attribution,
 )
 from finances.db.engine import get_engine, session_scope
 from finances.db.migrate import current_revision, head_revision
 from finances.db.repositories import (
     AccountExistsError,
     PersonExistsError,
+    account_names,
     create_account,
     create_person,
     get_account_by_name,
     get_person_by_name,
-    latest_feed_pull,
-    list_account_owners,
-    list_accounts,
-    list_cardholder_aliases,
     list_feed_accounts,
     list_feed_links,
     list_new_feed_accounts,
@@ -45,9 +41,8 @@ from finances.db.repositories import (
     set_cardholder_alias,
     set_feed_account_ignored,
 )
-from finances.domain.feed_setup import guess_account, guess_owner, new_accounts, suggest_existing
-from finances.domain.models import Account, AccountType, FeedPull, Transaction
-from finances.domain.money import format_cents
+from finances.domain.feed_setup import new_accounts
+from finances.domain.models import Account, AccountType, Transaction
 from finances.sync import transport
 from finances.sync.links import (
     delete_access_url,
@@ -55,8 +50,19 @@ from finances.sync.links import (
     save_access_url,
     validate_link_name,
 )
-from finances.sync.runner import AccountSync, run_links
+from finances.sync.runner import run_links
 from finances.sync.simplefin import SyncError, claim_access_url, fetch_accounts
+from finances.views.accounts import account_rows
+from finances.views.people import people_rows
+from finances.views.sync import (
+    run_rows,
+    setup_offers,
+    simplefin_messages,
+    status_rows,
+    unmapped_accounts,
+    waiting_counts,
+)
+from finances.views.transactions import transaction_row
 
 HOST = "127.0.0.1"
 SECURITY_HEADERS = {
@@ -87,7 +93,6 @@ ACCOUNT_TYPES = tuple(item.value for item in AccountType)
 _HERE = Path(__file__).parent
 _TEMPLATES = Jinja2Templates(directory=_HERE / "templates")
 _HEADER_BYTES = [(name.encode(), value.encode()) for name, value in SECURITY_HEADERS.items()]
-_BULLETS = "\u2022\u2022"
 _DEFAULT_LIMIT = "50"
 _LIMIT_MAX = 1000
 _FEED_ID_LIMIT = 200
@@ -207,67 +212,6 @@ def _find(session: Session, chosen: dict[str, str]) -> list[tuple[Transaction, s
     )
 
 
-def _transaction_row(item: Transaction, who: str | None, names: dict[int, str]) -> dict:
-    return {
-        "date": item.posted_date.isoformat(),
-        "account": names[item.account_id],
-        "description": item.description,
-        "amount": format_cents(item.amount_cents),
-        "card": f"{_BULLETS}{item.card_last4}" if item.card_last4 else "",
-        "section": item.section or "",
-        "person": who or "",
-    }
-
-
-def _keychain(link: str) -> str:
-    try:
-        return "no" if load_access_url(link) is None else "yes"
-    except SyncError:
-        return "unknown"
-
-
-def _drift(pull: FeedPull | None) -> str:
-    return "" if pull is None or pull.drift_cents is None else format_cents(pull.drift_cents)
-
-
-def _sync_row(
-    link: str,
-    account: str,
-    feed_account: str,
-    keychain: str,
-    last: FeedPull | None,
-    balanced: FeedPull | None,
-) -> dict:
-    return {
-        "link": link,
-        "account": account,
-        "feed_account": feed_account,
-        "keychain": keychain,
-        "last_pull": "never" if last is None else last.pulled_at.strftime("%Y-%m-%d %H:%M UTC"),
-        "balance_date": ""
-        if balanced is None or balanced.balance_date is None
-        else balanced.balance_date.isoformat(),
-        "drift": _drift(balanced),
-    }
-
-
-def _run_row(link: str, item: AccountSync, names: dict[int, str]) -> dict:
-    pull = item.pull
-    counts = (
-        ("", "", "", "")
-        if pull is None
-        else (str(pull.inserted), str(pull.updated), str(pull.removed), str(pull.unchanged))
-    )
-    return {
-        "link": link,
-        "account": "" if item.account_id is None else names[item.account_id],
-        "feed_account": item.provider_account_id,
-        **dict(zip(("new", "changed", "removed", "same"), counts, strict=True)),
-        "drift": _drift(pull),
-        "problem": item.problem or "",
-    }
-
-
 def _blank_account_form() -> dict[str, str]:
     return {"name": "", "institution": "", "type": "credit_card", "last4": ""}
 
@@ -310,26 +254,14 @@ def _accounts_page(
     status_code: int = 200,
 ) -> Response:
     with _reading() as session:
-        shown = list_accounts(session, include_inactive=closed)
-        every_account = list_accounts(session, include_inactive=True)
+        rows = account_rows(session, include_inactive=closed)
+        every_account = list(account_names(session).values())
         people = [person.name for person in list_people(session)]
-        attribution = load_attribution(session)
-    rows = [
-        {
-            "name": account.name,
-            "institution": account.institution,
-            "type": account.type.value,
-            "last4": f"{_BULLETS}{account.last4}" if account.last4 else "",
-            "active": "yes" if account.is_active else "no",
-            "owner": attribution.owner(account.id) or "",
-        }
-        for account in shown
-    ]
     context = {
         "rows": rows,
         "closed": closed,
         "types": ACCOUNT_TYPES,
-        "every_account": [account.name for account in every_account],
+        "every_account": every_account,
         "people": people,
         "form": form if form is not None else _blank_account_form(),
         "error": error,
@@ -339,23 +271,8 @@ def _accounts_page(
 
 def _people_page(request: Request, *, error: str | None = None, status_code: int = 200) -> Response:
     with _reading() as session:
-        found = list_people(session)
-        every_account = list_accounts(session, include_inactive=True)
-        owners = list_account_owners(session)
-        aliases = list_cardholder_aliases(session)
-    rows = [
-        {
-            "name": person.name,
-            "owns": ", ".join(
-                account.name for account in every_account if owners.get(account.id) == person.id
-            ),
-            "cardholders": ", ".join(
-                sorted(name for name, owner in aliases.items() if owner == person.id)
-            ),
-        }
-        for person in found
-    ]
-    context = {"rows": rows, "people": [person.name for person in found], "error": error}
+        rows = people_rows(session)
+    context = {"rows": rows, "people": [row.name for row in rows], "error": error}
     return _render(request, "people", context, status_code)
 
 
@@ -363,52 +280,29 @@ def _sync_page(
     request: Request, *, link: str = "", error: str | None = None, status_code: int = 200
 ) -> Response:
     with _reading() as session:
-        mappings = list_feed_accounts(session)
-        names = {item.id: item.name for item in list_accounts(session, include_inactive=True)}
-        pulls = {
-            item.account_id: (
-                latest_feed_pull(session, item.account_id),
-                latest_feed_pull(session, item.account_id, with_balance=True),
-            )
-            for item in mappings
-        }
-        seen = list_new_feed_accounts(session)
+        rows = status_rows(session)
+        offers = setup_offers(session)
         ignored = list_new_feed_accounts(session, ignored=True)
         people = [person.name for person in list_people(session)]
-        mapped_ids = {item.account_id for item in mappings}
-        unmapped = [item for item in list_accounts(session) if item.id not in mapped_ids]
-    candidates = [(item.name, item.last4) for item in unmapped]
-    offered = []
-    for item in seen:
-        guess = guess_account(item.name, item.institution)
-        offered.append(
-            {
-                "link": item.link,
-                "feed_account": item.provider_account_id,
-                "name": item.name,
-                "institution": item.institution,
-                "guess": {
-                    "name": guess.name,
-                    "institution": guess.institution,
-                    "type": guess.type.value,
-                    "last4": guess.last4 or "",
-                },
-                "owner": guess_owner(item.link, people) or "",
-                "suggestion": suggest_existing(guess, candidates) or "",
-            }
-        )
-    links = sorted({item.link for item in mappings})
-    keychain = {name: _keychain(name) for name in links}
-    rows = [
-        _sync_row(
-            item.link,
-            names[item.account_id],
-            item.provider_account_id,
-            keychain[item.link],
-            *pulls[item.account_id],
-        )
-        for item in mappings
+        unmapped = [account.name for account in unmapped_accounts(session)]
+    offered = [
+        {
+            "link": offer.link,
+            "feed_account": offer.feed_account,
+            "name": offer.name,
+            "institution": offer.institution,
+            "guess": {
+                "name": offer.guess.name,
+                "institution": offer.guess.institution,
+                "type": offer.guess.type.value,
+                "last4": offer.guess.last4 or "",
+            },
+            "owner": offer.owner or "",
+            "suggestion": offer.suggestion or "",
+        }
+        for offer in offers
     ]
+    links = sorted({row.link for row in rows})
     context = {
         "rows": rows,
         "links": links,
@@ -426,7 +320,7 @@ def _sync_page(
         ],
         "people": people,
         "types": ACCOUNT_TYPES,
-        "unmapped": [item.name for item in unmapped],
+        "unmapped": unmapped,
     }
     return _render(request, "sync", context, status_code)
 
@@ -547,21 +441,20 @@ def create_app(port: int) -> ASGIApp:
         chosen["limit"] = query.get("limit") or _DEFAULT_LIMIT
         error = None
         with _reading() as session:
-            every_account = list_accounts(session, include_inactive=True)
+            names = account_names(session)
             choices = {
-                "accounts": [account.name for account in every_account],
+                "accounts": list(names.values()),
                 "people": [person.name for person in list_people(session)],
             }
             try:
                 found = _find(session, chosen)
             except ValueError as refusal:
                 found, error = [], str(refusal)
-        names = {account.id: account.name for account in every_account}
         context = {
             "choices": choices,
             "special": (JOINT_FILTER, UNASSIGNED_FILTER),
             "chosen": chosen,
-            "rows": [_transaction_row(item, who, names) for item, who in found],
+            "rows": [transaction_row(item, who, names) for item, who in found],
             "error": error,
         }
         return _render(request, "transactions", context, 200 if error is None else 400)
@@ -624,13 +517,12 @@ def create_app(port: int) -> ASGIApp:
         except SyncError as error:
             return _render(request, "sync_accounts", {**context, "error": str(error)}, 502)
         with _reading() as session:
-            every_account = list_accounts(session, include_inactive=True)
-            names = {account.id: account.name for account in every_account}
+            names = account_names(session)
             mapped = {
                 item.provider_account_id: names[item.account_id]
                 for item in list_feed_accounts(session, link)
             }
-        context["accounts"] = [account.name for account in every_account]
+        context["accounts"] = list(names.values())
         context["rows"] = [
             {
                 "feed_account": item.provider_account_id,
@@ -729,32 +621,14 @@ def create_app(port: int) -> ASGIApp:
                 links = list_feed_links(session)
             runs = run_links(engine, links, today=_today(), transport=transport.urllib_transport)
             with session_scope(engine) as session:
-                names = {
-                    item.id: item.name for item in list_accounts(session, include_inactive=True)
-                }
-                counts = [
-                    (item.link, len(list_new_feed_accounts(session, item.link)))
-                    for item in runs
-                    if item.report is not None
-                ]
+                rows = run_rows(runs, account_names(session))
+                waiting = waiting_counts(session, runs)
         context = {
-            "rows": [
-                _run_row(item.link, account, names)
-                for item in runs
-                if item.report is not None
-                for account in item.report.accounts
-            ],
+            "rows": rows,
             "errors": [item.error for item in runs if item.error is not None],
-            "messages": [
-                f"{item.link}: {message}"
-                for item in runs
-                if item.report is not None
-                for message in item.report.messages
-            ],
+            "messages": [f"{link}: {message}" for link, message in simplefin_messages(runs)],
             "ran": bool(links),
-            "waiting": [
-                f"{link}: {new_accounts(count)} to set up." for link, count in counts if count
-            ],
+            "waiting": [f"{link}: {new_accounts(count)} to set up." for link, count in waiting],
         }
         return _render(request, "sync_run", context)
 

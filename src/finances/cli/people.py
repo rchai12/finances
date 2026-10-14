@@ -1,5 +1,6 @@
 """The `fin people` commands."""
 
+from dataclasses import astuple
 from typing import Annotated, NoReturn
 
 import typer
@@ -11,12 +12,9 @@ from finances.db.repositories import (
     PersonExistsError,
     create_person,
     get_person_by_name,
-    list_account_owners,
-    list_accounts,
-    list_cardholder_aliases,
-    list_people,
     set_cardholder_alias,
 )
+from finances.views.people import people_rows
 
 app = typer.Typer(help="Manage the household's people.", no_args_is_help=True)
 
@@ -40,20 +38,15 @@ def list_command() -> None:
     require_current_schema()
 
     with session_scope(get_engine()) as session:
-        people = list_people(session)
-        accounts = list_accounts(session, include_inactive=True)
-        owners = list_account_owners(session)
-        aliases = list_cardholder_aliases(session)
-    if not people:
+        rows = people_rows(session)
+    if not rows:
         typer.echo("No people.")
         return
     table = Table()
     for heading in ("Name", "Owns", "Cardholder names"):
         table.add_column(heading)
-    for person in people:
-        owns = [account.name for account in accounts if owners.get(account.id) == person.id]
-        names = sorted(name for name, owner in aliases.items() if owner == person.id)
-        table.add_row(person.name, ", ".join(owns), ", ".join(names))
+    for row in rows:
+        table.add_row(*astuple(row))
     print_table(table)
 
 

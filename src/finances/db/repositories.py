@@ -156,6 +156,11 @@ def list_accounts(session: Session, include_inactive: bool = False) -> list[Acco
     return [to_account(row) for row in rows]
 
 
+def account_names(session: Session) -> dict[int, str]:
+    """Map the id of every account, closed included, to its name."""
+    return {account.id: account.name for account in list_accounts(session, include_inactive=True)}
+
+
 def create_statement(
     session: Session,
     *,
