@@ -1,0 +1,19 @@
+{% extends "layout.html" %}
+{% block title %}Sync · Finances{% endblock %}
+{% block content %}
+<h1>Sync</h1>
+<p><a href="/sync">Back to SimpleFIN</a></p>
+{% if not ran %}<p class="empty">No mapped accounts.</p>{% endif %}
+{% for message in errors %}<p class="error">{{ message }}</p>
+{% endfor %}
+{% if rows %}
+<table>
+<thead><tr><th>Link</th><th>Account</th><th>SimpleFIN account</th><th>New</th><th>Changed</th><th>Removed</th><th>Same</th><th class="amount">Drift</th><th>Problem</th></tr></thead>
+<tbody>
+{% for row in rows %}<tr><td>{{ row.link }}</td><td>{{ row.account }}</td><td>{{ row.feed_account }}</td><td>{{ row.new }}</td><td>{{ row.changed }}</td><td>{{ row.removed }}</td><td>{{ row.same }}</td><td class="amount">{{ row.drift }}</td><td>{{ row.problem }}</td></tr>
+{% endfor %}</tbody>
+</table>
+{% endif %}
+{% for message in messages %}<p class="notice">SimpleFIN {{ message }}</p>
+{% endfor %}
+{% endblock %}

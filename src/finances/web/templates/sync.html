@@ -2,6 +2,7 @@
 {% block title %}SimpleFIN · Finances{% endblock %}
 {% block content %}
 <h1>SimpleFIN</h1>
+{% include "messages.html" %}
 {% if rows %}
 <table>
 <thead><tr><th>Link</th><th>Account</th><th>SimpleFIN account</th><th>Keychain</th><th>Last pull</th><th>Balance date</th><th class="amount">Drift</th></tr></thead>
@@ -9,7 +10,38 @@
 {% for row in rows %}<tr><td>{{ row.link }}</td><td>{{ row.account }}</td><td>{{ row.feed_account }}</td><td>{{ row.keychain }}</td><td>{{ row.last_pull }}</td><td>{{ row.balance_date }}</td><td class="amount">{{ row.drift }}</td></tr>
 {% endfor %}</tbody>
 </table>
+<form method="post" action="/sync/run">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <button type="submit">Sync now</button>
+</form>
 {% else %}
 <p class="empty">No mapped accounts.</p>
 {% endif %}
+{% if links %}
+<h2>Links</h2>
+<ul class="links">
+{% for name in links %}<li>{{ name }}
+  <a href="/sync/accounts?link={{ name }}">SimpleFIN accounts</a>
+  <form method="post" action="/sync/unlink" class="inline">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <input type="hidden" name="link" value="{{ name }}">
+    <button type="submit">Unlink</button>
+  </form>
+</li>
+{% endfor %}</ul>
+{% endif %}
+<h2>Link a SimpleFIN subscription</h2>
+<p class="hint">Create a setup token in your SimpleFIN account and paste it here. It is used once; the access it gives is kept in this Mac's Keychain.</p>
+<form method="post" action="/sync/link" class="fields">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <label>Link name <input name="link" required maxlength="30" pattern="[a-z][a-z0-9-]{0,29}" value="{{ form.link }}"></label>
+  <label>Setup token <input type="password" name="token" required autocomplete="off"></label>
+  <label class="check"><input type="checkbox" name="replace" value="on"> Replace an existing link</label>
+  <button type="submit">Link</button>
+</form>
+<h2>Open a link's accounts</h2>
+<form method="get" action="/sync/accounts" class="fields">
+  <label>Link name <input name="link" required maxlength="30"></label>
+  <button type="submit">Show accounts</button>
+</form>
 {% endblock %}

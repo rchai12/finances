@@ -2,6 +2,7 @@
 {% block title %}Accounts · Finances{% endblock %}
 {% block content %}
 <h1>Accounts</h1>
+{% include "messages.html" %}
 {% if closed %}<p><a href="/accounts">Hide closed accounts</a></p>{% else %}<p><a href="/accounts?closed=true">Show closed accounts</a></p>{% endif %}
 {% if rows %}
 <table>
@@ -12,5 +13,39 @@
 </table>
 {% else %}
 <p class="empty">No accounts.</p>
+{% endif %}
+<h2>Add an account</h2>
+<form method="post" action="/accounts/add" class="fields">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <label>Name <input name="name" required maxlength="100" value="{{ form.name }}"></label>
+  <label>Institution <input name="institution" required maxlength="100" value="{{ form.institution }}"></label>
+  <label>Type
+    <select name="type">
+      {% for kind in types %}<option value="{{ kind }}"{% if kind == form.type %} selected{% endif %}>{{ kind }}</option>
+      {% endfor %}
+    </select>
+  </label>
+  <label>Last 4 digits <input name="last4" maxlength="4" inputmode="numeric" value="{{ form.last4 }}"></label>
+  <button type="submit">Add account</button>
+</form>
+{% if every_account %}
+<h2>Set an owner</h2>
+<form method="post" action="/accounts/owner" class="fields">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <label>Account
+    <select name="account">
+      {% for name in every_account %}<option value="{{ name }}">{{ name }}</option>
+      {% endfor %}
+    </select>
+  </label>
+  <label>Owner
+    <select name="owner">
+      {% for name in people %}<option value="{{ name }}">{{ name }}</option>
+      {% endfor %}
+      <option value="joint">Joint</option>
+    </select>
+  </label>
+  <button type="submit">Save owner</button>
+</form>
 {% endif %}
 {% endblock %}

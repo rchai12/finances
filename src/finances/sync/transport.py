@@ -25,7 +25,7 @@ class _RefuseRedirects(urllib.request.HTTPRedirectHandler):
         return None
 
 
-_OPENER = urllib.request.build_opener(_RefuseRedirects)
+_OPENER = urllib.request.build_opener(urllib.request.ProxyHandler({}), _RefuseRedirects)
 
 
 def urllib_transport(method: str, url: str, headers: dict[str, str]) -> tuple[int, bytes]:

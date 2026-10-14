@@ -2,6 +2,7 @@
 {% block title %}People · Finances{% endblock %}
 {% block content %}
 <h1>People</h1>
+{% include "messages.html" %}
 {% if rows %}
 <table>
 <thead><tr><th>Name</th><th>Owns</th><th>Cardholder names</th></tr></thead>
@@ -11,5 +12,26 @@
 </table>
 {% else %}
 <p class="empty">No people.</p>
+{% endif %}
+<h2>Add a person</h2>
+<form method="post" action="/people/add" class="fields">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <label>Name <input name="name" required maxlength="100"></label>
+  <button type="submit">Add person</button>
+</form>
+{% if people %}
+<h2>Add a cardholder name</h2>
+<p class="hint">The name a statement prints for this person on a shared card.</p>
+<form method="post" action="/people/alias" class="fields">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <label>Person
+    <select name="person">
+      {% for name in people %}<option value="{{ name }}">{{ name }}</option>
+      {% endfor %}
+    </select>
+  </label>
+  <label>Cardholder name <input name="cardholder" required maxlength="100"></label>
+  <button type="submit">Save name</button>
+</form>
 {% endif %}
 {% endblock %}

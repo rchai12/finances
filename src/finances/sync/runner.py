@@ -3,13 +3,16 @@
 from dataclasses import dataclass
 from datetime import date, timedelta
 
+from sqlalchemy import Engine
 from sqlalchemy.orm import Session
 
+from finances.db.engine import session_scope
 from finances.db.repositories import list_feed_accounts, list_pending_feed_ids
 from finances.domain.models import DEFAULT_LINK, FeedPull
 from finances.sync.feed import AccountFeed, FeedError
+from finances.sync.links import load_access_url
 from finances.sync.service import apply_feed
-from finances.sync.simplefin import ProviderAccount, Transport, fetch_accounts
+from finances.sync.simplefin import ProviderAccount, SyncError, Transport, fetch_accounts
 
 SYNC_DAYS = 30
 
@@ -97,3 +100,43 @@ def run_sync(
         if mapping.provider_account_id not in delivered
     ]
     return SyncReport(results, answer.messages)
+
+
+@dataclass(frozen=True)
+class LinkRun:
+    """What one link's sync did, or why it could not run."""
+
+    link: str
+    report: SyncReport | None
+    error: str | None
+
+
+def run_links(
+    engine: Engine,
+    links: list[str],
+    *,
+    today: date,
+    transport: Transport,
+    days: int = SYNC_DAYS,
+) -> list[LinkRun]:
+    """Sync each link in its own committed session. One link failing never stops the next."""
+    runs = []
+    for link in links:
+        try:
+            access_url = load_access_url(link)
+        except SyncError as error:
+            runs.append(LinkRun(link, None, f"link {link}: {error}"))
+            continue
+        if access_url is None:
+            runs.append(LinkRun(link, None, f"link {link} is not set up"))
+            continue
+        try:
+            with session_scope(engine) as session:
+                report = run_sync(
+                    session, access_url, today=today, transport=transport, days=days, link=link
+                )
+        except SyncError as error:
+            runs.append(LinkRun(link, None, f"link {link}: {error}"))
+            continue
+        runs.append(LinkRun(link, report, None))
+    return runs

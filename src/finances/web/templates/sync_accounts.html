@@ -1,0 +1,55 @@
+{% extends "layout.html" %}
+{% block title %}SimpleFIN accounts · Finances{% endblock %}
+{% block content %}
+<h1>SimpleFIN accounts: {{ link }}</h1>
+{% include "messages.html" %}
+<p><a href="/sync">Back to SimpleFIN</a></p>
+{% if rows %}
+<table>
+<thead><tr><th>SimpleFIN account</th><th>Institution</th><th>Name</th><th>Currency</th><th>Mapped to</th></tr></thead>
+<tbody>
+{% for row in rows %}<tr><td>{{ row.feed_account }}</td><td>{{ row.institution }}</td><td>{{ row.name }}</td><td>{{ row.currency }}</td><td>{{ row.mapped_to }}</td></tr>
+{% endfor %}</tbody>
+</table>
+{% for row in rows %}
+<section class="map">
+<h2>{{ row.institution }}: {{ row.name }}</h2>
+{% if accounts %}
+<form method="post" action="/sync/map" class="fields">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <input type="hidden" name="link" value="{{ link }}">
+  <input type="hidden" name="feed_account" value="{{ row.feed_account }}">
+  <label>Map to
+    <select name="account">
+      {% for name in accounts %}<option value="{{ name }}"{% if name == row.mapped_to %} selected{% endif %}>{{ name }}</option>
+      {% endfor %}
+    </select>
+  </label>
+  <button type="submit">Map</button>
+</form>
+{% endif %}
+{% if not row.mapped_to %}
+<form method="post" action="/sync/create" class="fields">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <input type="hidden" name="link" value="{{ link }}">
+  <input type="hidden" name="feed_account" value="{{ row.feed_account }}">
+  <label>New account name <input name="account" required maxlength="100" value="{{ row.name }}"></label>
+  <label>Institution <input name="institution" required maxlength="100" value="{{ row.institution }}"></label>
+  <label>Type
+    <select name="type">
+      {% for kind in types %}<option value="{{ kind }}">{{ kind }}</option>
+      {% endfor %}
+    </select>
+  </label>
+  <label>Last 4 digits <input name="last4" maxlength="4" inputmode="numeric"></label>
+  <button type="submit">Create and map</button>
+</form>
+{% endif %}
+</section>
+{% endfor %}
+{% elif not error %}
+<p class="empty">No accounts.</p>
+{% endif %}
+{% for message in messages %}<p class="notice">SimpleFIN: {{ message }}</p>
+{% endfor %}
+{% endblock %}
