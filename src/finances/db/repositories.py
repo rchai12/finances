@@ -3,7 +3,7 @@
 from collections.abc import Iterable
 from datetime import date
 
-from sqlalchemy import func, select
+from sqlalchemy import exists, func, select
 from sqlalchemy.orm import Session
 
 from finances.db.orm import (
@@ -14,6 +14,7 @@ from finances.db.orm import (
     FeedAccountRow,
     FeedItemRow,
     FeedPullRow,
+    FeedSeenAccountRow,
     PersonRow,
     StatementRow,
     TransactionRow,
@@ -22,6 +23,7 @@ from finances.db.orm import (
     to_feed_account,
     to_feed_pull,
     to_person,
+    to_seen_feed_account,
     to_statement,
     to_transaction,
 )
@@ -35,6 +37,7 @@ from finances.domain.models import (
     FeedPull,
     NewTransaction,
     Person,
+    SeenFeedAccount,
     Statement,
     Transaction,
     validate_currency,
@@ -594,6 +597,78 @@ def list_feed_accounts(session: Session, link: str | None = None) -> list[FeedAc
     if link is not None:
         stmt = stmt.where(FeedAccountRow.link == link)
     return [to_feed_account(row) for row in session.scalars(stmt).all()]
+
+
+def _feed_text(text: str) -> str:
+    """Text from the feed, cut to fit its column."""
+    return " ".join(text.split())[:ACCOUNT_TEXT_LIMIT].rstrip()
+
+
+def record_seen_feed_account(
+    session: Session, link: str, provider_account_id: str, name: str, institution: str, day: date
+) -> None:
+    """Remember that a sync delivered this aggregator account under the link. The caller commits."""
+    row = session.scalars(
+        select(FeedSeenAccountRow).where(
+            FeedSeenAccountRow.link == link,
+            FeedSeenAccountRow.provider_account_id == provider_account_id,
+        )
+    ).first()
+    if row is None:
+        row = FeedSeenAccountRow(
+            link=link,
+            provider_account_id=provider_account_id,
+            first_seen=day,
+            last_seen=day,
+            ignored=False,
+        )
+        session.add(row)
+    else:
+        row.last_seen = max(row.last_seen, day)
+    row.name = _feed_text(name)
+    row.institution = _feed_text(institution)
+    session.flush()
+
+
+def list_new_feed_accounts(
+    session: Session, link: str | None = None, *, ignored: bool = False
+) -> list[SeenFeedAccount]:
+    """Return the seen accounts not mapped under their own link, by link, first day, then id."""
+    mapped = exists().where(
+        FeedAccountRow.link == FeedSeenAccountRow.link,
+        FeedAccountRow.provider_account_id == FeedSeenAccountRow.provider_account_id,
+    )
+    stmt = (
+        select(FeedSeenAccountRow)
+        .where(~mapped, FeedSeenAccountRow.ignored.is_(ignored))
+        .order_by(FeedSeenAccountRow.link, FeedSeenAccountRow.first_seen, FeedSeenAccountRow.id)
+    )
+    if link is not None:
+        stmt = stmt.where(FeedSeenAccountRow.link == link)
+    return [to_seen_feed_account(row) for row in session.scalars(stmt).all()]
+
+
+def set_feed_account_ignored(
+    session: Session, link: str, provider_account_id: str, ignored: bool
+) -> None:
+    """Stop or start offering a seen account for setup. The caller commits."""
+    row = session.scalars(
+        select(FeedSeenAccountRow).where(
+            FeedSeenAccountRow.link == link,
+            FeedSeenAccountRow.provider_account_id == provider_account_id,
+        )
+    ).first()
+    if row is None:
+        raise ValueError("SimpleFIN account not found")
+    row.ignored = ignored
+    session.flush()
+
+
+def list_feed_links(session: Session) -> list[str]:
+    """Return the links that have a mapping or a seen account, sorted."""
+    mapped = session.scalars(select(FeedAccountRow.link).distinct()).all()
+    seen = session.scalars(select(FeedSeenAccountRow.link).distinct()).all()
+    return sorted({*mapped, *seen})
 
 
 def list_pending_feed_ids(session: Session, account_id: int, since: date) -> list[str]:

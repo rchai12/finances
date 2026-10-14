@@ -156,6 +156,20 @@ class FeedAccount:
 
 
 @dataclass(frozen=True)
+class SeenFeedAccount:
+    """An aggregator account a sync has delivered under a link, mapped or not."""
+
+    id: int
+    link: str
+    provider_account_id: str
+    name: str
+    institution: str
+    first_seen: date
+    last_seen: date
+    ignored: bool
+
+
+@dataclass(frozen=True)
 class Person:
     """One person in the household."""
 

@@ -14,8 +14,11 @@ from finances.db.repositories import (
     latest_feed_pull,
     list_accounts,
     list_feed_accounts,
+    list_feed_links,
+    list_new_feed_accounts,
     map_feed_account,
 )
+from finances.domain.feed_setup import new_accounts
 from finances.domain.models import DEFAULT_LINK, FeedPull
 from finances.domain.money import format_cents
 from finances.sync import transport
@@ -177,13 +180,14 @@ def run_command(
         links = [_link_name(link)]
     else:
         with session_scope(get_engine()) as session:
-            links = sorted({item.link for item in list_feed_accounts(session)})
+            links = list_feed_links(session)
     if not links:
         typer.echo("No mapped accounts.")
         return
     today = _today().date()
     results: list[tuple[str, AccountSync]] = []
     messages: list[tuple[str, str]] = []
+    ran: list[str] = []
     skipped = False
     for name in links:
         try:
@@ -210,6 +214,7 @@ def run_command(
             typer.echo(f"Error: link {name}: {error}", err=True)
             skipped = True
             continue
+        ran.append(name)
         results += [(name, item) for item in report.accounts]
         messages += [(name, message) for message in report.messages]
     if results:
@@ -231,6 +236,14 @@ def run_command(
         for name, item in results:
             table.add_row(*_run_cells(name, item, names))
         print_table(table)
+    with session_scope(get_engine()) as session:
+        waiting = [(name, len(list_new_feed_accounts(session, name))) for name in ran]
+    for name, count in waiting:
+        if count:
+            typer.echo(
+                f"SimpleFIN ({name}): {new_accounts(count)} to set up "
+                f"(open the SimpleFIN page, or run: fin sync accounts --link {name})"
+            )
     for name, message in messages:
         typer.echo(f"SimpleFIN ({name}): {message}")
     if skipped:

@@ -16,4 +16,6 @@
 {% endif %}
 {% for message in messages %}<p class="notice">SimpleFIN {{ message }}</p>
 {% endfor %}
+{% for message in waiting %}<p class="notice">New SimpleFIN accounts: {{ message }} <a href="/sync">Set them up</a></p>
+{% endfor %}
 {% endblock %}

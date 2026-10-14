@@ -24,6 +24,7 @@ from finances.domain.models import (
     FeedAccount,
     FeedPull,
     Person,
+    SeenFeedAccount,
     Statement,
     Transaction,
 )
@@ -289,6 +290,40 @@ def to_feed_account(row: FeedAccountRow) -> FeedAccount:
         account_id=row.account_id,
         provider_account_id=row.provider_account_id,
         link=row.link,
+    )
+
+
+class FeedSeenAccountRow(Base):
+    """One row of the feed_seen_accounts table: an aggregator account a sync has delivered."""
+
+    __tablename__ = "feed_seen_accounts"
+    __table_args__ = (
+        UniqueConstraint(
+            "link", "provider_account_id", name="uq_feed_seen_accounts_link_provider_account"
+        ),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    link: Mapped[str] = mapped_column(String(50), nullable=False)
+    provider_account_id: Mapped[str] = mapped_column(String(200), nullable=False)
+    name: Mapped[str] = mapped_column(String(100), nullable=False)
+    institution: Mapped[str] = mapped_column(String(100), nullable=False)
+    first_seen: Mapped[date] = mapped_column(Date, nullable=False)
+    last_seen: Mapped[date] = mapped_column(Date, nullable=False)
+    ignored: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+
+
+def to_seen_feed_account(row: FeedSeenAccountRow) -> SeenFeedAccount:
+    """Return the domain SeenFeedAccount for a row of the feed_seen_accounts table."""
+    return SeenFeedAccount(
+        id=row.id,
+        link=row.link,
+        provider_account_id=row.provider_account_id,
+        name=row.name,
+        institution=row.institution,
+        first_seen=row.first_seen,
+        last_seen=row.last_seen,
+        ignored=row.ignored,
     )
 
 

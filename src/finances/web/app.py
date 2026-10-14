@@ -37,11 +37,15 @@ from finances.db.repositories import (
     list_accounts,
     list_cardholder_aliases,
     list_feed_accounts,
+    list_feed_links,
+    list_new_feed_accounts,
     list_people,
     map_feed_account,
     set_account_owner,
     set_cardholder_alias,
+    set_feed_account_ignored,
 )
+from finances.domain.feed_setup import guess_account, guess_owner, new_accounts, suggest_existing
 from finances.domain.models import Account, AccountType, FeedPull, Transaction
 from finances.domain.money import format_cents
 from finances.sync import transport
@@ -75,6 +79,8 @@ NOTICES = {
     "linked": "Link saved. Map each SimpleFIN account below.",
     "unlinked": "Link removed from the Keychain.",
     "mapped": "Account mapped.",
+    "ignored": "That SimpleFIN account will not be tracked.",
+    "tracked": "That SimpleFIN account is offered for setup again.",
 }
 ACCOUNT_TYPES = tuple(item.value for item in AccountType)
 
@@ -272,6 +278,22 @@ def _add_account(session: Session, name: str, institution: str, kind: str, last4
     return create_account(session, name, institution, kind, last4=last4.strip() or None)
 
 
+def _owner_id(session: Session, owner: str) -> int | None:
+    """Return the person's id for an owner field, or None for Joint."""
+    if owner.strip().lower() == JOINT_FILTER:
+        return None
+    person = get_person_by_name(session, owner)
+    if person is None:
+        raise ValueError("person not found")
+    return person.id
+
+
+def _mapped(link: str, next_page: str) -> Response:
+    if next_page == "sync":
+        return _done("/sync?notice=mapped")
+    return _done(f"/sync/accounts?link={link}&notice=mapped")
+
+
 def _feed_id(feed_account: str) -> str:
     feed_id = feed_account.strip()
     if not 1 <= len(feed_id) <= _FEED_ID_LIMIT:
@@ -350,6 +372,31 @@ def _sync_page(
             )
             for item in mappings
         }
+        seen = list_new_feed_accounts(session)
+        ignored = list_new_feed_accounts(session, ignored=True)
+        people = [person.name for person in list_people(session)]
+        mapped_ids = {item.account_id for item in mappings}
+        unmapped = [item for item in list_accounts(session) if item.id not in mapped_ids]
+    candidates = [(item.name, item.last4) for item in unmapped]
+    offered = []
+    for item in seen:
+        guess = guess_account(item.name, item.institution)
+        offered.append(
+            {
+                "link": item.link,
+                "feed_account": item.provider_account_id,
+                "name": item.name,
+                "institution": item.institution,
+                "guess": {
+                    "name": guess.name,
+                    "institution": guess.institution,
+                    "type": guess.type.value,
+                    "last4": guess.last4 or "",
+                },
+                "owner": guess_owner(item.link, people) or "",
+                "suggestion": suggest_existing(guess, candidates) or "",
+            }
+        )
     links = sorted({item.link for item in mappings})
     keychain = {name: _keychain(name) for name in links}
     rows = [
@@ -362,7 +409,25 @@ def _sync_page(
         )
         for item in mappings
     ]
-    context = {"rows": rows, "links": links, "form": {"link": link}, "error": error}
+    context = {
+        "rows": rows,
+        "links": links,
+        "form": {"link": link},
+        "error": error,
+        "new_accounts": offered,
+        "ignored_accounts": [
+            {
+                "link": item.link,
+                "feed_account": item.provider_account_id,
+                "name": item.name,
+                "institution": item.institution,
+            }
+            for item in ignored
+        ],
+        "people": people,
+        "types": ACCOUNT_TYPES,
+        "unmapped": [item.name for item in unmapped],
+    }
     return _render(request, "sync", context, status_code)
 
 
@@ -431,13 +496,7 @@ def create_app(port: int) -> ASGIApp:
                 found = get_account_by_name(session, account)
                 if found is None:
                     raise ValueError("account not found")
-                person_id = None
-                if owner.strip().lower() != JOINT_FILTER:
-                    person = get_person_by_name(session, owner)
-                    if person is None:
-                        raise ValueError("person not found")
-                    person_id = person.id
-                set_account_owner(session, found.id, person_id)
+                set_account_owner(session, found.id, _owner_id(session, owner))
         except _REFUSALS as error:
             return _accounts_page(request, error=str(error), status_code=400)
         return _done("/accounts?notice=owner-set")
@@ -592,6 +651,7 @@ def create_app(port: int) -> ASGIApp:
         link: _Field = "",
         feed_account: _Field = "",
         account: _Field = "",
+        next_page: Annotated[str, Form(alias="next")] = "",
     ) -> Response:
         stopped = refused(request, csrf)
         if stopped is not None:
@@ -605,7 +665,7 @@ def create_app(port: int) -> ASGIApp:
                 map_feed_account(session, found.id, _feed_id(feed_account), link)
         except _REFUSALS as error:
             return _error_page(request, str(error))
-        return _done(f"/sync/accounts?link={link}&notice=mapped")
+        return _mapped(link, next_page)
 
     @api.post("/sync/create")
     def create_and_map(
@@ -617,6 +677,8 @@ def create_app(port: int) -> ASGIApp:
         institution: _Field = "",
         kind: Annotated[str, Form(alias="type")] = "",
         last4: _Field = "",
+        owner: _Field = "",
+        next_page: Annotated[str, Form(alias="next")] = "",
     ) -> Response:
         stopped = refused(request, csrf)
         if stopped is not None:
@@ -626,9 +688,36 @@ def create_app(port: int) -> ASGIApp:
                 made = _add_account(session, account, institution, kind, last4)
                 validate_link_name(link)
                 map_feed_account(session, made.id, _feed_id(feed_account), link)
+                if owner.strip():
+                    set_account_owner(session, made.id, _owner_id(session, owner))
         except _REFUSALS as error:
             return _error_page(request, str(error))
-        return _done(f"/sync/accounts?link={link}&notice=mapped")
+        return _mapped(link, next_page)
+
+    def tracking(
+        request: Request, csrf: str, link: str, feed_account: str, ignored: bool
+    ) -> Response:
+        stopped = refused(request, csrf)
+        if stopped is not None:
+            return stopped
+        try:
+            with _reading() as session:
+                set_feed_account_ignored(session, link.strip(), feed_account.strip(), ignored)
+        except _REFUSALS as error:
+            return _error_page(request, str(error))
+        return _done(f"/sync?notice={'ignored' if ignored else 'tracked'}")
+
+    @api.post("/sync/ignore")
+    def ignore(
+        request: Request, csrf: _Field = "", link: _Field = "", feed_account: _Field = ""
+    ) -> Response:
+        return tracking(request, csrf, link, feed_account, True)
+
+    @api.post("/sync/track")
+    def track(
+        request: Request, csrf: _Field = "", link: _Field = "", feed_account: _Field = ""
+    ) -> Response:
+        return tracking(request, csrf, link, feed_account, False)
 
     @api.post("/sync/run")
     def run(request: Request, csrf: _Field = "") -> Response:
@@ -637,12 +726,17 @@ def create_app(port: int) -> ASGIApp:
             return stopped
         with _engine() as engine:
             with session_scope(engine) as session:
-                links = sorted({item.link for item in list_feed_accounts(session)})
+                links = list_feed_links(session)
             runs = run_links(engine, links, today=_today(), transport=transport.urllib_transport)
             with session_scope(engine) as session:
                 names = {
                     item.id: item.name for item in list_accounts(session, include_inactive=True)
                 }
+                counts = [
+                    (item.link, len(list_new_feed_accounts(session, item.link)))
+                    for item in runs
+                    if item.report is not None
+                ]
         context = {
             "rows": [
                 _run_row(item.link, account, names)
@@ -658,6 +752,9 @@ def create_app(port: int) -> ASGIApp:
                 for message in item.report.messages
             ],
             "ran": bool(links),
+            "waiting": [
+                f"{link}: {new_accounts(count)} to set up." for link, count in counts if count
+            ],
         }
         return _render(request, "sync_run", context)
 

@@ -3,6 +3,62 @@
 {% block content %}
 <h1>SimpleFIN</h1>
 {% include "messages.html" %}
+{% if new_accounts %}
+<h2>New SimpleFIN accounts</h2>
+<p class="hint">The last sync found these accounts. Set each one up below: check the guesses, then create it, map it to an account you already have, or stop tracking it.</p>
+{% for item in new_accounts %}
+<section class="map">
+<h3>{{ item.institution }}: {{ item.name }} <span class="hint">link {{ item.link }}</span></h3>
+{% if item.suggestion %}<p class="notice">This looks like {{ item.suggestion }}, which you already have. Map it instead of creating a second one.</p>{% endif %}
+<form method="post" action="/sync/create" class="fields">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <input type="hidden" name="link" value="{{ item.link }}">
+  <input type="hidden" name="feed_account" value="{{ item.feed_account }}">
+  <input type="hidden" name="next" value="sync">
+  <label>Account name <input name="account" required maxlength="100" value="{{ item.guess.name }}"></label>
+  <label>Institution <input name="institution" required maxlength="100" value="{{ item.guess.institution }}"></label>
+  <label>Type
+    <select name="type">
+      {% for kind in types %}<option value="{{ kind }}"{% if kind == item.guess.type %} selected{% endif %}>{{ kind }}</option>
+      {% endfor %}
+    </select>
+  </label>
+  <label>Last 4 digits <input name="last4" maxlength="4" inputmode="numeric" value="{{ item.guess.last4 }}"></label>
+  <label>Owner
+    <select name="owner">
+      <option value="">No owner yet</option>
+      {% for name in people %}<option value="{{ name }}"{% if name == item.owner %} selected{% endif %}>{{ name }}</option>
+      {% endfor %}
+      <option value="joint">Joint</option>
+    </select>
+  </label>
+  <button type="submit">Create and map</button>
+</form>
+{% if unmapped %}
+<form method="post" action="/sync/map" class="fields">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <input type="hidden" name="link" value="{{ item.link }}">
+  <input type="hidden" name="feed_account" value="{{ item.feed_account }}">
+  <input type="hidden" name="next" value="sync">
+  <label>Or map to
+    <select name="account">
+      {% if not item.suggestion %}<option value="">Choose an account</option>
+      {% endif %}{% for name in unmapped %}<option value="{{ name }}"{% if name == item.suggestion %} selected{% endif %}>{{ name }}</option>
+      {% endfor %}
+    </select>
+  </label>
+  <button type="submit">Map</button>
+</form>
+{% endif %}
+<form method="post" action="/sync/ignore" class="inline">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <input type="hidden" name="link" value="{{ item.link }}">
+  <input type="hidden" name="feed_account" value="{{ item.feed_account }}">
+  <button type="submit">Don't track</button>
+</form>
+</section>
+{% endfor %}
+{% endif %}
 {% if rows %}
 <table>
 <thead><tr><th>Link</th><th>Account</th><th>SimpleFIN account</th><th>Keychain</th><th>Last pull</th><th>Balance date</th><th class="amount">Drift</th></tr></thead>
@@ -26,6 +82,19 @@
     <input type="hidden" name="csrf" value="{{ csrf }}">
     <input type="hidden" name="link" value="{{ name }}">
     <button type="submit">Unlink</button>
+  </form>
+</li>
+{% endfor %}</ul>
+{% endif %}
+{% if ignored_accounts %}
+<h2>Not tracked</h2>
+<ul class="links">
+{% for item in ignored_accounts %}<li>{{ item.institution }}: {{ item.name }} <span class="hint">link {{ item.link }}</span>
+  <form method="post" action="/sync/track" class="inline">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <input type="hidden" name="link" value="{{ item.link }}">
+    <input type="hidden" name="feed_account" value="{{ item.feed_account }}">
+    <button type="submit">Track again</button>
   </form>
 </li>
 {% endfor %}</ul>
