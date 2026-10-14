@@ -1,6 +1,6 @@
 """Store an aggregator feed as provisional transactions and measure balance drift."""
 
-from datetime import timedelta
+from datetime import date, timedelta
 
 from sqlalchemy.orm import Session
 
@@ -14,11 +14,12 @@ from finances.db.repositories import (
     insert_feed_transaction,
     latest_feed_pull,
     link_feed_transaction,
+    list_statements,
     set_balance_snapshot,
     statement_covers,
     update_feed_transaction,
 )
-from finances.domain.matching import MATCH_MAX_DAYS
+from finances.domain.matching import MATCH_MAX_DAYS, MatchItem, match_one_to_one, period_zone
 from finances.domain.models import (
     DataSource,
     FeedPull,
@@ -81,21 +82,60 @@ def _unchanged(stored: Transaction, item: FeedTransaction, description: str) -> 
     )
 
 
-def _statement_row(session: Session, account_id: int, item: FeedTransaction) -> Transaction | None:
-    """Return the unlinked statement row closest in day to the item, lowest id on ties."""
+def _resolve(
+    item: FeedTransaction, stored_by_id: dict[str, Transaction]
+) -> tuple[str, Transaction | None]:
+    """Return the feed id the item is stored under and its stored row, if any."""
+    key = item.feed_id
+    stored = stored_by_id.get(key)
+    if stored is None and item.replaces_feed_id is not None:
+        candidate = stored_by_id.get(item.replaces_feed_id)
+        if candidate is not None and candidate.source == DataSource.AGGREGATOR:
+            key, stored = item.replaces_feed_id, candidate
+    return key, stored
+
+
+def _settles(item: FeedTransaction, stored: Transaction | None) -> bool:
+    return not item.is_pending and (
+        stored is None or (stored.is_pending and stored.source == DataSource.AGGREGATOR)
+    )
+
+
+def _statement_rows(
+    session: Session, account_id: int, settling: list[tuple[int, FeedTransaction]]
+) -> dict[int, Transaction]:
+    """Pair a pull's settling transactions with unlinked statement rows, all at once.
+
+    Returns each paired transaction's statement row, keyed by its position in the feed.
+    """
     reach = timedelta(days=MATCH_MAX_DAYS)
-    rows = find_unlinked_statement_transactions(
-        session,
-        account_id,
-        item.amount_cents,
-        item.posted_date - reach,
-        item.posted_date + reach,
+    days_by_amount: dict[int, list[date]] = {}
+    for _, item in settling:
+        days_by_amount.setdefault(item.amount_cents, []).append(item.posted_date)
+    rows: dict[int, Transaction] = {}
+    for amount, days in days_by_amount.items():
+        found = find_unlinked_statement_transactions(
+            session, account_id, amount, min(days) - reach, max(days) + reach
+        )
+        rows.update((row.id, row) for row in found)
+    periods = [
+        (item.period_start, item.period_end) for item in list_statements(session, account_id)
+    ]
+    pairs = match_one_to_one(
+        [
+            MatchItem(
+                index, item.amount_cents, item.posted_date, period_zone(item.posted_date, periods)
+            )
+            for index, item in settling
+        ],
+        [
+            MatchItem(
+                row.id, row.amount_cents, row.posted_date, period_zone(row.posted_date, periods)
+            )
+            for row in sorted(rows.values(), key=lambda row: row.id)
+        ],
     )
-    return min(
-        rows,
-        key=lambda row: (abs((row.posted_date - item.posted_date).days), row.id),
-        default=None,
-    )
+    return {index: rows[row_id] for index, row_id in pairs}
 
 
 def apply_feed(session: Session, account_id: int, feed: AccountFeed) -> FeedPull:
@@ -109,20 +149,18 @@ def apply_feed(session: Session, account_id: int, feed: AccountFeed) -> FeedPull
     ]
     stored_by_id = find_feed_transactions(session, account_id, wanted)
     inserted = updated = unchanged = removed = 0
+    settling = [
+        (index, item)
+        for index, item in enumerate(feed.transactions)
+        if _settles(item, _resolve(item, stored_by_id)[1])
+    ]
+    partners = _statement_rows(session, account_id, settling)
 
-    for item in feed.transactions:
+    for index, item in enumerate(feed.transactions):
         description = _description(item.description)
-        key = item.feed_id
-        stored = stored_by_id.get(key)
-        if stored is None and item.replaces_feed_id is not None:
-            candidate = stored_by_id.get(item.replaces_feed_id)
-            if candidate is not None and candidate.source == DataSource.AGGREGATOR:
-                key, stored = item.replaces_feed_id, candidate
-        settled = not item.is_pending and (
-            stored is None or (stored.is_pending and stored.source == DataSource.AGGREGATOR)
-        )
-        if settled:
-            statement_row = _statement_row(session, account_id, item)
+        key, stored = _resolve(item, stored_by_id)
+        if _settles(item, stored):
+            statement_row = partners.get(index)
             if statement_row is not None or statement_covers(session, account_id, item.posted_date):
                 if stored is not None:
                     delete_feed_transaction(session, stored.id)

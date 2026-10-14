@@ -24,3 +24,4 @@ data/samples/
 
 # macOS Finder
 .DS_Store
+.hypothesis/

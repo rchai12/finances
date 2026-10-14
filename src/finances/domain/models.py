@@ -40,6 +40,13 @@ def validate_last4(last4: str | None) -> str | None:
     return last4
 
 
+def validate_currency(currency: str) -> str:
+    """Return currency unchanged if it is exactly three ASCII capital letters; otherwise raise."""
+    if not re.fullmatch(r"[A-Z]{3}", currency):
+        raise ValueError("currency must be three capital letters")
+    return currency
+
+
 class DataSource(StrEnum):
     """Where a stored transaction or balance came from."""
 

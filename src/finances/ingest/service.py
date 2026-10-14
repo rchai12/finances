@@ -21,8 +21,9 @@ from finances.db.repositories import (
     get_account_by_name,
     insert_transactions,
     list_provisional_transactions,
+    list_statements,
 )
-from finances.domain.matching import MATCH_MAX_DAYS, MatchItem, match_one_to_one
+from finances.domain.matching import MATCH_MAX_DAYS, MatchItem, match_one_to_one, period_zone
 from finances.domain.models import Account, DataSource, NewTransaction, Transaction
 from finances.ingest.dedup import fingerprint_lines
 from finances.ingest.parsers import detect_parser
@@ -30,6 +31,9 @@ from finances.ingest.parsers.helpers import collapse_ws
 from finances.ingest.pdf_text import extract_pages
 from finances.ingest.reconcile import ReconcileResult, reconcile
 from finances.ingest.statement import ParsedStatement, StatementError, StatementLine
+
+DESCRIPTION_LIMIT = 500
+TEXT_LIMIT = 100
 
 
 class ImportStatus(StrEnum):
@@ -220,12 +224,23 @@ def _supersede(
     candidates = list_provisional_transactions(
         session, account_id, parsed.period_start - reach, parsed.period_end + reach
     )
+    periods = [
+        (item.period_start, item.period_end) for item in list_statements(session, account_id)
+    ]
+    periods.append((parsed.period_start, parsed.period_end))
     pairs = match_one_to_one(
         [
-            MatchItem(index, line.amount_cents, line.posted_date)
+            MatchItem(
+                index, line.amount_cents, line.posted_date, period_zone(line.posted_date, periods)
+            )
             for index, (line, _) in enumerate(fresh)
         ],
-        [MatchItem(item.id, item.amount_cents, item.posted_date) for item in candidates],
+        [
+            MatchItem(
+                item.id, item.amount_cents, item.posted_date, period_zone(item.posted_date, periods)
+            )
+            for item in candidates
+        ],
     )
     by_id = {item.id: item for item in candidates}
     upgrades = [(*fresh[index], by_id[candidate_id]) for index, candidate_id in pairs]
@@ -258,11 +273,11 @@ def _confirm(
             if line.transaction_date is not None
             else candidate.transaction_date
         ),
-        description=collapse_ws(line.description),
+        description=_description(line.description),
         section=line.section.value,
         card_last4=line.card_last4 if line.card_last4 is not None else candidate.card_last4,
-        cardholder=line.cardholder,
-        external_id=line.external_ref,
+        cardholder=_cut(line.cardholder),
+        external_id=_cut(line.external_ref),
         fingerprint=fingerprint,
     )
 
@@ -276,12 +291,20 @@ def _new_transaction(
         posted_date=line.posted_date,
         transaction_date=line.transaction_date,
         amount_cents=line.amount_cents,
-        description=collapse_ws(line.description),
+        description=_description(line.description),
         section=line.section.value,
         card_last4=line.card_last4,
-        cardholder=line.cardholder,
-        external_id=line.external_ref,
+        cardholder=_cut(line.cardholder),
+        external_id=_cut(line.external_ref),
         source=DataSource.STATEMENT,
         is_pending=False,
         fingerprint=fingerprint,
     )
+
+
+def _description(text: str) -> str:
+    return collapse_ws(text)[:DESCRIPTION_LIMIT].rstrip()
+
+
+def _cut(text: str | None) -> str | None:
+    return None if text is None else text[:TEXT_LIMIT]

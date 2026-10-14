@@ -20,7 +20,7 @@ _HOST = "simplefin.org"
 _MESSAGE_LIMIT = 200
 _EPOCH = date(1970, 1, 1)
 _SECONDS_PER_DAY = 86400
-_UNREADABLE = (ValueError, TypeError, KeyError, AttributeError, OverflowError)
+_UNREADABLE = (ValueError, TypeError, KeyError, AttributeError, OverflowError, RecursionError)
 
 
 class SyncError(Exception):

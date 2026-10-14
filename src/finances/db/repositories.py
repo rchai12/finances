@@ -37,11 +37,13 @@ from finances.domain.models import (
     Person,
     Statement,
     Transaction,
+    validate_currency,
     validate_last4,
 )
 from finances.domain.people import NAME_LIMIT, normalize_cardholder, validate_person_name
 
 _FINGERPRINT_CHUNK = 500
+ACCOUNT_TEXT_LIMIT = 100
 
 
 class AccountExistsError(Exception):
@@ -78,6 +80,10 @@ def create_account(
         raise ValueError("account name must not be empty")
     if not clean_institution:
         raise ValueError("institution must not be empty")
+    if len(clean_name) > ACCOUNT_TEXT_LIMIT:
+        raise ValueError(f"account name must be at most {ACCOUNT_TEXT_LIMIT} characters")
+    if len(clean_institution) > ACCOUNT_TEXT_LIMIT:
+        raise ValueError(f"institution must be at most {ACCOUNT_TEXT_LIMIT} characters")
 
     # Check if an account with this name already exists (case-insensitive comparison)
     stmt = select(AccountRow).where(func.lower(AccountRow.name) == clean_name.lower())
@@ -97,6 +103,8 @@ def create_account(
         # Validate that account_type is a valid one, this will raise ValueError if invalid
         validated_type = AccountType(account_type)
         type_value = validated_type.value
+
+    validate_currency(currency)
 
     # Create new account row
     row = AccountRow(

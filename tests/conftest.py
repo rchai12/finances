@@ -8,6 +8,7 @@ import keyring
 import keyring.backend
 import keyring.errors
 import pytest
+from hypothesis import HealthCheck, settings
 from pypdf import PdfReader, PdfWriter
 from sqlalchemy import Engine
 
@@ -18,6 +19,16 @@ from finances.domain.models import AccountType
 from finances.ingest.parsers import register, registered_parsers, unregister
 from finances.ingest.parsers.helpers import parse_amount
 from finances.ingest.statement import ParsedStatement, Section, StatementError, StatementLine
+
+# Every property test runs the same examples on every run, and keeps no example database.
+settings.register_profile(
+    "finances",
+    database=None,
+    derandomize=True,
+    deadline=None,
+    suppress_health_check=[HealthCheck.function_scoped_fixture, HealthCheck.too_slow],
+)
+settings.load_profile("finances")
 
 _ENV_KEYS = ("FIN_ENVIRONMENT", "FIN_DATA_DIR", "FIN_DATABASE_URL", "FIN_LOG_LEVEL")
 
