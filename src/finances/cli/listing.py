@@ -7,13 +7,13 @@ import typer
 from rich.table import Table
 from sqlalchemy.orm import Session
 
+from finances.analysis.people import list_transactions_with_people
 from finances.cli.common import print_table, require_current_schema
 from finances.db.engine import get_engine, session_scope
 from finances.db.repositories import (
     get_account_by_name,
     list_accounts,
     list_statements,
-    list_transactions,
 )
 from finances.domain.models import Statement, Transaction
 from finances.domain.money import format_cents
@@ -56,27 +56,36 @@ def list_transactions_command(
         typer.Option("--to", formats=["%Y-%m-%d"], help="Last posted date, YYYY-MM-DD."),
     ] = None,
     limit: Annotated[int, typer.Option("--limit", min=1, help="Maximum rows.")] = 50,
+    person: Annotated[
+        str | None,
+        typer.Option("--person", help="Only one person's, or joint, or unassigned."),
+    ] = None,
 ) -> None:
     """List stored transactions."""
     require_current_schema()
     with session_scope(get_engine()) as session:
         account_id = _account_id(session, account)
-        found = list_transactions(
-            session,
-            account_id,
-            None if start is None else start.date(),
-            None if end is None else end.date(),
-            limit,
-        )
+        try:
+            found = list_transactions_with_people(
+                session,
+                account_id,
+                None if start is None else start.date(),
+                None if end is None else end.date(),
+                limit,
+                person,
+            )
+        except ValueError as error:
+            typer.echo(f"Error: {error}", err=True)
+            raise typer.Exit(code=1) from None
         names = _account_names(session)
     if not found:
         typer.echo("No transactions.")
         return
     table = Table()
-    for heading in ("Date", "Account", "Description", "Amount", "Card", "Section"):
+    for heading in ("Date", "Account", "Description", "Amount", "Card", "Section", "Person"):
         table.add_column(heading)
-    for item in found:
-        table.add_row(*_transaction_cells(item, names))
+    for item, who in found:
+        table.add_row(*_transaction_cells(item, names), who or "")
     print_table(table)
 
 

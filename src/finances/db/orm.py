@@ -23,6 +23,7 @@ from finances.domain.models import (
     DataSource,
     FeedAccount,
     FeedPull,
+    Person,
     Statement,
     Transaction,
 )
@@ -289,3 +290,40 @@ def to_feed_account(row: FeedAccountRow) -> FeedAccount:
         provider_account_id=row.provider_account_id,
         link=row.link,
     )
+
+
+class PersonRow(Base):
+    """One row of the people table."""
+
+    __tablename__ = "people"
+    __table_args__ = (UniqueConstraint("name", name="uq_people_name"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    name: Mapped[str] = mapped_column(String(100), nullable=False)
+
+
+class AccountOwnerRow(Base):
+    """One row of the account_owners table. A null person_id means the account is Joint."""
+
+    __tablename__ = "account_owners"
+    __table_args__ = (UniqueConstraint("account_id", name="uq_account_owners_account_id"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    account_id: Mapped[int] = mapped_column(ForeignKey("accounts.id"), nullable=False)
+    person_id: Mapped[int | None] = mapped_column(ForeignKey("people.id"), nullable=True)
+
+
+class CardholderAliasRow(Base):
+    """One row of the cardholder_aliases table: a normalized cardholder name and its person."""
+
+    __tablename__ = "cardholder_aliases"
+    __table_args__ = (UniqueConstraint("cardholder", name="uq_cardholder_aliases_cardholder"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    cardholder: Mapped[str] = mapped_column(String(100), nullable=False)
+    person_id: Mapped[int] = mapped_column(ForeignKey("people.id"), nullable=False)
+
+
+def to_person(row: PersonRow) -> Person:
+    """Return the domain Person for a row of the people table."""
+    return Person(id=row.id, name=row.name)

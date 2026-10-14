@@ -146,3 +146,11 @@ class FeedAccount:
     account_id: int
     provider_account_id: str
     link: str = DEFAULT_LINK
+
+
+@dataclass(frozen=True)
+class Person:
+    """One person in the household."""
+
+    id: int
+    name: str
