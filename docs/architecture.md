@@ -145,7 +145,7 @@ Details are in the phase specs. Core tables:
 - `feed_pulls`: one row per applied aggregator feed, with counts, the reported balance, and the balance drift (Phase 17a).
 - `categories`, `category_rules`, `merchants` (Phase 11).
 
-`transactions.source` records where a row came from: `aggregator` rows are provisional, and a reconciled statement upgrades them in place to `statement`, keeping their ids so categories and notes survive.
+`transactions.source` records where a row came from: `aggregator` rows are provisional, and a reconciled statement upgrades them in place to `statement`, keeping their ids so categories and notes survive. A posted feed row inside a statement's period that the statement does not print is dropped, and a feed row that arrives after its statement is linked to the statement's row instead of being stored again (Phase 8). Rows are paired by exact amount and by posted dates at most five days apart.
 
 ### Statement parsing design
 

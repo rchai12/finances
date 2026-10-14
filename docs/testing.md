@@ -31,7 +31,8 @@ Bugs here silently corrupt money data, so they get the strictest gates (95% bran
 - `domain/money.py`
 - `ingest/parsers/helpers.py` (year inference, amount parsing)
 - `ingest/reconcile.py`
-- `ingest/dedup.py`, `ingest/matching.py`, `ingest/merge.py`
+- `ingest/dedup.py`
+- `domain/matching.py` (pairing feed rows with statement lines)
 - `sync/service.py` (applying a feed, balance drift)
 - Later: aggregator row mapping (Phase 17b), transfer matching (Phase 11), spending aggregation (Phase 12)
 

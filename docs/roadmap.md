@@ -17,7 +17,7 @@ Status: Phases 1 and 2 are built. The specs for Phases 3 to 10 were written befo
 | 5 | BoA + Citi parsers | Two more card formats, and the shared `find_labeled_amount` helper | [phase-05](phases/phase-05-boa-citi-parsers.md) (re-issued for the current format) |
 | 6 | Truist + Marcus parsers | Checking and savings statements: section-driven signs, checks, debit card details, running-balance signs; every kind of statement has a parser | [phase-06](phases/phase-06-deposit-parsers.md) (re-issued for the current format); repairs from the first run on real statements: [phase-06a](phases/phase-06a-real-statement-repairs.md) |
 | 7 | *Removed* | Was "CSV import". The aggregator feed (Phase 17) replaces it. The old spec is kept as reference for Phases 8 and 17 | |
-| 8 | Statements supersede provisional rows | In-place upgrade of aggregator rows by a reconciled statement; order of arrival does not matter | draft written for CSV: [phase-08](phases/phase-08-statement-supersedes-csv.md), to be re-issued |
+| 8 | Statements supersede feed rows | A statement upgrades the feed's rows in place and drops the ones it does not print; a late feed row is linked to its statement row; order of arrival does not matter | [phase-08](phases/phase-08-statements-supersede-feed.md) (re-issued for the aggregator feed) |
 | 9 | Test hardening | Property-based, fuzz, golden snapshot, migration, and end-to-end workflow tests for the import pipeline | [phase-09](phases/phase-09-test-hardening.md) |
 | 10 | Quality gates | Per-module coverage gates, mutation testing, `check.ps1`, pre-commit hooks, optional CI | [phase-10](phases/phase-10-quality-gates.md) |
 | 11 | Categorization and transfers | Merchant normalization, categories, rules, own-account transfer matching | outline below |
