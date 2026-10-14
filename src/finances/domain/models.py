@@ -47,6 +47,14 @@ def validate_currency(currency: str) -> str:
     return currency
 
 
+def validate_provider_account_id(text: str) -> str:
+    """Return an aggregator account id without outer spaces, or raise when it cannot be used."""
+    clean = text.strip()
+    if not 1 <= len(clean) <= 200:
+        raise ValueError("feed account id must be 1 to 200 characters")
+    return clean
+
+
 class DataSource(StrEnum):
     """Where a stored transaction or balance came from."""
 

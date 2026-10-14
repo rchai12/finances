@@ -4,7 +4,7 @@ import re
 from datetime import date
 
 from finances.domain.models import AccountType
-from finances.ingest.parsers.helpers import collapse_ws, parse_amount
+from finances.ingest.parsers.helpers import collapse_ws, parse_amount, squeeze
 from finances.ingest.statement import ParsedStatement, Section, StatementError, StatementLine
 
 _MONEY = r"\$(?:[0-9]{1,3}(?:,[0-9]{3})+|[0-9]+)\.[0-9]{2}"
@@ -69,15 +69,11 @@ def _period(text: str) -> tuple[date, date]:
     return start, end
 
 
-def _squeezed(text: str) -> str:
-    return "".join(text.split())
-
-
 def _balance(lines: list[str], label: str) -> int | None:
     """Return the money of the first balance line whose label, without spaces, is label."""
     for line in lines:
         match = _BALANCE_LINE.fullmatch(line)
-        if match is not None and _squeezed(match.group(4)) == label:
+        if match is not None and squeeze(match.group(4)) == label:
             return parse_amount(match.group(5))
     return None
 
@@ -104,7 +100,7 @@ def _rows(lines: list[str], opening: int) -> list[StatementLine]:
         if cents == 0:
             continue
         description = collapse_ws(text)
-        if _squeezed(description) == "InterestPaid":
+        if squeeze(description) == "InterestPaid":
             section = Section.INTEREST
         elif cents > 0:
             section = Section.DEPOSITS

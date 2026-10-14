@@ -1,4 +1,4 @@
-"""SQLAlchemy ORM tables. From this project, this module imports only the domain models."""
+"""SQLAlchemy ORM tables. From this project, this module imports only the domain."""
 
 from datetime import UTC, date, datetime
 
@@ -28,6 +28,12 @@ from finances.domain.models import (
     Statement,
     Transaction,
 )
+from finances.domain.text import (
+    DESCRIPTION_LIMIT,
+    FEED_ID_LIMIT,
+    NAME_LIMIT,
+    PROVIDER_ACCOUNT_ID_LIMIT,
+)
 
 NAMING_CONVENTION = {
     "ix": "ix_%(column_0_label)s",
@@ -50,8 +56,8 @@ class AccountRow(Base):
     __tablename__ = "accounts"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    name: Mapped[str] = mapped_column(String(100), nullable=False, unique=True)
-    institution: Mapped[str] = mapped_column(String(100), nullable=False)
+    name: Mapped[str] = mapped_column(String(NAME_LIMIT), nullable=False, unique=True)
+    institution: Mapped[str] = mapped_column(String(NAME_LIMIT), nullable=False)
     type: Mapped[str] = mapped_column(String(20), nullable=False)
     currency: Mapped[str] = mapped_column(String(3), nullable=False, default="USD")
     last4: Mapped[str | None] = mapped_column(String(4), nullable=True)
@@ -126,11 +132,11 @@ class TransactionRow(Base):
     posted_date: Mapped[date] = mapped_column(Date, nullable=False, index=True)
     transaction_date: Mapped[date | None] = mapped_column(Date, nullable=True)
     amount_cents: Mapped[int] = mapped_column(BigInteger, nullable=False)
-    description: Mapped[str] = mapped_column(String(500), nullable=False)
+    description: Mapped[str] = mapped_column(String(DESCRIPTION_LIMIT), nullable=False)
     section: Mapped[str | None] = mapped_column(String(30), nullable=True)
     card_last4: Mapped[str | None] = mapped_column(String(4), nullable=True)
-    cardholder: Mapped[str | None] = mapped_column(String(100), nullable=True)
-    external_id: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    cardholder: Mapped[str | None] = mapped_column(String(NAME_LIMIT), nullable=True)
+    external_id: Mapped[str | None] = mapped_column(String(NAME_LIMIT), nullable=True)
     source: Mapped[str] = mapped_column(String(20), nullable=False)
     is_pending: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     fingerprint: Mapped[str] = mapped_column(String(64), nullable=False)
@@ -225,7 +231,7 @@ class FeedItemRow(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     account_id: Mapped[int] = mapped_column(ForeignKey("accounts.id"), nullable=False)
-    feed_id: Mapped[str] = mapped_column(String(100), nullable=False)
+    feed_id: Mapped[str] = mapped_column(String(FEED_ID_LIMIT), nullable=False)
     transaction_id: Mapped[int] = mapped_column(ForeignKey("transactions.id"), nullable=False)
 
 
@@ -279,7 +285,9 @@ class FeedAccountRow(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     account_id: Mapped[int] = mapped_column(ForeignKey("accounts.id"), nullable=False)
-    provider_account_id: Mapped[str] = mapped_column(String(200), nullable=False)
+    provider_account_id: Mapped[str] = mapped_column(
+        String(PROVIDER_ACCOUNT_ID_LIMIT), nullable=False
+    )
     link: Mapped[str] = mapped_column(String(50), nullable=False, default=DEFAULT_LINK)
 
 
@@ -305,9 +313,11 @@ class FeedSeenAccountRow(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     link: Mapped[str] = mapped_column(String(50), nullable=False)
-    provider_account_id: Mapped[str] = mapped_column(String(200), nullable=False)
-    name: Mapped[str] = mapped_column(String(100), nullable=False)
-    institution: Mapped[str] = mapped_column(String(100), nullable=False)
+    provider_account_id: Mapped[str] = mapped_column(
+        String(PROVIDER_ACCOUNT_ID_LIMIT), nullable=False
+    )
+    name: Mapped[str] = mapped_column(String(NAME_LIMIT), nullable=False)
+    institution: Mapped[str] = mapped_column(String(NAME_LIMIT), nullable=False)
     first_seen: Mapped[date] = mapped_column(Date, nullable=False)
     last_seen: Mapped[date] = mapped_column(Date, nullable=False)
     ignored: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
@@ -334,7 +344,7 @@ class PersonRow(Base):
     __table_args__ = (UniqueConstraint("name", name="uq_people_name"),)
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    name: Mapped[str] = mapped_column(String(100), nullable=False)
+    name: Mapped[str] = mapped_column(String(NAME_LIMIT), nullable=False)
 
 
 class AccountOwnerRow(Base):
@@ -355,7 +365,7 @@ class CardholderAliasRow(Base):
     __table_args__ = (UniqueConstraint("cardholder", name="uq_cardholder_aliases_cardholder"),)
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    cardholder: Mapped[str] = mapped_column(String(100), nullable=False)
+    cardholder: Mapped[str] = mapped_column(String(NAME_LIMIT), nullable=False)
     person_id: Mapped[int] = mapped_column(ForeignKey("people.id"), nullable=False)
 
 

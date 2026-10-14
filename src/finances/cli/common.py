@@ -1,5 +1,7 @@
 """Checks shared by every command that reads the database."""
 
+from typing import NoReturn
+
 import typer
 from rich.console import Console
 from rich.table import Table
@@ -7,6 +9,12 @@ from rich.table import Table
 from finances.db.migrate import current_revision, head_revision
 
 _PLAIN_WIDTH = 1_000_000
+
+
+def fail(message: str) -> NoReturn:
+    """Print the error and end the command with exit code 1."""
+    typer.echo(f"Error: {message}", err=True)
+    raise typer.Exit(code=1) from None
 
 
 def require_current_schema() -> None:

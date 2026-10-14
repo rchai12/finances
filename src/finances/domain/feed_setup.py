@@ -4,8 +4,9 @@ import re
 from dataclasses import dataclass
 
 from finances.domain.models import AccountType
+from finances.domain.text import NAME_LIMIT, fit
 
-TEXT_LIMIT = 100
+TEXT_LIMIT = NAME_LIMIT
 NO_NAME = "New account"
 
 _TYPE_WORDS = (
@@ -32,17 +33,13 @@ class AccountGuess:
     last4: str | None
 
 
-def _tidy(text: str) -> str:
-    return " ".join(text.split())[:TEXT_LIMIT].rstrip()
-
-
 def guess_account(name: str, institution: str) -> AccountGuess:
     """Guess an account's details from the aggregator's name and institution."""
-    tidy_name = _tidy(name) or NO_NAME
+    tidy_name = fit(name, NAME_LIMIT) or NO_NAME
     kind = next((kind for kind, words in _TYPE_WORDS if words.search(tidy_name)), AccountType.OTHER)
     runs = _DIGITS.findall(tidy_name)
     last4 = runs[-1] if runs and len(runs[-1]) == 4 else None
-    return AccountGuess(tidy_name, _tidy(institution), kind, last4)
+    return AccountGuess(tidy_name, fit(institution, NAME_LIMIT), kind, last4)
 
 
 def guess_owner(link: str, people: list[str]) -> str | None:

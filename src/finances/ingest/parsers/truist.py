@@ -4,7 +4,7 @@ import re
 from datetime import date, timedelta
 
 from finances.domain.models import AccountType
-from finances.ingest.parsers.helpers import collapse_ws, parse_amount, parse_month_day
+from finances.ingest.parsers.helpers import collapse_ws, parse_amount, parse_month_day, squeeze
 from finances.ingest.statement import ParsedStatement, Section, StatementError, StatementLine
 
 _AMOUNT = r"(?:[0-9]{1,3}(?:,[0-9]{3})+|[0-9]+)\.[0-9]{2}"
@@ -16,13 +16,9 @@ _SPACED_DATE = r"\s*".join(
 )
 
 
-def _squeezed(text: str) -> str:
-    return "".join(text.split())
-
-
 def _loose(label: str, after: str) -> re.Pattern[str]:
     """Match label with any whitespace inside it, at the line start or after two whitespace."""
-    spaced = r"\s*".join(re.escape(character) for character in _squeezed(label))
+    spaced = r"\s*".join(re.escape(character) for character in squeeze(label))
     return re.compile(rf"(?:^|(?<=\s\s)){spaced}{after}")
 
 
@@ -37,9 +33,9 @@ _MONTH_DAY = re.compile(r"[0-9]{2}-[0-9]{2}")
 
 _TYPES = {"CHECKING": AccountType.CHECKING, "SAVINGS": AccountType.SAVINGS}
 _SECTIONS = {
-    _squeezed("Checks"): Section.CHECKS,
-    _squeezed("Other withdrawals, debits and service charges"): Section.WITHDRAWALS,
-    _squeezed("Deposits, credits and interest"): Section.DEPOSITS,
+    squeeze("Checks"): Section.CHECKS,
+    squeeze("Other withdrawals, debits and service charges"): Section.WITHDRAWALS,
+    squeeze("Deposits, credits and interest"): Section.DEPOSITS,
 }
 _TOTALS = (
     (_loose("Total checks", rf"\s+{_MONEY}"), Section.CHECKS, -1),
@@ -111,7 +107,7 @@ def _money(match: re.Match[str]) -> int | None:
 
 
 def _date(match: re.Match[str]) -> date | None:
-    month, day, year = (int(part) for part in _squeezed(match.group("date")).split("/"))
+    month, day, year = (int(part) for part in squeeze(match.group("date")).split("/"))
     try:
         return date(year, month, day)
     except ValueError:
@@ -206,7 +202,7 @@ def _rows(lines: list[str], start: date, end: date) -> list[StatementLine]:
     rows: list[StatementLine] = []
     section: Section | None = None
     for line in lines:
-        tight = _squeezed(line)
+        tight = squeeze(line)
         if tight in _SECTIONS:
             section = _SECTIONS[tight]
         elif tight.startswith("Total"):

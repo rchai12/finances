@@ -2,7 +2,7 @@
 
 import hashlib
 
-from finances.ingest.parsers.helpers import collapse_ws
+from finances.domain.text import collapse_ws
 from finances.ingest.statement import StatementLine
 
 

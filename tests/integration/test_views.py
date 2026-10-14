@@ -5,6 +5,24 @@ import keyring
 import keyring.backend
 import keyring.errors
 import pytest
+from sqlalchemy import Engine
+
+from finances.db.engine import session_scope
+from finances.db.orm import AccountRow as AccountTable
+from finances.db.repositories import (
+    account_names,
+    create_account,
+    create_feed_pull,
+    create_person,
+    map_feed_account,
+    record_seen_feed_account,
+    set_account_owner,
+    set_cardholder_alias,
+    set_feed_account_ignored,
+)
+from finances.domain.feed_setup import AccountGuess
+from finances.domain.models import AccountType, DataSource, FeedPull, Transaction
+from finances.sync.runner import AccountSync, LinkRun, SyncReport
 from finances.views.accounts import AccountRow, account_rows
 from finances.views.format import (
     BULLETS,
@@ -27,24 +45,6 @@ from finances.views.sync import (
     waiting_counts,
 )
 from finances.views.transactions import TransactionRow, transaction_row
-from sqlalchemy import Engine
-
-from finances.db.engine import session_scope
-from finances.db.orm import AccountRow as AccountTable
-from finances.db.repositories import (
-    account_names,
-    create_account,
-    create_feed_pull,
-    create_person,
-    map_feed_account,
-    record_seen_feed_account,
-    set_account_owner,
-    set_cardholder_alias,
-    set_feed_account_ignored,
-)
-from finances.domain.feed_setup import AccountGuess
-from finances.domain.models import AccountType, DataSource, FeedPull, Transaction
-from finances.sync.runner import AccountSync, LinkRun, SyncReport
 
 SERVICE = "finances-simplefin"
 DAY = date(2026, 5, 9)

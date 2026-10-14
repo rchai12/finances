@@ -2,12 +2,12 @@
 
 from dataclasses import astuple
 from datetime import UTC, datetime
-from typing import Annotated, NoReturn
+from typing import Annotated
 
 import typer
 from rich.table import Table
 
-from finances.cli.common import print_table, require_current_schema
+from finances.cli.common import fail, print_table, require_current_schema
 from finances.db.engine import get_engine, session_scope
 from finances.db.repositories import (
     account_names,
@@ -17,7 +17,7 @@ from finances.db.repositories import (
     map_feed_account,
 )
 from finances.domain.feed_setup import new_accounts
-from finances.domain.models import DEFAULT_LINK
+from finances.domain.models import DEFAULT_LINK, validate_provider_account_id
 from finances.sync import transport
 from finances.sync.links import (
     delete_access_url,
@@ -31,20 +31,14 @@ from finances.views.sync import run_rows, simplefin_messages, status_rows, waiti
 
 app = typer.Typer(help="Pull transactions from SimpleFIN.", no_args_is_help=True)
 
-_FEED_ID_LIMIT = 200
 _LinkOption = Annotated[str, typer.Option("--link", help="Name of the SimpleFIN link.")]
-
-
-def _fail(message: str) -> NoReturn:
-    typer.echo(f"Error: {message}", err=True)
-    raise typer.Exit(code=1) from None
 
 
 def _link_name(name: str) -> str:
     try:
         return validate_link_name(name)
     except ValueError as error:
-        _fail(str(error))
+        fail(str(error))
 
 
 def _not_set_up(link: str) -> str:
@@ -56,9 +50,9 @@ def _access(link: str) -> str:
     try:
         access_url = load_access_url(link)
     except SyncError as error:
-        _fail(str(error))
+        fail(str(error))
     if access_url is None:
-        _fail(_not_set_up(link))
+        fail(_not_set_up(link))
     return access_url
 
 
@@ -77,11 +71,11 @@ def link_command(
     name = _link_name(link)
     try:
         if load_access_url(name) is not None and not replace:
-            _fail(f"link {name} is already set up; use --replace to set it up again")
+            fail(f"link {name} is already set up; use --replace to set it up again")
         token = typer.prompt("SimpleFIN setup token", hide_input=True)
         save_access_url(name, claim_access_url(token, transport.urllib_transport))
     except SyncError as error:
-        _fail(str(error))
+        fail(str(error))
     typer.echo(f"Linked {name}.")
 
 
@@ -92,9 +86,9 @@ def unlink_command(link: _LinkOption = DEFAULT_LINK) -> None:
     try:
         removed = delete_access_url(name)
     except SyncError as error:
-        _fail(str(error))
+        fail(str(error))
     if not removed:
-        _fail(f"link {name} is not set up")
+        fail(f"link {name} is not set up")
     typer.echo(f"Unlinked {name}.")
 
 
@@ -108,7 +102,7 @@ def accounts_command(link: _LinkOption = DEFAULT_LINK) -> None:
     try:
         answer = fetch_accounts(access_url, today, today, transport.urllib_transport)
     except SyncError as error:
-        _fail(str(error))
+        fail(str(error))
     with session_scope(get_engine()) as session:
         names = account_names(session)
         mapped = {
@@ -145,17 +139,18 @@ def map_command(
     """Say which SimpleFIN account feeds one of our accounts."""
     require_current_schema()
     name = _link_name(link)
-    feed_id = feed_account.strip()
-    if not 1 <= len(feed_id) <= _FEED_ID_LIMIT:
-        _fail("feed account id must be 1 to 200 characters")
+    try:
+        feed_id = validate_provider_account_id(feed_account)
+    except ValueError as error:
+        fail(str(error))
     with session_scope(get_engine()) as session:
         found = get_account_by_name(session, account)
         if found is None:
-            _fail("account not found")
+            fail("account not found")
         try:
             map_feed_account(session, found.id, feed_id, name)
         except ValueError as error:
-            _fail(str(error))
+            fail(str(error))
     typer.echo(f'Mapped {feed_id} to "{found.name}" under link {name}.')
 
 

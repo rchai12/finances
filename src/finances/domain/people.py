@@ -1,10 +1,11 @@
-"""Who a transaction belongs to. Imports nothing from the project."""
+"""Who a transaction belongs to. Imports nothing from the project outside the domain."""
 
 from collections.abc import Mapping
 
+from finances.domain.text import NAME_LIMIT
+
 JOINT = "Joint"
 RESERVED_NAMES = ("joint", "unassigned")
-NAME_LIMIT = 100
 
 
 def normalize_cardholder(text: str) -> str:

@@ -21,19 +21,18 @@ from finances.db.repositories import (
     get_account_by_name,
     insert_transactions,
     list_provisional_transactions,
-    list_statements,
+    statement_periods,
 )
 from finances.domain.matching import MATCH_MAX_DAYS, MatchItem, match_one_to_one, period_zone
 from finances.domain.models import Account, DataSource, NewTransaction, Transaction
+from finances.domain.text import DESCRIPTION_LIMIT, NAME_LIMIT, fit
 from finances.ingest.dedup import fingerprint_lines
 from finances.ingest.parsers import detect_parser
-from finances.ingest.parsers.helpers import collapse_ws
 from finances.ingest.pdf_text import extract_pages
 from finances.ingest.reconcile import ReconcileResult, reconcile
 from finances.ingest.statement import ParsedStatement, StatementError, StatementLine
 
-DESCRIPTION_LIMIT = 500
-TEXT_LIMIT = 100
+TEXT_LIMIT = NAME_LIMIT
 
 
 class ImportStatus(StrEnum):
@@ -224,9 +223,7 @@ def _supersede(
     candidates = list_provisional_transactions(
         session, account_id, parsed.period_start - reach, parsed.period_end + reach
     )
-    periods = [
-        (item.period_start, item.period_end) for item in list_statements(session, account_id)
-    ]
+    periods = statement_periods(session, account_id)
     periods.append((parsed.period_start, parsed.period_end))
     pairs = match_one_to_one(
         [
@@ -273,7 +270,7 @@ def _confirm(
             if line.transaction_date is not None
             else candidate.transaction_date
         ),
-        description=_description(line.description),
+        description=fit(line.description, DESCRIPTION_LIMIT),
         section=line.section.value,
         card_last4=line.card_last4 if line.card_last4 is not None else candidate.card_last4,
         cardholder=_cut(line.cardholder),
@@ -291,7 +288,7 @@ def _new_transaction(
         posted_date=line.posted_date,
         transaction_date=line.transaction_date,
         amount_cents=line.amount_cents,
-        description=_description(line.description),
+        description=fit(line.description, DESCRIPTION_LIMIT),
         section=line.section.value,
         card_last4=line.card_last4,
         cardholder=_cut(line.cardholder),
@@ -300,10 +297,6 @@ def _new_transaction(
         is_pending=False,
         fingerprint=fingerprint,
     )
-
-
-def _description(text: str) -> str:
-    return collapse_ws(text)[:DESCRIPTION_LIMIT].rstrip()
 
 
 def _cut(text: str | None) -> str | None:

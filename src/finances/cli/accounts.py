@@ -1,19 +1,18 @@
 """The `fin accounts` commands."""
 
 from dataclasses import astuple
-from typing import Annotated, NoReturn
+from typing import Annotated
 
 import typer
 from rich.table import Table
 
-from finances.analysis.people import JOINT_FILTER
-from finances.cli.common import print_table, require_current_schema
+from finances.cli.common import fail, print_table, require_current_schema
 from finances.db.engine import get_engine, session_scope
 from finances.db.repositories import (
     AccountExistsError,
     create_account,
     get_account_by_name,
-    get_person_by_name,
+    resolve_owner,
     set_account_owner,
 )
 from finances.domain.models import AccountType
@@ -77,18 +76,10 @@ def set_owner(
     with session_scope(get_engine()) as session:
         found = get_account_by_name(session, account)
         if found is None:
-            _fail("account not found")
-        if owner.strip().lower() == JOINT_FILTER:
-            person_id, label = None, JOINT
-        else:
-            person = get_person_by_name(session, owner)
-            if person is None:
-                _fail("person not found")
-            person_id, label = person.id, person.name
-        set_account_owner(session, found.id, person_id)
-        typer.echo(f'Owner of "{found.name}" is {label}.')
-
-
-def _fail(message: str) -> NoReturn:
-    typer.echo(f"Error: {message}", err=True)
-    raise typer.Exit(code=1) from None
+            fail("account not found")
+        try:
+            person = resolve_owner(session, owner)
+        except ValueError as error:
+            fail(str(error))
+        set_account_owner(session, found.id, None if person is None else person.id)
+        typer.echo(f'Owner of "{found.name}" is {JOINT if person is None else person.name}.')

@@ -1,12 +1,12 @@
 """The `fin people` commands."""
 
 from dataclasses import astuple
-from typing import Annotated, NoReturn
+from typing import Annotated
 
 import typer
 from rich.table import Table
 
-from finances.cli.common import print_table, require_current_schema
+from finances.cli.common import fail, print_table, require_current_schema
 from finances.db.engine import get_engine, session_scope
 from finances.db.repositories import (
     PersonExistsError,
@@ -28,7 +28,7 @@ def add(name: Annotated[str, typer.Option("--name", help="The person's name.")])
         try:
             person = create_person(session, name)
         except (PersonExistsError, ValueError) as error:
-            _fail(str(error))
+            fail(str(error))
         typer.echo(f'Added person "{person.name}" (id {person.id})')
 
 
@@ -63,14 +63,9 @@ def alias(
     with session_scope(get_engine()) as session:
         found = get_person_by_name(session, person)
         if found is None:
-            _fail("person not found")
+            fail("person not found")
         try:
             stored = set_cardholder_alias(session, cardholder, found.id)
         except ValueError as error:
-            _fail(str(error))
+            fail(str(error))
         typer.echo(f'Cardholder "{stored}" is {found.name}.')
-
-
-def _fail(message: str) -> NoReturn:
-    typer.echo(f"Error: {message}", err=True)
-    raise typer.Exit(code=1) from None

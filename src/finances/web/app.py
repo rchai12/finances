@@ -37,6 +37,7 @@ from finances.db.repositories import (
     list_new_feed_accounts,
     list_people,
     map_feed_account,
+    resolve_owner,
     set_account_owner,
     set_cardholder_alias,
     set_feed_account_ignored,
@@ -95,7 +96,6 @@ _TEMPLATES = Jinja2Templates(directory=_HERE / "templates")
 _HEADER_BYTES = [(name.encode(), value.encode()) for name, value in SECURITY_HEADERS.items()]
 _DEFAULT_LIMIT = "50"
 _LIMIT_MAX = 1000
-_FEED_ID_LIMIT = 200
 _DATE = re.compile(r"[0-9]{4}-[0-9]{2}-[0-9]{2}")
 _WHOLE = re.compile(r"[0-9]+")
 _TOKEN = re.compile(r"[A-Za-z0-9_-]{43}")
@@ -217,32 +217,13 @@ def _blank_account_form() -> dict[str, str]:
 
 
 def _add_account(session: Session, name: str, institution: str, kind: str, last4: str) -> Account:
-    if kind not in ACCOUNT_TYPES:
-        raise ValueError(f"type must be one of: {', '.join(ACCOUNT_TYPES)}")
     return create_account(session, name, institution, kind, last4=last4.strip() or None)
-
-
-def _owner_id(session: Session, owner: str) -> int | None:
-    """Return the person's id for an owner field, or None for Joint."""
-    if owner.strip().lower() == JOINT_FILTER:
-        return None
-    person = get_person_by_name(session, owner)
-    if person is None:
-        raise ValueError("person not found")
-    return person.id
 
 
 def _mapped(link: str, next_page: str) -> Response:
     if next_page == "sync":
         return _done("/sync?notice=mapped")
     return _done(f"/sync/accounts?link={link}&notice=mapped")
-
-
-def _feed_id(feed_account: str) -> str:
-    feed_id = feed_account.strip()
-    if not 1 <= len(feed_id) <= _FEED_ID_LIMIT:
-        raise ValueError("feed account id must be 1 to 200 characters")
-    return feed_id
 
 
 def _accounts_page(
@@ -390,7 +371,8 @@ def create_app(port: int) -> ASGIApp:
                 found = get_account_by_name(session, account)
                 if found is None:
                     raise ValueError("account not found")
-                set_account_owner(session, found.id, _owner_id(session, owner))
+                person = resolve_owner(session, owner)
+                set_account_owner(session, found.id, None if person is None else person.id)
         except _REFUSALS as error:
             return _accounts_page(request, error=str(error), status_code=400)
         return _done("/accounts?notice=owner-set")
@@ -554,7 +536,7 @@ def create_app(port: int) -> ASGIApp:
                 found = get_account_by_name(session, account)
                 if found is None:
                     raise ValueError("account not found")
-                map_feed_account(session, found.id, _feed_id(feed_account), link)
+                map_feed_account(session, found.id, feed_account, link)
         except _REFUSALS as error:
             return _error_page(request, str(error))
         return _mapped(link, next_page)
@@ -579,9 +561,10 @@ def create_app(port: int) -> ASGIApp:
             with _reading() as session:
                 made = _add_account(session, account, institution, kind, last4)
                 validate_link_name(link)
-                map_feed_account(session, made.id, _feed_id(feed_account), link)
+                map_feed_account(session, made.id, feed_account, link)
                 if owner.strip():
-                    set_account_owner(session, made.id, _owner_id(session, owner))
+                    person = resolve_owner(session, owner)
+                    set_account_owner(session, made.id, None if person is None else person.id)
         except _REFUSALS as error:
             return _error_page(request, str(error))
         return _mapped(link, next_page)

@@ -4,6 +4,7 @@ import re
 from datetime import date, timedelta
 
 from finances.domain.money import parse_money
+from finances.domain.text import collapse_ws
 from finances.ingest.statement import StatementError
 
 EARLY_DAYS = 60
@@ -11,9 +12,9 @@ LATE_DAYS = 7
 MONTHS = ("jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec")
 
 
-def collapse_ws(text: str) -> str:
-    """Return text with outer whitespace removed and inner runs of whitespace made one space."""
-    return " ".join(text.split())
+def squeeze(text: str) -> str:
+    """Return text with every whitespace character removed."""
+    return "".join(text.split())
 
 
 def parse_amount(text: str) -> int:

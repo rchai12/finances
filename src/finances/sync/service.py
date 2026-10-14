@@ -14,9 +14,9 @@ from finances.db.repositories import (
     insert_feed_transaction,
     latest_feed_pull,
     link_feed_transaction,
-    list_statements,
     set_balance_snapshot,
     statement_covers,
+    statement_periods,
     update_feed_transaction,
 )
 from finances.domain.matching import MATCH_MAX_DAYS, MatchItem, match_one_to_one, period_zone
@@ -27,18 +27,12 @@ from finances.domain.models import (
     Transaction,
     validate_last4,
 )
+from finances.domain.text import DESCRIPTION_LIMIT, FEED_ID_LIMIT, fit
 from finances.sync.feed import AccountFeed, FeedError, FeedTransaction, feed_fingerprint
-
-_ID_LIMIT = 100
-_DESCRIPTION_LIMIT = 500
 
 
 def _usable_id(feed_id: str) -> bool:
-    return 0 < len(feed_id) <= _ID_LIMIT and feed_id == feed_id.strip()
-
-
-def _description(text: str) -> str:
-    return " ".join(text.split())[:_DESCRIPTION_LIMIT].rstrip()
+    return 0 < len(feed_id) <= FEED_ID_LIMIT and feed_id == feed_id.strip()
 
 
 def _check(feed: AccountFeed) -> None:
@@ -50,7 +44,7 @@ def _check(feed: AccountFeed) -> None:
     if not all(_usable_id(name) for name in [*ids, *replaced, *feed.removed_feed_ids]):
         raise FeedError("feed has an unusable transaction id")
     for item in feed.transactions:
-        if not _description(item.description):
+        if not fit(item.description, DESCRIPTION_LIMIT):
             raise FeedError("feed has an empty description")
         try:
             validate_last4(item.card_last4)
@@ -118,9 +112,7 @@ def _statement_rows(
             session, account_id, amount, min(days) - reach, max(days) + reach
         )
         rows.update((row.id, row) for row in found)
-    periods = [
-        (item.period_start, item.period_end) for item in list_statements(session, account_id)
-    ]
+    periods = statement_periods(session, account_id)
     pairs = match_one_to_one(
         [
             MatchItem(
@@ -157,7 +149,7 @@ def apply_feed(session: Session, account_id: int, feed: AccountFeed) -> FeedPull
     partners = _statement_rows(session, account_id, settling)
 
     for index, item in enumerate(feed.transactions):
-        description = _description(item.description)
+        description = fit(item.description, DESCRIPTION_LIMIT)
         key, stored = _resolve(item, stored_by_id)
         if _settles(item, stored):
             statement_row = partners.get(index)

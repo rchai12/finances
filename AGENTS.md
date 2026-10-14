@@ -45,7 +45,7 @@ This file applies to every phase. Read it, then `docs/architecture.md`, then the
 - MCP tools are read-only until Phase 19. From then on a tool may write only what its spec lists, and never an amount, date, balance, account, import, deletion, or sync.
 - Business logic (ingest, sync, categorize, analysis) must be callable without a CLI and testable without a real database where practical.
 - Database access goes through SQLAlchemy 2.0 style code in `src/finances/db/`. No dialect-specific SQL.
-- Every text value written fits its column. SQLite does not enforce `String(n)` lengths, so check or cut each value before it is stored: refuse what a person typed (with a message naming the limit), cut what came from a statement or the feed.
+- Every text value written fits its column. SQLite does not enforce `String(n)` lengths, so check or cut each value before it is stored: refuse what a person typed (with a message naming the limit), cut what came from a statement or the feed. Use `finances.domain.text`: `fit` for text from a statement or the feed, and its limits for the widths.
 - Every schema change ships as an Alembic migration. Never edit a migration that a previous phase already shipped.
 - All configuration comes from `finances.config.get_settings()` (environment variables with prefix `FIN_`). No hardcoded paths, no secrets in code. The aggregator token lives in the OS keyring only.
 - Use `pathlib.Path`. Development and deployment happen on macOS; code must also run on Windows.

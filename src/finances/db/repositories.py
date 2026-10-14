@@ -42,11 +42,13 @@ from finances.domain.models import (
     Transaction,
     validate_currency,
     validate_last4,
+    validate_provider_account_id,
 )
-from finances.domain.people import NAME_LIMIT, normalize_cardholder, validate_person_name
+from finances.domain.people import JOINT, normalize_cardholder, validate_person_name
+from finances.domain.text import NAME_LIMIT, fit
 
 _FINGERPRINT_CHUNK = 500
-ACCOUNT_TEXT_LIMIT = 100
+_ACCOUNT_TYPES = tuple(item.value for item in AccountType)
 
 
 class AccountExistsError(Exception):
@@ -74,6 +76,9 @@ def create_account(
     last4: str | None = None,
 ) -> Account:
     """Add an account and return it. The caller commits."""
+    if account_type not in _ACCOUNT_TYPES:
+        raise ValueError(f"type must be one of: {', '.join(_ACCOUNT_TYPES)}")
+
     # Clean the name and institution by removing outer spaces
     clean_name = name.strip()
     clean_institution = institution.strip()
@@ -83,10 +88,10 @@ def create_account(
         raise ValueError("account name must not be empty")
     if not clean_institution:
         raise ValueError("institution must not be empty")
-    if len(clean_name) > ACCOUNT_TEXT_LIMIT:
-        raise ValueError(f"account name must be at most {ACCOUNT_TEXT_LIMIT} characters")
-    if len(clean_institution) > ACCOUNT_TEXT_LIMIT:
-        raise ValueError(f"institution must be at most {ACCOUNT_TEXT_LIMIT} characters")
+    if len(clean_name) > NAME_LIMIT:
+        raise ValueError(f"account name must be at most {NAME_LIMIT} characters")
+    if len(clean_institution) > NAME_LIMIT:
+        raise ValueError(f"institution must be at most {NAME_LIMIT} characters")
 
     # Check if an account with this name already exists (case-insensitive comparison)
     stmt = select(AccountRow).where(func.lower(AccountRow.name) == clean_name.lower())
@@ -99,14 +104,7 @@ def create_account(
     if last4 is not None:
         validate_last4(last4)
 
-    # Determine the type value to store (either from AccountType enum or string)
-    if isinstance(account_type, AccountType):
-        type_value = account_type.value
-    else:
-        # Validate that account_type is a valid one, this will raise ValueError if invalid
-        validated_type = AccountType(account_type)
-        type_value = validated_type.value
-
+    type_value = AccountType(account_type).value
     validate_currency(currency)
 
     # Create new account row
@@ -552,6 +550,11 @@ def link_feed_transaction(
     session.flush()
 
 
+def statement_periods(session: Session, account_id: int) -> list[tuple[date, date]]:
+    """Return the first and last day of each of the account's stored statements."""
+    return [(item.period_start, item.period_end) for item in list_statements(session, account_id)]
+
+
 def statement_covers(session: Session, account_id: int, day: date) -> bool:
     """Return whether a stored statement of the account has day inside its period."""
     stmt = (
@@ -573,6 +576,7 @@ def map_feed_account(
 
     The caller commits.
     """
+    provider_account_id = validate_provider_account_id(provider_account_id)
     taken = session.scalars(
         select(FeedAccountRow).where(
             FeedAccountRow.link == link,
@@ -604,11 +608,6 @@ def list_feed_accounts(session: Session, link: str | None = None) -> list[FeedAc
     return [to_feed_account(row) for row in session.scalars(stmt).all()]
 
 
-def _feed_text(text: str) -> str:
-    """Text from the feed, cut to fit its column."""
-    return " ".join(text.split())[:ACCOUNT_TEXT_LIMIT].rstrip()
-
-
 def record_seen_feed_account(
     session: Session, link: str, provider_account_id: str, name: str, institution: str, day: date
 ) -> None:
@@ -630,8 +629,8 @@ def record_seen_feed_account(
         session.add(row)
     else:
         row.last_seen = max(row.last_seen, day)
-    row.name = _feed_text(name)
-    row.institution = _feed_text(institution)
+    row.name = fit(name, NAME_LIMIT)
+    row.institution = fit(institution, NAME_LIMIT)
     session.flush()
 
 
@@ -712,6 +711,16 @@ def get_person_by_name(session: Session, name: str) -> Person | None:
     stmt = select(PersonRow).where(func.lower(PersonRow.name) == name.strip().lower())
     row = session.scalars(stmt).first()
     return to_person(row) if row is not None else None
+
+
+def resolve_owner(session: Session, owner: str) -> Person | None:
+    """Return the person an owner field names, or None for Joint. Raise when there is none."""
+    if owner.strip().lower() == JOINT.lower():
+        return None
+    person = get_person_by_name(session, owner)
+    if person is None:
+        raise ValueError("person not found")
+    return person
 
 
 def list_people(session: Session) -> list[Person]:
