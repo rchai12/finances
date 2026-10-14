@@ -30,7 +30,7 @@ Status: Phases 1 and 2 are built. The specs for Phases 3 to 10 were written befo
 | 18 | *Removed* | Was "Azure deployment". The app stays on the household's machine | |
 | 19 | Agent write tools | MCP tools that write the interpretation layer only, tagged, reversible, with `fin review` | outline below |
 | 20 | Remote access | Web UI login and hardening so the app can sit behind a private VPN | outline below |
-| 21 | People and ownership | The household's people; each account owned by one person or joint; statement cardholder names mapped to people; every view filterable by person, bank, and card | outline below |
+| 21 | People and ownership | The household's people; each account owned by one person or joint; statement cardholder names mapped to people; every view filterable by person, bank, and card | [phase-21](phases/phase-21-people-and-ownership.md) |
 
 Phase numbers are stable. A removed phase keeps its number, and a phase that is too large for one coding session is split into lettered sub-phases (`2a`, `2b`, ...), never renumbered.
 

@@ -45,7 +45,9 @@ def test_every_table_keeps_each_row_on_one_line(env: dict[str, str], inbox: Path
 
     result = runner.invoke(app, ["accounts", "list"])
     assert result.exit_code == 0
-    assert rows(result.output) == [[NAME, "Fake Bank", "credit_card", "••1111", "yes"]]
+    assert [cells[:5] for cells in rows(result.output)] == [
+        [NAME, "Fake Bank", "credit_card", "••1111", "yes"]
+    ]
 
     result = runner.invoke(app, ["statements", "list"])
     assert result.exit_code == 0
@@ -55,7 +57,7 @@ def test_every_table_keeps_each_row_on_one_line(env: dict[str, str], inbox: Path
     assert result.exit_code == 0
     found = rows(result.output)
     assert len(found) == 4
-    assert [(len(cells), cells[1]) for cells in found] == [(6, NAME)] * 4
+    assert [(len(cells) >= 6, cells[1]) for cells in found] == [(True, NAME)] * 4
 
     result = runner.invoke(app, ["import", "folder", str(inbox)])
     assert result.exit_code == 0

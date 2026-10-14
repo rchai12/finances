@@ -55,6 +55,11 @@ def table_rows(output: str) -> list[list[str]]:
     return [cells(line) for line in output.splitlines() if line.startswith(("│", "┃"))]
 
 
+def transaction_rows(output: str) -> list[list[str]]:
+    """The first six cells of every row of the transactions table; later phases add columns."""
+    return [row[:6] for row in table_rows(output)]
+
+
 def failed_cleanly(result, message: str) -> bool:
     return (
         result.exit_code == 1
@@ -118,7 +123,7 @@ def test_transactions_list_newest_first(imported: Settings) -> None:
     result = run("transactions", "list")
     assert result.exit_code == 0
     assert result.stderr == ""
-    assert table_rows(result.stdout) == [
+    assert transaction_rows(result.stdout) == [
         TRANSACTION_HEADINGS,
         RENT,
         PAYMENT,
@@ -130,24 +135,24 @@ def test_transactions_list_newest_first(imported: Settings) -> None:
 
 def test_transactions_list_for_one_account(imported: Settings) -> None:
     result = run("transactions", "list", "--account", "TEST CHECKING")
-    assert table_rows(result.stdout) == [TRANSACTION_HEADINGS, RENT]
+    assert transaction_rows(result.stdout) == [TRANSACTION_HEADINGS, RENT]
 
 
 def test_transactions_list_between_two_dates(imported: Settings) -> None:
     result = run("transactions", "list", "--from", "2026-01-06", "--to", "2026-01-20")
-    assert table_rows(result.stdout) == [TRANSACTION_HEADINGS, PAYMENT, GROCERY]
+    assert transaction_rows(result.stdout) == [TRANSACTION_HEADINGS, PAYMENT, GROCERY]
 
 
 def test_transactions_list_from_or_to_alone(imported: Settings) -> None:
     after = run("transactions", "list", "--from", "2026-01-20")
-    assert table_rows(after.stdout) == [TRANSACTION_HEADINGS, RENT, PAYMENT]
+    assert transaction_rows(after.stdout) == [TRANSACTION_HEADINGS, RENT, PAYMENT]
     before = run("transactions", "list", "--to", "2026-01-05")
-    assert table_rows(before.stdout) == [TRANSACTION_HEADINGS, COFFEE, COFFEE]
+    assert transaction_rows(before.stdout) == [TRANSACTION_HEADINGS, COFFEE, COFFEE]
 
 
 def test_transactions_list_limit(imported: Settings) -> None:
     result = run("transactions", "list", "--limit", "2")
-    assert table_rows(result.stdout) == [TRANSACTION_HEADINGS, RENT, PAYMENT]
+    assert transaction_rows(result.stdout) == [TRANSACTION_HEADINGS, RENT, PAYMENT]
 
 
 def test_transactions_list_shows_fifty_by_default(
@@ -175,7 +180,7 @@ def test_lists_still_name_an_account_that_was_closed(imported: Settings) -> None
         ).one().is_active = False
     engine.dispose()
     assert table_rows(run("statements", "list").stdout)[2] == CARD_STATEMENT
-    assert table_rows(run("transactions", "list").stdout)[2] == PAYMENT
+    assert transaction_rows(run("transactions", "list").stdout)[2] == PAYMENT
 
 
 def test_transactions_list_leaves_a_missing_card_and_section_empty(imported: Settings) -> None:
@@ -192,7 +197,7 @@ def test_transactions_list_leaves_a_missing_card_and_section_empty(imported: Set
             )
         )
     engine.dispose()
-    rows = table_rows(run("transactions", "list", "--limit", "1").stdout)
+    rows = transaction_rows(run("transactions", "list", "--limit", "1").stdout)
     assert rows[1] == ["2026-03-01", "Test Checking", "ACME PAYROLL", "$1,234.56", "", ""]
 
 
