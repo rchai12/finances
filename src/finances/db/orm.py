@@ -20,6 +20,7 @@ from finances.domain.models import (
     AccountType,
     BalanceSnapshot,
     DataSource,
+    FeedPull,
     Statement,
     Transaction,
 )
@@ -206,4 +207,56 @@ def to_balance_snapshot(row: BalanceSnapshotRow) -> BalanceSnapshot:
         balance_cents=row.balance_cents,
         source=DataSource(row.source),
         created_at=_as_utc(row.created_at),
+    )
+
+
+class FeedItemRow(Base):
+    """One row of the feed_items table: which feed transaction a stored transaction came from."""
+
+    __tablename__ = "feed_items"
+    __table_args__ = (
+        UniqueConstraint("account_id", "feed_id", name="uq_feed_items_account_feed"),
+        UniqueConstraint("transaction_id", name="uq_feed_items_transaction_id"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    account_id: Mapped[int] = mapped_column(ForeignKey("accounts.id"), nullable=False)
+    feed_id: Mapped[str] = mapped_column(String(100), nullable=False)
+    transaction_id: Mapped[int] = mapped_column(ForeignKey("transactions.id"), nullable=False)
+
+
+class FeedPullRow(Base):
+    """One row of the feed_pulls table."""
+
+    __tablename__ = "feed_pulls"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    account_id: Mapped[int] = mapped_column(ForeignKey("accounts.id"), nullable=False, index=True)
+    inserted: Mapped[int] = mapped_column(Integer, nullable=False)
+    updated: Mapped[int] = mapped_column(Integer, nullable=False)
+    removed: Mapped[int] = mapped_column(Integer, nullable=False)
+    unchanged: Mapped[int] = mapped_column(Integer, nullable=False)
+    feed_total_cents: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    balance_cents: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
+    balance_date: Mapped[date | None] = mapped_column(Date, nullable=True)
+    drift_cents: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
+    pulled_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=_utc_now
+    )
+
+
+def to_feed_pull(row: FeedPullRow) -> FeedPull:
+    """Return the domain FeedPull for a row of the feed_pulls table."""
+    return FeedPull(
+        id=row.id,
+        account_id=row.account_id,
+        inserted=row.inserted,
+        updated=row.updated,
+        removed=row.removed,
+        unchanged=row.unchanged,
+        feed_total_cents=row.feed_total_cents,
+        balance_cents=row.balance_cents,
+        balance_date=row.balance_date,
+        drift_cents=row.drift_cents,
+        pulled_at=_as_utc(row.pulled_at),
     )

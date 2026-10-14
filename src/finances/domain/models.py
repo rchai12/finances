@@ -116,3 +116,20 @@ class BalanceSnapshot:
     balance_cents: int
     source: DataSource
     created_at: datetime
+
+
+@dataclass(frozen=True)
+class FeedPull:
+    """What applying one aggregator feed did to one account, as stored."""
+
+    id: int
+    account_id: int
+    inserted: int
+    updated: int
+    removed: int
+    unchanged: int
+    feed_total_cents: int
+    balance_cents: int | None
+    balance_date: date | None
+    drift_cents: int | None
+    pulled_at: datetime
