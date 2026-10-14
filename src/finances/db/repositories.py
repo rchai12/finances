@@ -22,6 +22,7 @@ from finances.db.orm import (
     to_transaction,
 )
 from finances.domain.models import (
+    DEFAULT_LINK,
     Account,
     AccountType,
     BalanceSnapshot,
@@ -543,10 +544,18 @@ def statement_covers(session: Session, account_id: int, day: date) -> bool:
     return session.scalars(stmt).first() is not None
 
 
-def map_feed_account(session: Session, account_id: int, provider_account_id: str) -> FeedAccount:
-    """Make the aggregator account feed the account, replacing its old one. The caller commits."""
+def map_feed_account(
+    session: Session, account_id: int, provider_account_id: str, link: str = DEFAULT_LINK
+) -> FeedAccount:
+    """Make the link's aggregator account feed the account, replacing its old one.
+
+    The caller commits.
+    """
     taken = session.scalars(
-        select(FeedAccountRow).where(FeedAccountRow.provider_account_id == provider_account_id)
+        select(FeedAccountRow).where(
+            FeedAccountRow.link == link,
+            FeedAccountRow.provider_account_id == provider_account_id,
+        )
     ).first()
     if taken is not None and taken.account_id != account_id:
         raise ValueError("feed account is already mapped to another account")
@@ -554,18 +563,23 @@ def map_feed_account(session: Session, account_id: int, provider_account_id: str
         select(FeedAccountRow).where(FeedAccountRow.account_id == account_id)
     ).first()
     if row is None:
-        row = FeedAccountRow(account_id=account_id, provider_account_id=provider_account_id)
+        row = FeedAccountRow(
+            account_id=account_id, provider_account_id=provider_account_id, link=link
+        )
         session.add(row)
     else:
         row.provider_account_id = provider_account_id
+        row.link = link
     session.flush()
     return to_feed_account(row)
 
 
-def list_feed_accounts(session: Session) -> list[FeedAccount]:
-    """Return every mapping of an aggregator account to one of ours, in id order."""
-    rows = session.scalars(select(FeedAccountRow).order_by(FeedAccountRow.id)).all()
-    return [to_feed_account(row) for row in rows]
+def list_feed_accounts(session: Session, link: str | None = None) -> list[FeedAccount]:
+    """Return every mapping, or only the link's when one is given, in id order."""
+    stmt = select(FeedAccountRow).order_by(FeedAccountRow.id)
+    if link is not None:
+        stmt = stmt.where(FeedAccountRow.link == link)
+    return [to_feed_account(row) for row in session.scalars(stmt).all()]
 
 
 def list_pending_feed_ids(session: Session, account_id: int, since: date) -> list[str]:

@@ -16,6 +16,7 @@ from sqlalchemy import (
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 from finances.domain.models import (
+    DEFAULT_LINK,
     Account,
     AccountType,
     BalanceSnapshot,
@@ -269,16 +270,22 @@ class FeedAccountRow(Base):
     __tablename__ = "feed_accounts"
     __table_args__ = (
         UniqueConstraint("account_id", name="uq_feed_accounts_account_id"),
-        UniqueConstraint("provider_account_id", name="uq_feed_accounts_provider_account_id"),
+        UniqueConstraint(
+            "link", "provider_account_id", name="uq_feed_accounts_link_provider_account"
+        ),
     )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     account_id: Mapped[int] = mapped_column(ForeignKey("accounts.id"), nullable=False)
     provider_account_id: Mapped[str] = mapped_column(String(200), nullable=False)
+    link: Mapped[str] = mapped_column(String(50), nullable=False, default=DEFAULT_LINK)
 
 
 def to_feed_account(row: FeedAccountRow) -> FeedAccount:
     """Return the domain FeedAccount for a row of the feed_accounts table."""
     return FeedAccount(
-        id=row.id, account_id=row.account_id, provider_account_id=row.provider_account_id
+        id=row.id,
+        account_id=row.account_id,
+        provider_account_id=row.provider_account_id,
+        link=row.link,
     )

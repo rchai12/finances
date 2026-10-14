@@ -1,8 +1,12 @@
 import io
+import socket
 from collections.abc import Callable, Iterator
 from datetime import date
 from pathlib import Path
 
+import keyring
+import keyring.backend
+import keyring.errors
 import pytest
 from pypdf import PdfReader, PdfWriter
 from sqlalchemy import Engine
@@ -18,6 +22,61 @@ from finances.ingest.statement import ParsedStatement, Section, StatementError, 
 _ENV_KEYS = ("FIN_ENVIRONMENT", "FIN_DATA_DIR", "FIN_DATABASE_URL", "FIN_LOG_LEVEL")
 
 _TERMINAL_KEYS = ("FORCE_COLOR", "NO_COLOR", "TTY_COMPATIBLE", "TTY_INTERACTIVE")
+
+
+class MemoryKeyring(keyring.backend.KeyringBackend):
+    """A keychain that lives in memory, so no test reads or writes the real one."""
+
+    priority = 1
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.passwords: dict[tuple[str, str], str] = {}
+
+    def get_password(self, service: str, username: str) -> str | None:
+        return self.passwords.get((service, username))
+
+    def set_password(self, service: str, username: str, password: str) -> None:
+        self.passwords[(service, username)] = password
+
+    def delete_password(self, service: str, username: str) -> None:
+        if (service, username) not in self.passwords:
+            raise keyring.errors.PasswordDeleteError("not found")
+        del self.passwords[(service, username)]
+
+
+_LOCAL_HOSTS = ("127.0.0.1", "::1", "localhost")
+
+
+@pytest.fixture(autouse=True)
+def no_network(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Refuse every connection and name lookup that leaves the machine."""
+    real_connect = socket.socket.connect
+    real_getaddrinfo = socket.getaddrinfo
+
+    def connect(self: socket.socket, address: object) -> object:
+        host = address[0] if isinstance(address, tuple) else address
+        if host not in _LOCAL_HOSTS:
+            raise AssertionError("a test tried to use the network")
+        return real_connect(self, address)
+
+    def getaddrinfo(host: object, *args: object, **kwargs: object) -> object:
+        if host not in _LOCAL_HOSTS:
+            raise AssertionError("a test tried to use the network")
+        return real_getaddrinfo(host, *args, **kwargs)
+
+    monkeypatch.setattr(socket.socket, "connect", connect)
+    monkeypatch.setattr(socket, "getaddrinfo", getaddrinfo)
+
+
+@pytest.fixture(autouse=True)
+def keychain() -> Iterator[MemoryKeyring]:
+    """Give every test an empty keychain in memory, never the real one."""
+    previous = keyring.get_keyring()
+    store = MemoryKeyring()
+    keyring.set_keyring(store)
+    yield store
+    keyring.set_keyring(previous)
 
 
 @pytest.fixture(autouse=True)

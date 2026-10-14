@@ -6,7 +6,7 @@ from datetime import date, timedelta
 from sqlalchemy.orm import Session
 
 from finances.db.repositories import list_feed_accounts, list_pending_feed_ids
-from finances.domain.models import FeedPull
+from finances.domain.models import DEFAULT_LINK, FeedPull
 from finances.sync.feed import AccountFeed, FeedError
 from finances.sync.service import apply_feed
 from finances.sync.simplefin import ProviderAccount, Transport, fetch_accounts
@@ -55,12 +55,21 @@ def _apply(
 
 
 def run_sync(
-    session: Session, access_url: str, *, today: date, transport: Transport, days: int = SYNC_DAYS
+    session: Session,
+    access_url: str,
+    *,
+    today: date,
+    transport: Transport,
+    days: int = SYNC_DAYS,
+    link: str = DEFAULT_LINK,
 ) -> SyncReport:
-    """Fetch the last days of every account and apply each mapped one. The caller commits."""
+    """Fetch the last days of every account and apply each one mapped under the link.
+
+    The caller commits.
+    """
     since = today - timedelta(days=days)
     answer = fetch_accounts(access_url, since, today, transport)
-    mappings = list_feed_accounts(session)
+    mappings = list_feed_accounts(session, link)
     by_provider = {mapping.provider_account_id: mapping for mapping in mappings}
     results = []
     for account in answer.accounts:

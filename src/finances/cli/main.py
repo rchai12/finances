@@ -10,6 +10,7 @@ from finances.cli.common import print_table
 from finances.cli.db import app as db_app
 from finances.cli.importing import app as import_app
 from finances.cli.listing import statements_app, transactions_app
+from finances.cli.sync import app as sync_app
 from finances.config import get_settings
 from finances.diagnostics import run_checks
 from finances.log import setup_logging
@@ -20,6 +21,7 @@ app.add_typer(accounts_app, name="accounts")
 app.add_typer(import_app, name="import")
 app.add_typer(statements_app, name="statements")
 app.add_typer(transactions_app, name="transactions")
+app.add_typer(sync_app, name="sync")
 
 
 @app.callback(invoke_without_command=True)

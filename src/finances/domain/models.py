@@ -135,10 +135,14 @@ class FeedPull:
     pulled_at: datetime
 
 
+DEFAULT_LINK = "default"
+
+
 @dataclass(frozen=True)
 class FeedAccount:
-    """Which aggregator account feeds one of our accounts."""
+    """Which aggregator account feeds one of our accounts, and under which link."""
 
     id: int
     account_id: int
     provider_account_id: str
+    link: str = DEFAULT_LINK

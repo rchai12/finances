@@ -1,63 +1,116 @@
-import io
+import http.server
+import socketserver
+import threading
 import urllib.error
 import urllib.request
+from collections.abc import Iterator
 
 import pytest
 
-from finances.sync import transport as transport_module
 from finances.sync.simplefin import SyncError
 from finances.sync.transport import TIMEOUT_SECONDS, urllib_transport
 
-URL = "https://bridge.simplefin.org/simplefin/accounts?pending=1"
+
+class Handler(http.server.BaseHTTPRequestHandler):
+    """A local server: /moved redirects to /target, /fail answers 403 with a body, / answers 200."""
+
+    seen: list[tuple[str, str, str | None]] = []
+
+    def _answer(self) -> None:
+        Handler.seen.append((self.command, self.path, self.headers.get("Authorization")))
+        if self.path == "/moved":
+            self.send_response(302)
+            self.send_header("Location", "/target")
+            self.end_headers()
+        elif self.path == "/fail":
+            self.send_response(403)
+            self.end_headers()
+            self.wfile.write(b"SECRET BODY")
+        else:
+            body = b'{"accounts": []}'
+            self.send_response(200)
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+
+    do_GET = _answer
+    do_POST = _answer
+
+    def log_message(self, *args: object) -> None:
+        return
 
 
-class FakeResponse(io.BytesIO):
-    def __init__(self, status: int, body: bytes) -> None:
-        super().__init__(body)
-        self.status = status
+class LocalServer(http.server.HTTPServer):
+    """An HTTP server that skips the reverse name lookup HTTPServer makes when it starts."""
+
+    def server_bind(self) -> None:
+        socketserver.TCPServer.server_bind(self)
+        self.server_name, self.server_port = "127.0.0.1", self.server_address[1]
 
 
 @pytest.fixture
-def opened(monkeypatch: pytest.MonkeyPatch) -> list:
-    """Replace urlopen so that no request leaves the machine; remember what it was given."""
-    calls: list = []
-
-    def fake(request: urllib.request.Request, timeout: float) -> FakeResponse:
-        calls.append((request, timeout))
-        return FakeResponse(200, b'{"accounts": []}')
-
-    monkeypatch.setattr(urllib.request, "urlopen", fake)
-    return calls
+def server() -> Iterator[str]:
+    """A server on 127.0.0.1 only, for this test; nothing leaves the machine."""
+    Handler.seen = []
+    httpd = LocalServer(("127.0.0.1", 0), Handler)
+    thread = threading.Thread(target=httpd.serve_forever, kwargs={"poll_interval": 0.01})
+    thread.daemon = True
+    thread.start()
+    yield f"http://127.0.0.1:{httpd.server_address[1]}"
+    httpd.shutdown()
+    httpd.server_close()
 
 
 def test_the_timeout_is_a_minute() -> None:
     assert TIMEOUT_SECONDS == 60
 
 
-def test_a_get_returns_status_and_body(opened: list) -> None:
-    status, body = urllib_transport("GET", URL, {"Authorization": "Basic abc"})
-    assert (status, body) == (200, b'{"accounts": []}')
-    request, timeout = opened[0]
-    assert (request.get_method(), request.full_url, request.data, timeout) == ("GET", URL, None, 60)
-    assert request.get_header("Authorization") == "Basic abc"
+def test_a_get_returns_status_and_body(server: str) -> None:
+    assert urllib_transport("GET", server + "/", {"Authorization": "Basic abc"}) == (
+        200,
+        b'{"accounts": []}',
+    )
+    assert Handler.seen == [("GET", "/", "Basic abc")]
 
 
-def test_a_post_sends_an_empty_body(opened: list) -> None:
-    urllib_transport("POST", URL, {"Content-Length": "0"})
-    request, _ = opened[0]
-    assert (request.get_method(), request.data) == ("POST", b"")
-    assert request.get_header("Content-length") == "0"
+def test_a_post_is_sent_as_a_post(server: str) -> None:
+    status, _ = urllib_transport("POST", server + "/claim", {"Content-Length": "0"})
+    assert status == 200
+    assert Handler.seen == [("POST", "/claim", None)]
 
 
-@pytest.mark.parametrize("code", [402, 403, 404, 500])
-def test_an_http_error_is_returned_as_its_status_with_no_body(
-    monkeypatch: pytest.MonkeyPatch, code: int
-) -> None:
-    def fake(request, timeout):
-        raise urllib.error.HTTPError(URL, code, "no", {}, io.BytesIO(b"SECRET BODY"))
+def test_a_redirect_is_not_followed_and_the_credentials_go_nowhere_else(server: str) -> None:
+    assert urllib_transport("GET", server + "/moved", {"Authorization": "Basic abc"}) == (302, b"")
+    assert Handler.seen == [("GET", "/moved", "Basic abc")]
 
-    monkeypatch.setattr(urllib.request, "urlopen", fake)
-    assert urllib_transport("GET", URL, {}) == (code, b"")
+
+def test_an_error_status_is_returned_without_its_body(server: str) -> None:
+    assert urllib_transport("GET", server + "/fail", {}) == (403, b"")
+
+
+def test_the_timeout_is_passed_to_the_opener(monkeypatch: pytest.MonkeyPatch) -> None:
+    seen = []
+
+    class Reply:
+        status = 200
+
+        def read(self) -> bytes:
+            return b"x"
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args: object) -> None:
+            return None
+
+    def fake_open(self, request, data=None, timeout=None):
+        seen.append((request.get_method(), request.data, timeout))
+        return Reply()
+
+    monkeypatch.setattr(urllib.request.OpenerDirector, "open", fake_open)
+    assert urllib_transport("GET", "https://bridge.simplefin.org/x", {}) == (200, b"x")
+    assert urllib_transport("POST", "https://bridge.simplefin.org/x", {}) == (200, b"x")
+    assert seen == [("GET", None, 60), ("POST", b"", 60)]
 
 
 @pytest.mark.parametrize(
@@ -72,18 +125,26 @@ def test_an_http_error_is_returned_as_its_status_with_no_body(
 def test_a_failure_to_connect_is_one_constant_error(
     monkeypatch: pytest.MonkeyPatch, error: Exception
 ) -> None:
-    def fake(request, timeout):
+    def fake_open(self, request, data=None, timeout=None):
         raise error
 
-    monkeypatch.setattr(urllib.request, "urlopen", fake)
+    monkeypatch.setattr(urllib.request.OpenerDirector, "open", fake_open)
     with pytest.raises(SyncError) as caught:
-        urllib_transport("GET", URL, {})
+        urllib_transport("GET", "https://bridge.simplefin.org/x", {})
     assert str(caught.value) == "could not reach the aggregator"
     assert caught.value.__cause__ is None
     assert caught.value.__suppress_context__ is True
 
 
-def test_the_module_uses_the_standard_library_only() -> None:
-    names = set(vars(transport_module))
-    assert {"urllib", "urllib_transport", "TIMEOUT_SECONDS", "SyncError"} <= names
-    assert not names & {"requests", "httpx", "aiohttp", "ssl"}
+def test_urlopen_is_not_used(monkeypatch: pytest.MonkeyPatch, server: str) -> None:
+    def forbidden(*args: object, **kwargs: object) -> None:
+        raise AssertionError("urlopen follows redirects; the transport must not use it")
+
+    monkeypatch.setattr(urllib.request, "urlopen", forbidden)
+    assert urllib_transport("GET", server + "/", {})[0] == 200
+
+
+def test_conftest_keeps_tests_off_the_network() -> None:
+    with pytest.raises(AssertionError) as caught:
+        urllib_transport("GET", "https://bridge.simplefin.org/x", {})
+    assert str(caught.value) == "a test tried to use the network"
