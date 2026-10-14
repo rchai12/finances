@@ -39,37 +39,47 @@ Unless the spec adds more, run before you report:
 
 ### Report
 
-Add an entry at the end of `docs/progress.md`:
+Add an entry at the end of `docs/progress.md` in exactly this form. Every field is one line, or `None`; the architect reads these fields instead of your final message, so keep them short and literal.
 
 ```markdown
 ## Phase NN: <the spec's title> (YYYY-MM-DD)
-- Built: ... (give N and the final passed count)
-- Deviations from spec (and why): ... (your design choices and anything the spec did not ask for, or None)
-- Follow-ups / known issues: ...
+- Tests: <N> -> <passed after> (given <the spec's given count>)
+- New public names: `<module>`: `<name>`, `<name>`; `<module>`: `<name>` (or None)
+- Changed files: <how many paths git status --short lists>
+- Deviations:
+  - <one line each: a choice the spec left open, or anything the spec did not ask for> (or None)
+- Follow-ups:
+  - <one line each: something the next phase or the architect should know> (or None)
 ```
 
 In your final message give the last ten lines of `scripts/check.py`'s output, the output line of each other acceptance command, and for each requirement the name of a test (or the probe line) that covers it.
 
 ## For the verifier
 
-- Do not modify any file in the repository. Report findings only. The work under review is uncommitted: "the diff" is `git status --short` plus `git diff HEAD`.
+- Do not modify any file in the repository, except to write your report (below). Report findings only. The work under review is uncommitted: "the diff" is `git status --short` plus `git diff HEAD`, read before you write the report.
 - Run the guide's gates exactly as written, from the repository root.
 - **Scope audit**: `git status --short` shows only the spec's Scope paths; given files are identical to the blocks in the spec; no existing test, earlier migration, or unlisted module changed.
 - Save the guide's probe script **outside the repository**, run it from the repository root with `.venv/bin/python <path>`, and delete it afterwards. Every line must end in `ok`; the last line must be `FAILURES 0`.
 - Judge code by what it does, never by resemblance to another way of writing it.
 
-### Verdict
+### Report and verdict
 
-`PASS`, or `FAIL` followed by one line per finding:
+Write your report to `docs/reviews/<the spec's file name>` (for `docs/phases/phase-11b-categories-on-the-web.md`, `docs/reviews/phase-11b-categories-on-the-web.md`), creating the folder if needed. It is the only file you write; the owner commits it with the phase. It starts with this block, each field on one line:
+
+```markdown
+# Review: Phase NN
+
+- Verdict: PASS (or FAIL)
+- Passed: <the count from the tests step>
+- Findings: <how many>
+- Approved deviations: <one line, or None>
+- For the architect: <one line the architect should act on, or None>
+```
+
+Then, under `## Findings`, one line per finding in this form, or `None`:
 
 `<requirement id or section> | <file>:<line> | expected <...> | found <...>`
 
-Then:
-
-`Total passed: <the count from the tests step>`
-
-`Parts that needed a repair: <none, or the parts>`
-
-`Built beyond the spec: <none, or what>`
+Then `Parts that needed a repair: <none, or the parts>` and `Built beyond the spec: <none, or what>`, and after that any detail you think useful (gate output, probe output).
 
 If the verdict is FAIL, send the coder each finding as: the requirement, what was observed, and what is required. Do not prescribe the code.
