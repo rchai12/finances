@@ -66,7 +66,7 @@ def session(db_engine: Engine):
 
 def test_feed_account_fields_in_order_and_frozen() -> None:
     names = [field.name for field in dataclasses.fields(FeedAccount)]
-    assert names == ["id", "account_id", "provider_account_id"]
+    assert names[:3] == ["id", "account_id", "provider_account_id"]
     mapping = FeedAccount(1, 2, "ACT-X")
     with pytest.raises(dataclasses.FrozenInstanceError):
         mapping.account_id = 3  # type: ignore[misc]

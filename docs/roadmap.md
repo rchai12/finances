@@ -6,7 +6,7 @@ Each phase is sized for one focused coding session: a few modules, their tests, 
 
 Status: Phases 1 and 2 are built. The specs for Phases 3 to 10 were written before the small-phase rules and before the agent redesign. Each is re-issued as lettered sub-phases, with a verification guide, before the coder receives it. Phases 11 and later are outlines.
 
-**Build order:** 2 → 3 → 4 → 17a → 8 → 17b (when the provider is chosen; it can come at any point after 17a) → 9 → 10 → 11 → 12 → 13 → 14 → 19 → 16 → 20. Phases 5 and 6 (more statement parsers) can be built any time after 4, when audit coverage for those banks is wanted.
+**Build order:** 2 → 3 → 4 → 17a → 8 → 17b → 17c → 21 → 9 → 10 → 11 → 12 → 13 → 14 → 19 → 16 → 20. Phases 5 and 6 (more statement parsers) can be built any time after 4, when audit coverage for those banks is wanted.
 
 | # | Phase | Outcome | Spec |
 |---|---|---|---|
@@ -26,10 +26,11 @@ Status: Phases 1 and 2 are built. The specs for Phases 3 to 10 were written befo
 | 14 | Agent interface (MCP server) | Read-only MCP tools over stdio for the finance subagent: accounts, balances, transactions, reports, findings, data coverage | outline below |
 | 15 | *Removed* | Was "LLM advice". Advice now comes from the external agent | |
 | 16 | Local web UI | FastAPI dashboard on 127.0.0.1, statement upload, review of agent writes | outline below |
-| 17 | Aggregator sync | Daily pull of transactions and balances into provisional rows; the only network code | [phase-17a](phases/phase-17a-feed-core.md) (feed core), [phase-17b](phases/phase-17b-simplefin-sync.md) (SimpleFIN client and sync); 17c (commands and Keychain) outlined below |
+| 17 | Aggregator sync | Daily pull of transactions and balances into provisional rows; the only network code | [phase-17a](phases/phase-17a-feed-core.md) (feed core), [phase-17b](phases/phase-17b-simplefin-sync.md) (SimpleFIN client and sync), [phase-17c](phases/phase-17c-sync-commands.md) (links, commands, Keychain) |
 | 18 | *Removed* | Was "Azure deployment". The app stays on the household's machine | |
 | 19 | Agent write tools | MCP tools that write the interpretation layer only, tagged, reversible, with `fin review` | outline below |
 | 20 | Remote access | Web UI login and hardening so the app can sit behind a private VPN | outline below |
+| 21 | People and ownership | The household's people; each account owned by one person or joint; statement cardholder names mapped to people; every view filterable by person, bank, and card | outline below |
 
 Phase numbers are stable. A removed phase keeps its number, and a phase that is too large for one coding session is split into lettered sub-phases (`2a`, `2b`, ...), never renumbered.
 
@@ -86,6 +87,13 @@ Testing rules for every phase are in [testing.md](testing.md). Each later phase 
 
 ## Outlines
 
+### Phase 21: People and ownership
+- Decided with the owner: separation by person is for **views and reports**, not privacy between the two people; both see everything.
+- Table `people` (name). Each account is owned by one person or is **Joint**, kept in its own table so the `accounts` table and its tests stay as they are.
+- Statement cardholder names (`JANE DOE` on a shared card) map to people through an alias table. A purchase belongs to the cardholder's person when the statement names one, otherwise to the account's owner, otherwise to Joint.
+- Commands: `fin people add/list`, `fin people alias --person NAME --cardholder "TEXT"`, `fin accounts set-owner --account NAME --owner PERSON|joint`; `fin accounts list` and `fin transactions list` gain an owner or person column and a `--person` filter.
+- SimpleFIN links (17c) stay independent labels: a link is whose SimpleFIN subscription it is, not who owns each account in it.
+
 ### Phase 11: Categorization and transfers
 - Tables: `categories` (with `is_sensitive`, `is_transfer`, `is_income` flags), `category_rules` (pattern, match type, priority), `merchants` (display name, kind: national_chain / local / p2p / unknown).
 - Seed a default category tree (Groceries, Dining, Coffee & Dessert, Subscriptions & Digital, Shopping, Travel, Gas, Parking, Utilities & Internet, Health*, Insurance, Entertainment, Gaming, Fees & Interest, Transfers, Income...). *sensitive.
@@ -100,7 +108,7 @@ Testing rules for every phase are in [testing.md](testing.md). Each later phase 
 ### Phase 12: Core reports
 - Pure functions in `analysis/` returning dataclasses (reused by the web UI).
 - Balances per account from latest statement snapshot; net worth (cash minus card debt).
-- Spending by category and by merchant for a month or range, using `transaction_date` when present; spending by cardholder (household of two).
+- Spending by category and by merchant for a month or range, using `transaction_date` when present; spending by person (Phase 21: the cardholder's person when the statement names one, otherwise the account's owner, otherwise Joint), by bank, and by card.
 - Month-over-month change. Statement periods do not align with calendar months; reports use calendar months and say when a month is only partly covered.
 
 ### Phase 13: Insights engine
@@ -113,8 +121,8 @@ Testing rules for every phase are in [testing.md](testing.md). Each later phase 
 - New package `src/finances/mcp_server/`; new dependency: the official `mcp` Python SDK. `fin mcp serve` runs the server on **stdio only** (no HTTP transport, no port).
 - Read-only tools, each a thin wrapper over one existing function in `analysis` or `db`:
   - `list_accounts`, `get_balances`, `get_net_worth`
-  - `list_transactions` (filters: account, date range, category, merchant, cardholder, text; hard row cap with paging)
-  - `spending_by_category`, `spending_by_merchant`, `spending_by_cardholder`, `month_over_month`
+  - `list_transactions` (filters: account, bank, card, person, date range, category, merchant, text; hard row cap with paging)
+  - `spending_by_category`, `spending_by_merchant`, `spending_by_person`, `month_over_month`
   - `list_findings` (the Phase 13 insights), `merchant_stats`
   - `data_coverage`: per account, the periods covered, the date of the newest data, which periods are statement-audited, and any sync drift, so the agent can say when its answer rests on stale or partial months
 - Results: integer cents, ISO dates, holder-perspective signs, raw merchant and cardholder names. Tool descriptions state the sign convention and units, since the agent reads them.
@@ -133,7 +141,7 @@ The app no longer calls an LLM. The finance subagent of the overarching agent pr
 ### Phase 17: Aggregator sync
 - **17a, the feed core, is specified** and needs no provider: a provider-neutral `AccountFeed` (transactions, removed ids, a balance) is stored by `apply_feed` as provisional rows, with pending rows replaced in place, statement-confirmed rows left alone, and balance drift recorded per pull in `feed_pulls`. The provider's transaction id lives in `feed_items`, not on `transactions`. It unblocks Phase 8.
 - **17b, the SimpleFIN client and sync, is specified**: claiming a setup token, one request for every account's last 30 days with holds, reading both protocol versions, mapping SimpleFIN accounts to ours (`feed_accounts`), and `run_sync`. All network code is one function in `sync/transport.py`.
-- **17c, the commands**: `fin sync link` (asks for the setup token, stores the access URL in the macOS Keychain with `keyring`), `fin sync accounts` and `fin sync map`, `fin sync run`, `fin sync status`, `fin sync unlink`; the upgraded and dropped counts of Phase 8 in `fin import statement`; a `launchd` example for a daily run.
+- **17c, links and commands**: several named SimpleFIN links, one per person's subscription (migration `0005` adds `feed_accounts.link`; the same SimpleFIN id under two links becomes two mappings; existing signatures gain `link` as a keyword with a default, so 17b's tests keep passing); requests that refuse redirects, so the access credentials can only reach the access URL's host (a follow-up Grok raised in 17b); `fin sync link --link NAME` (asks for the setup token, stores the access URL in the macOS Keychain with `keyring`, one entry per link), `fin sync accounts`, `fin sync map`, `fin sync run`, `fin sync status`, `fin sync unlink`; a `launchd` example for a daily run. The upgraded and dropped counts of Phase 8 in `fin import statement` may move to a small follow-up if 17c is too large.
 - All network code in `src/finances/sync/`, behind a small `FeedClient` protocol so tests use a fake client and recorded synthetic responses. No test touches the network.
 - Access token in the macOS Keychain (via `keyring`), never in the database, `.env`, or logs. `fin sync link` stores it; `fin sync run` pulls; `fin sync status` shows the last successful pull per account and any connection that needs re-linking.
 - Rows are inserted with `source = aggregator`, provisional, deduplicated on the provider's transaction id. Pending transactions are stored as pending and replaced when they post; they are excluded from spending until then.

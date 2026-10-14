@@ -108,10 +108,11 @@ def test_columns_keys_and_constraints(at_0004: str) -> None:
     assert reflect(at_0004, "feed_accounts", "get_indexes") == []
 
 
-def test_the_orm_class_matches_the_migrated_table(at_0004: str) -> None:
+def test_the_orm_class_starts_with_the_columns_of_0004(at_0004: str) -> None:
+    """Later migrations may add columns and change constraints; 0004's columns stay first."""
     declared = Base.metadata.tables["feed_accounts"]
     assert FeedAccountRow.__table__ is declared
-    assert [(c.name, c.nullable) for c in declared.columns] == [
+    assert [(c.name, c.nullable) for c in declared.columns][: len(COLUMNS)] == [
         (name, nullable) for name, _, nullable in COLUMNS
     ]
     found = {
@@ -119,20 +120,24 @@ def test_the_orm_class_matches_the_migrated_table(at_0004: str) -> None:
         for constraint in declared.constraints
         if type(constraint).__name__ == "UniqueConstraint"
     }
-    assert found == {(name, tuple(columns)) for name, columns in UNIQUES}
+    assert ("uq_feed_accounts_account_id", ("account_id",)) in found
 
 
 def test_one_mapping_per_account_and_per_aggregator_account(with_accounts: str) -> None:
+    """Rows are written with plain SQL, so the test holds whatever columns the ORM gains later."""
+    insert = text(
+        "INSERT INTO feed_accounts (account_id, provider_account_id) VALUES (:account, :provider)"
+    )
     engine = get_engine(with_accounts)
     with session_scope(engine) as session:
-        session.add(FeedAccountRow(account_id=1, provider_account_id="ACT-1"))
-        session.add(FeedAccountRow(account_id=2, provider_account_id="ACT-2"))
+        session.execute(insert, {"account": 1, "provider": "ACT-1"})
+        session.execute(insert, {"account": 2, "provider": "ACT-2"})
     with pytest.raises(IntegrityError), session_scope(engine) as session:
-        session.add(FeedAccountRow(account_id=1, provider_account_id="ACT-3"))
+        session.execute(insert, {"account": 1, "provider": "ACT-3"})
     with pytest.raises(IntegrityError), session_scope(engine) as session:
-        session.add(FeedAccountRow(account_id=2, provider_account_id="ACT-1"))
+        session.execute(insert, {"account": 2, "provider": "ACT-1"})
     with pytest.raises(IntegrityError), session_scope(engine) as session:
-        session.add(FeedAccountRow(account_id=99, provider_account_id="ACT-9"))
+        session.execute(insert, {"account": 99, "provider": "ACT-9"})
     engine.dispose()
 
 

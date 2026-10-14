@@ -156,6 +156,12 @@ Details are in the phase specs. Core tables:
 
 Transfers between the household's own accounts (card payments from checking, moves between checking and savings) must be excluded from spending, or spending is double-counted. Phase 11 handles this.
 
+## People
+
+The household has two people and several shared cards. Every account is owned by one person or is joint, and every purchase can be attributed to a person: the cardholder printed on the statement when there is one, otherwise the account's owner. Reports and the agent's tools can filter and group by person, bank, and card. This is a view, not access control: both people see everything (Phase 21).
+
+Each person may have their own SimpleFIN subscription, since one person's bank logins are not the other's. The app therefore keeps several named SimpleFIN links, each with its own access URL in the Keychain, and maps each SimpleFIN account under a link to one of ours (Phase 17c; Phase 17b shipped with a single, unnamed link).
+
 ## Open decisions
 
 - **Aggregator provider: decided, SimpleFIN Bridge** (Phase 17b). Still to confirm by linking: that all five banks connect, and the sign SimpleFIN gives a card balance (the drift check of Phase 17a will show a wrong sign). SimpleFIN reports pending transactions but no per-card identifier, so the cardholder on shared cards still comes from statements. As understood, SimpleFIN Bridge gets its bank connections from a larger aggregator, so two companies see the transactions.
