@@ -20,6 +20,7 @@ from finances.domain.models import (
     AccountType,
     BalanceSnapshot,
     DataSource,
+    FeedAccount,
     FeedPull,
     Statement,
     Transaction,
@@ -259,4 +260,25 @@ def to_feed_pull(row: FeedPullRow) -> FeedPull:
         balance_date=row.balance_date,
         drift_cents=row.drift_cents,
         pulled_at=_as_utc(row.pulled_at),
+    )
+
+
+class FeedAccountRow(Base):
+    """One row of the feed_accounts table: which aggregator account feeds one of ours."""
+
+    __tablename__ = "feed_accounts"
+    __table_args__ = (
+        UniqueConstraint("account_id", name="uq_feed_accounts_account_id"),
+        UniqueConstraint("provider_account_id", name="uq_feed_accounts_provider_account_id"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    account_id: Mapped[int] = mapped_column(ForeignKey("accounts.id"), nullable=False)
+    provider_account_id: Mapped[str] = mapped_column(String(200), nullable=False)
+
+
+def to_feed_account(row: FeedAccountRow) -> FeedAccount:
+    """Return the domain FeedAccount for a row of the feed_accounts table."""
+    return FeedAccount(
+        id=row.id, account_id=row.account_id, provider_account_id=row.provider_account_id
     )

@@ -9,12 +9,14 @@ from sqlalchemy.orm import Session
 from finances.db.orm import (
     AccountRow,
     BalanceSnapshotRow,
+    FeedAccountRow,
     FeedItemRow,
     FeedPullRow,
     StatementRow,
     TransactionRow,
     to_account,
     to_balance_snapshot,
+    to_feed_account,
     to_feed_pull,
     to_statement,
     to_transaction,
@@ -24,6 +26,7 @@ from finances.domain.models import (
     AccountType,
     BalanceSnapshot,
     DataSource,
+    FeedAccount,
     FeedPull,
     NewTransaction,
     Statement,
@@ -538,3 +541,44 @@ def statement_covers(session: Session, account_id: int, day: date) -> bool:
         .limit(1)
     )
     return session.scalars(stmt).first() is not None
+
+
+def map_feed_account(session: Session, account_id: int, provider_account_id: str) -> FeedAccount:
+    """Make the aggregator account feed the account, replacing its old one. The caller commits."""
+    taken = session.scalars(
+        select(FeedAccountRow).where(FeedAccountRow.provider_account_id == provider_account_id)
+    ).first()
+    if taken is not None and taken.account_id != account_id:
+        raise ValueError("feed account is already mapped to another account")
+    row = session.scalars(
+        select(FeedAccountRow).where(FeedAccountRow.account_id == account_id)
+    ).first()
+    if row is None:
+        row = FeedAccountRow(account_id=account_id, provider_account_id=provider_account_id)
+        session.add(row)
+    else:
+        row.provider_account_id = provider_account_id
+    session.flush()
+    return to_feed_account(row)
+
+
+def list_feed_accounts(session: Session) -> list[FeedAccount]:
+    """Return every mapping of an aggregator account to one of ours, in id order."""
+    rows = session.scalars(select(FeedAccountRow).order_by(FeedAccountRow.id)).all()
+    return [to_feed_account(row) for row in rows]
+
+
+def list_pending_feed_ids(session: Session, account_id: int, since: date) -> list[str]:
+    """Return the feed ids of the account's pending aggregator rows dated since or later."""
+    stmt = (
+        select(FeedItemRow.feed_id)
+        .join(TransactionRow, TransactionRow.id == FeedItemRow.transaction_id)
+        .where(
+            TransactionRow.account_id == account_id,
+            TransactionRow.source == DataSource.AGGREGATOR.value,
+            TransactionRow.is_pending.is_(True),
+            TransactionRow.posted_date >= since,
+        )
+        .order_by(TransactionRow.id)
+    )
+    return list(session.scalars(stmt).all())

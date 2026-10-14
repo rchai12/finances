@@ -133,3 +133,12 @@ class FeedPull:
     balance_date: date | None
     drift_cents: int | None
     pulled_at: datetime
+
+
+@dataclass(frozen=True)
+class FeedAccount:
+    """Which aggregator account feeds one of our accounts."""
+
+    id: int
+    account_id: int
+    provider_account_id: str
