@@ -137,7 +137,7 @@ The app no longer calls an LLM. The finance subagent of the overarching agent pr
 ### Phase 16: Local web UI
 - Moved forward at the owner's request (2026-10-14): setup must be possible from a web page, not only the terminal. Split into sub-phases.
 - **16a, the foundation, is specified** ([phase-16a](phases/phase-16a-web-foundation.md)): `fin web serve` on 127.0.0.1 only, a host check against DNS rebinding, strict security headers, no JavaScript, and read-only pages for accounts, people, transactions, and SimpleFIN status.
-- **16b, the setup workflows**: CSRF tokens on every form; add an account, a person, an owner, a cardholder name; link SimpleFIN by pasting the setup token into a password field; list SimpleFIN's accounts with a dropdown to map each one, or to create the matching account and map it in one step; a "Sync now" button; unlink.
+- **16b, the setup workflows, is specified** ([phase-16b](phases/phase-16b-web-setup.md)): a form token on every form; add an account, a person, an owner, a cardholder name; link SimpleFIN by pasting the setup token into a password field; list SimpleFIN's accounts with a dropdown to map each one, or to create the matching account and map it in one step; a "Sync now" button; unlink.
 - Later sub-phases: statement upload, a dashboard, category editing, the review queue of agent writes. When the system moves to the Mac Studio, the site sits behind the private VPN with a login (Phase 20).
 - FastAPI + Jinja2, bound to 127.0.0.1. HTMX only if a later page needs it, served from the app itself.
 - Dashboard, transactions with category editing, insights; statement upload page that calls the same import service; sync status and a re-link prompt when a bank connection breaks; the `fin review` queue of agent writes.
