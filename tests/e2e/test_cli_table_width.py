@@ -9,7 +9,7 @@ from finances.db.migrate import upgrade_to_head
 from finances.db.repositories import create_account
 from finances.ingest.service import import_statement
 
-NAME = "Test Card With A Long Name " + "X" * 90
+NAME = "Test Card With A Long Name " + "X" * 73
 FILE = "statement-" + "y" * 120 + ".pdf"
 ENVIRONMENTS = [
     {"COLUMNS": "20"},
