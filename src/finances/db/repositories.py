@@ -3,7 +3,7 @@
 from collections.abc import Iterable
 from datetime import date
 
-from sqlalchemy import exists, func, select
+from sqlalchemy import delete, exists, func, select
 from sqlalchemy.orm import Session
 
 from finances.db.orm import (
@@ -11,15 +11,21 @@ from finances.db.orm import (
     AccountRow,
     BalanceSnapshotRow,
     CardholderAliasRow,
+    CategoryRow,
+    CategoryRuleRow,
     FeedAccountRow,
     FeedItemRow,
     FeedPullRow,
     FeedSeenAccountRow,
     PersonRow,
     StatementRow,
+    TransactionCategoryRow,
     TransactionRow,
     to_account,
     to_balance_snapshot,
+    to_category,
+    to_category_assignment,
+    to_category_rule,
     to_feed_account,
     to_feed_pull,
     to_person,
@@ -28,10 +34,15 @@ from finances.db.orm import (
     to_transaction,
 )
 from finances.domain.models import (
+    BY_RULE,
     DEFAULT_LINK,
+    MANUAL,
     Account,
     AccountType,
     BalanceSnapshot,
+    Category,
+    CategoryAssignment,
+    CategoryRule,
     DataSource,
     FeedAccount,
     FeedPull,
@@ -45,7 +56,8 @@ from finances.domain.models import (
     validate_provider_account_id,
 )
 from finances.domain.people import JOINT, normalize_cardholder, validate_person_name
-from finances.domain.text import NAME_LIMIT, fit
+from finances.domain.rules import MATCHES, normalize_pattern
+from finances.domain.text import CATEGORY_NAME_LIMIT, NAME_LIMIT, RULE_PATTERN_LIMIT, fit
 
 _FINGERPRINT_CHUNK = 500
 _ACCOUNT_TYPES = tuple(item.value for item in AccountType)
@@ -414,6 +426,7 @@ def delete_feed_transaction(session: Session, transaction_id: int) -> bool:
     if item is None:
         return False
     session.delete(item)
+    remove_category(session, transaction_id)
     session.flush()
     session.delete(session.get(TransactionRow, transaction_id))
     session.flush()
@@ -765,3 +778,171 @@ def list_cardholder_aliases(session: Session) -> dict[str, int]:
     """Map every stored cardholder name to its person's id."""
     rows = session.scalars(select(CardholderAliasRow)).all()
     return {row.cardholder: row.person_id for row in rows}
+
+
+class CategoryExistsError(Exception):
+    """Raised when a group or category with the same name already exists."""
+
+
+def list_categories(session: Session) -> list[Category]:
+    """Return every group and category, sorted by name without regard to case, then by id."""
+    stmt = select(CategoryRow).order_by(func.lower(CategoryRow.name), CategoryRow.id)
+    return [to_category(row) for row in session.scalars(stmt).all()]
+
+
+def _category_row(session: Session, name: str) -> CategoryRow | None:
+    stmt = select(CategoryRow).where(func.lower(CategoryRow.name) == name.strip().lower())
+    return session.scalars(stmt).first()
+
+
+def get_category_by_name(session: Session, name: str) -> Category | None:
+    """Return the group or category with this name, ignoring case and outer spaces, or None."""
+    row = _category_row(session, name)
+    return to_category(row) if row is not None else None
+
+
+def create_category(session: Session, name: str, group: str) -> Category:
+    """Add a category under a group, with the group's flags, and return it. The caller commits."""
+    clean = name.strip()
+    if not 1 <= len(clean) <= CATEGORY_NAME_LIMIT:
+        raise ValueError(f"a category name must be 1 to {CATEGORY_NAME_LIMIT} characters")
+    parent = _category_row(session, group)
+    if parent is None or parent.parent_id is not None:
+        raise ValueError("group not found")
+    if _category_row(session, clean) is not None:
+        raise CategoryExistsError("a category with this name already exists")
+    row = CategoryRow(
+        name=clean,
+        parent_id=parent.id,
+        is_transfer=parent.is_transfer,
+        is_income=parent.is_income,
+        is_sensitive=parent.is_sensitive,
+    )
+    session.add(row)
+    session.flush()
+    return to_category(row)
+
+
+def _leaf_category(session: Session, name: str) -> CategoryRow:
+    """Return the category with this name, refusing a group or an unknown name."""
+    row = _category_row(session, name)
+    if row is None:
+        raise ValueError("category not found")
+    if row.parent_id is None:
+        raise ValueError("rules and transactions take a category, not a group")
+    return row
+
+
+def list_rules(session: Session) -> list[CategoryRule]:
+    """Return every rule in the order they are tried: highest priority first, then by id."""
+    stmt = select(CategoryRuleRow).order_by(CategoryRuleRow.priority.desc(), CategoryRuleRow.id)
+    return [to_category_rule(row) for row in session.scalars(stmt).all()]
+
+
+def create_rule(
+    session: Session, pattern: str, category: str, match: str = "contains", priority: int = 0
+) -> CategoryRule:
+    """Add a rule with its pattern normalized and return it. The caller commits."""
+    clean = normalize_pattern(pattern)
+    if not 1 <= len(clean) <= RULE_PATTERN_LIMIT:
+        raise ValueError(f"a rule pattern must be 1 to {RULE_PATTERN_LIMIT} characters")
+    if match not in MATCHES:
+        raise ValueError(f"match must be one of: {', '.join(MATCHES)}")
+    target = _leaf_category(session, category)
+    taken = select(CategoryRuleRow).where(
+        CategoryRuleRow.match == match, CategoryRuleRow.pattern == clean
+    )
+    if session.scalars(taken).first() is not None:
+        raise ValueError("a rule with this pattern and match already exists")
+    row = CategoryRuleRow(pattern=clean, match=match, priority=priority, category_id=target.id)
+    session.add(row)
+    session.flush()
+    return to_category_rule(row)
+
+
+def delete_rule(session: Session, rule_id: int) -> None:
+    """Delete a rule and the assignments it set. The caller commits."""
+    row = session.get(CategoryRuleRow, rule_id)
+    if row is None:
+        raise ValueError("rule not found")
+    session.execute(delete(TransactionCategoryRow).where(TransactionCategoryRow.rule_id == rule_id))
+    session.delete(row)
+    session.flush()
+
+
+def list_category_assignments(session: Session) -> dict[int, CategoryAssignment]:
+    """Map each categorized transaction's id to its assignment."""
+    rows = session.scalars(select(TransactionCategoryRow)).all()
+    return {row.transaction_id: to_category_assignment(row) for row in rows}
+
+
+def _assignment_row(session: Session, transaction_id: int) -> TransactionCategoryRow | None:
+    stmt = select(TransactionCategoryRow).where(
+        TransactionCategoryRow.transaction_id == transaction_id
+    )
+    return session.scalars(stmt).first()
+
+
+def _assign(
+    session: Session, transaction_id: int, category_id: int, source: str, rule_id: int | None
+) -> None:
+    row = _assignment_row(session, transaction_id)
+    if row is None:
+        row = TransactionCategoryRow(transaction_id=transaction_id)
+        session.add(row)
+    row.category_id = category_id
+    row.source = source
+    row.rule_id = rule_id
+    session.flush()
+
+
+def assign_by_rule(session: Session, transaction_id: int, rule: CategoryRule) -> None:
+    """Store, or replace, the transaction's category as set by the rule. The caller commits."""
+    _assign(session, transaction_id, rule.category_id, BY_RULE, rule.id)
+
+
+def remove_category(session: Session, transaction_id: int) -> None:
+    """Remove the transaction's category, if it has one. The caller commits."""
+    row = _assignment_row(session, transaction_id)
+    if row is not None:
+        session.delete(row)
+        session.flush()
+
+
+def _require_transaction(session: Session, transaction_id: int) -> None:
+    if session.get(TransactionRow, transaction_id) is None:
+        raise ValueError("transaction not found")
+
+
+def set_category_by_hand(session: Session, transaction_id: int, category: str) -> Category:
+    """Set the transaction's category by hand, so rules leave it alone. The caller commits."""
+    _require_transaction(session, transaction_id)
+    target = _leaf_category(session, category)
+    _assign(session, transaction_id, target.id, MANUAL, None)
+    return to_category(target)
+
+
+def clear_category_by_hand(session: Session, transaction_id: int) -> None:
+    """Remove the transaction's category, leaving it to the rules. The caller commits."""
+    _require_transaction(session, transaction_id)
+    remove_category(session, transaction_id)
+
+
+def list_transaction_descriptions(session: Session) -> list[tuple[int, str]]:
+    """Return the id and description of every transaction, in id order."""
+    stmt = select(TransactionRow.id, TransactionRow.description).order_by(TransactionRow.id)
+    return [(row.id, row.description) for row in session.execute(stmt).all()]
+
+
+def list_uncategorized(session: Session, limit: int) -> list[Transaction]:
+    """Return transactions without a category, latest posted date first, at most limit."""
+    if limit < 1:
+        raise ValueError("limit must be at least 1")
+    categorized = exists().where(TransactionCategoryRow.transaction_id == TransactionRow.id)
+    stmt = (
+        select(TransactionRow)
+        .where(~categorized)
+        .order_by(TransactionRow.posted_date.desc(), TransactionRow.id.desc())
+        .limit(limit)
+    )
+    return [to_transaction(row) for row in session.scalars(stmt).all()]

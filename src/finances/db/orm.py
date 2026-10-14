@@ -20,6 +20,9 @@ from finances.domain.models import (
     Account,
     AccountType,
     BalanceSnapshot,
+    Category,
+    CategoryAssignment,
+    CategoryRule,
     DataSource,
     FeedAccount,
     FeedPull,
@@ -29,10 +32,12 @@ from finances.domain.models import (
     Transaction,
 )
 from finances.domain.text import (
+    CATEGORY_NAME_LIMIT,
     DESCRIPTION_LIMIT,
     FEED_ID_LIMIT,
     NAME_LIMIT,
     PROVIDER_ACCOUNT_ID_LIMIT,
+    RULE_PATTERN_LIMIT,
 )
 
 NAMING_CONVENTION = {
@@ -372,3 +377,78 @@ class CardholderAliasRow(Base):
 def to_person(row: PersonRow) -> Person:
     """Return the domain Person for a row of the people table."""
     return Person(id=row.id, name=row.name)
+
+
+class CategoryRow(Base):
+    """One row of the categories table: a group when parent_id is null, else a category."""
+
+    __tablename__ = "categories"
+    __table_args__ = (UniqueConstraint("name", name="uq_categories_name"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    name: Mapped[str] = mapped_column(String(CATEGORY_NAME_LIMIT), nullable=False)
+    parent_id: Mapped[int | None] = mapped_column(ForeignKey("categories.id"), nullable=True)
+    is_transfer: Mapped[bool] = mapped_column(Boolean, nullable=False)
+    is_income: Mapped[bool] = mapped_column(Boolean, nullable=False)
+    is_sensitive: Mapped[bool] = mapped_column(Boolean, nullable=False)
+
+
+class CategoryRuleRow(Base):
+    """One row of the category_rules table."""
+
+    __tablename__ = "category_rules"
+    __table_args__ = (UniqueConstraint("match", "pattern", name="uq_category_rules_match_pattern"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    pattern: Mapped[str] = mapped_column(String(RULE_PATTERN_LIMIT), nullable=False)
+    match: Mapped[str] = mapped_column(String(12), nullable=False)
+    priority: Mapped[int] = mapped_column(Integer, nullable=False)
+    category_id: Mapped[int] = mapped_column(ForeignKey("categories.id"), nullable=False)
+
+
+class TransactionCategoryRow(Base):
+    """One row of the transaction_categories table: a transaction's one category."""
+
+    __tablename__ = "transaction_categories"
+    __table_args__ = (
+        UniqueConstraint("transaction_id", name="uq_transaction_categories_transaction_id"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    transaction_id: Mapped[int] = mapped_column(ForeignKey("transactions.id"), nullable=False)
+    category_id: Mapped[int] = mapped_column(ForeignKey("categories.id"), nullable=False)
+    source: Mapped[str] = mapped_column(String(10), nullable=False)
+    rule_id: Mapped[int | None] = mapped_column(ForeignKey("category_rules.id"), nullable=True)
+
+
+def to_category(row: CategoryRow) -> Category:
+    """Return the domain Category for a row of the categories table."""
+    return Category(
+        id=row.id,
+        name=row.name,
+        group_id=row.parent_id,
+        is_transfer=row.is_transfer,
+        is_income=row.is_income,
+        is_sensitive=row.is_sensitive,
+    )
+
+
+def to_category_rule(row: CategoryRuleRow) -> CategoryRule:
+    """Return the domain CategoryRule for a row of the category_rules table."""
+    return CategoryRule(
+        id=row.id,
+        pattern=row.pattern,
+        match=row.match,
+        priority=row.priority,
+        category_id=row.category_id,
+    )
+
+
+def to_category_assignment(row: TransactionCategoryRow) -> CategoryAssignment:
+    """Return the domain CategoryAssignment for a row of the transaction_categories table."""
+    return CategoryAssignment(
+        transaction_id=row.transaction_id,
+        category_id=row.category_id,
+        source=row.source,
+        rule_id=row.rule_id,
+    )

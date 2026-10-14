@@ -7,6 +7,7 @@ from typing import Annotated
 import typer
 from rich.table import Table
 
+from finances.cli.categories import categorize_all
 from finances.cli.common import fail, print_table, require_current_schema
 from finances.db.engine import get_engine, session_scope
 from finances.db.repositories import (
@@ -176,6 +177,8 @@ def run_command(
     runs = run_links(
         get_engine(), links, today=_today().date(), transport=transport.urllib_transport, days=days
     )
+    if any(item.report is not None for item in runs):
+        categorize_all()
     for item in runs:
         if item.failure is not None:
             typer.echo(f"Error: {_failure_text(item)}", err=True)

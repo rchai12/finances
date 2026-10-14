@@ -6,6 +6,12 @@ from rich.table import Table
 
 from finances import __version__
 from finances.cli.accounts import app as accounts_app
+from finances.cli.categories import (
+    categories_app,
+    categorize_command,
+    rules_app,
+    uncategorized_command,
+)
 from finances.cli.common import print_table
 from finances.cli.db import app as db_app
 from finances.cli.importing import app as import_app
@@ -26,6 +32,10 @@ app.add_typer(transactions_app, name="transactions")
 app.add_typer(sync_app, name="sync")
 app.add_typer(people_app, name="people")
 app.add_typer(web_app, name="web")
+app.add_typer(categories_app, name="categories")
+app.add_typer(rules_app, name="rules")
+app.command("categorize")(categorize_command)
+app.command("uncategorized")(uncategorized_command)
 
 
 @app.callback(invoke_without_command=True)

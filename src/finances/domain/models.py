@@ -183,3 +183,40 @@ class Person:
 
     id: int
     name: str
+
+
+MANUAL = "manual"
+BY_RULE = "rule"
+
+
+@dataclass(frozen=True)
+class Category:
+    """A group of the category tree (group_id None), or a category inside one."""
+
+    id: int
+    name: str
+    group_id: int | None
+    is_transfer: bool
+    is_income: bool
+    is_sensitive: bool
+
+
+@dataclass(frozen=True)
+class CategoryRule:
+    """A merchant pattern that puts transactions in a category."""
+
+    id: int
+    pattern: str
+    match: str
+    priority: int
+    category_id: int
+
+
+@dataclass(frozen=True)
+class CategoryAssignment:
+    """A transaction's category, set by hand or by a rule."""
+
+    transaction_id: int
+    category_id: int
+    source: str
+    rule_id: int | None

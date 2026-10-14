@@ -6,6 +6,7 @@ from typing import Annotated
 import typer
 from rich.table import Table
 
+from finances.cli.categories import categorize_all
 from finances.cli.common import print_table, require_current_schema
 from finances.db.engine import get_engine, session_scope
 from finances.ingest.service import (
@@ -55,6 +56,8 @@ def statement(
             account_name=account,
             dry_run=dry_run,
         )
+    if not dry_run:
+        categorize_all()
     _report_statement(result)
 
 
@@ -69,6 +72,8 @@ def folder(
     """Import every PDF in a folder."""
     require_current_schema()
     results = import_folder(get_engine(), directory, dry_run=dry_run)
+    if not dry_run:
+        categorize_all()
     if not results:
         typer.echo("No PDF files.")
         return
