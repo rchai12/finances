@@ -62,7 +62,7 @@ SECURITY_HEADERS = {
     ),
     "x-content-type-options": "nosniff",
     "x-frame-options": "DENY",
-    "referrer-policy": "no-referrer",
+    "referrer-policy": "same-origin",
     "cache-control": "no-store",
 }
 NOT_MIGRATED = "The database is not up to date. Run: fin db upgrade"

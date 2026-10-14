@@ -24,7 +24,7 @@ def test_the_security_headers() -> None:
         ),
         "x-content-type-options": "nosniff",
         "x-frame-options": "DENY",
-        "referrer-policy": "no-referrer",
+        "referrer-policy": "same-origin",
         "cache-control": "no-store",
     }
 
