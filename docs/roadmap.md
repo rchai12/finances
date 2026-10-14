@@ -6,7 +6,7 @@ Each phase is sized for one focused coding session: a few modules, their tests, 
 
 Status: Phases 1 and 2 are built. The specs for Phases 3 to 10 were written before the small-phase rules and before the agent redesign. Each is re-issued as lettered sub-phases, with a verification guide, before the coder receives it. Phases 11 and later are outlines.
 
-**Build order:** 2 → 3 → 4 → 17 → 8 → 9 → 10 → 11 → 12 → 13 → 14 → 19 → 16 → 20. Phases 5 and 6 (more statement parsers) can be built any time after 4, when audit coverage for those banks is wanted.
+**Build order:** 2 → 3 → 4 → 17a → 8 → 17b (when the provider is chosen; it can come at any point after 17a) → 9 → 10 → 11 → 12 → 13 → 14 → 19 → 16 → 20. Phases 5 and 6 (more statement parsers) can be built any time after 4, when audit coverage for those banks is wanted.
 
 | # | Phase | Outcome | Spec |
 |---|---|---|---|
@@ -26,7 +26,7 @@ Status: Phases 1 and 2 are built. The specs for Phases 3 to 10 were written befo
 | 14 | Agent interface (MCP server) | Read-only MCP tools over stdio for the finance subagent: accounts, balances, transactions, reports, findings, data coverage | outline below |
 | 15 | *Removed* | Was "LLM advice". Advice now comes from the external agent | |
 | 16 | Local web UI | FastAPI dashboard on 127.0.0.1, statement upload, review of agent writes | outline below |
-| 17 | Aggregator sync | Daily pull of transactions and balances into provisional rows; the only network code | outline below |
+| 17 | Aggregator sync | Daily pull of transactions and balances into provisional rows; the only network code | 17a specified: [phase-17a](phases/phase-17a-feed-core.md); 17b outlined below |
 | 18 | *Removed* | Was "Azure deployment". The app stays on the household's machine | |
 | 19 | Agent write tools | MCP tools that write the interpretation layer only, tagged, reversible, with `fin review` | outline below |
 | 20 | Remote access | Web UI login and hardening so the app can sit behind a private VPN | outline below |
@@ -131,7 +131,8 @@ The app no longer calls an LLM. The finance subagent of the overarching agent pr
 - Dashboard, transactions with category editing, insights; statement upload page that calls the same import service; sync status and a re-link prompt when a bank connection breaks; the `fin review` queue of agent writes.
 
 ### Phase 17: Aggregator sync
-- Blocked on the provider choice (`architecture.md`, Open decisions).
+- **17a, the feed core, is specified** and needs no provider: a provider-neutral `AccountFeed` (transactions, removed ids, a balance) is stored by `apply_feed` as provisional rows, with pending rows replaced in place, statement-confirmed rows left alone, and balance drift recorded per pull in `feed_pulls`. The provider's transaction id lives in `feed_items`, not on `transactions`. It unblocks Phase 8.
+- **17b, the provider client and commands**, is everything below that 17a does not cover. It is blocked on the provider choice (`architecture.md`, Open decisions), and adds the mapping from a provider's accounts and signs to ours.
 - All network code in `src/finances/sync/`, behind a small `FeedClient` protocol so tests use a fake client and recorded synthetic responses. No test touches the network.
 - Access token in the macOS Keychain (via `keyring`), never in the database, `.env`, or logs. `fin sync link` stores it; `fin sync run` pulls; `fin sync status` shows the last successful pull per account and any connection that needs re-linking.
 - Rows are inserted with `source = aggregator`, provisional, deduplicated on the provider's transaction id. Pending transactions are stored as pending and replaced when they post; they are excluded from spending until then.

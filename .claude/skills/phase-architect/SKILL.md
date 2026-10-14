@@ -67,7 +67,8 @@ Record each result here, one line per phase:
 - 4 (one parser module, 18 requirements, 42 given tests on five fixtures, the coder writes the tests for errors and edge cases): built and accepted; 72 tests added. Not yet run on real statements (none on the build machine).
 - 5 (two parser modules and one shared helper, 29 requirements, 106 given tests on five fixtures, two test files left to the coder): built and accepted, 155 tests added. About twice Phase 4, so two similar modules per spec works.
 - 3e (a fix-up: one function, four modules changed to use it, 5 requirements, 24 given tests, none left to the coder): built and accepted.
-- 6 (two parser modules, 26 requirements, 94 given tests on six fixtures, two test files left to the coder): result pending. Same size as Phase 5; three parts of one layout are guesses the spec names as such.
+- 6 (two parser modules, 26 requirements, 94 given tests on six fixtures, two test files left to the coder): result pending. Same size as Phase 5; three parts of one layout are guesses the spec names as such. Built and accepted, 156 tests added.
+- 17a (one migration, nine repository functions, a new package with three types and one service function, 23 requirements, 61 given tests, two test files left to the coder): result pending. A blocked phase was split so that the half that needs no outside decision could be built; the first design added a column to `transactions` and broke 11 older tests that pin its fields, so the feed id went into its own table instead.
 
 Order sub-phases so each depends only on phases before it.
 

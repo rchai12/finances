@@ -21,3 +21,6 @@ data/samples/
 *.qfx
 *.QFX
 !tests/fixtures/**
+
+# macOS Finder
+.DS_Store

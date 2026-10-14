@@ -138,9 +138,11 @@ Raw financial data stays on the household's machine, with one known exception up
 Details are in the phase specs. Core tables:
 
 - `accounts`: one row per bank account or card account, matched to statements by last 4 digits.
-- `import_batches`: one row per imported file; for statements also the period, opening/closing balance, and whether it reconciled.
+- `statements`: one row per imported statement file, with its period, opening and closing balance, and row counts. Only reconciled statements are stored.
 - `transactions`: one row per transaction, with posted and transaction dates, section, card last4, and cardholder; deduplicated by a fingerprint.
-- `balance_snapshots`: balance of an account as of a date (from each statement, or entered manually).
+- `balance_snapshots`: balance of an account as of a date (from each statement, and from each aggregator pull).
+- `feed_items`: which aggregator transaction a stored transaction came from, so the same feed row is never stored twice and a pending row can be replaced in place (Phase 17a).
+- `feed_pulls`: one row per applied aggregator feed, with counts, the reported balance, and the balance drift (Phase 17a).
 - `categories`, `category_rules`, `merchants` (Phase 11).
 
 `transactions.source` records where a row came from: `aggregator` rows are provisional, and a reconciled statement upgrades them in place to `statement`, keeping their ids so categories and notes survive.
