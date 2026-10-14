@@ -22,16 +22,23 @@ from finances.analysis.people import (
     UNASSIGNED_FILTER,
     list_transactions_with_people,
 )
+from finances.categorize.service import categorize
 from finances.db.engine import get_engine, session_scope
 from finances.db.migrate import current_revision, head_revision
 from finances.db.repositories import (
     AccountExistsError,
+    CategoryExistsError,
     PersonExistsError,
     account_names,
+    clear_category_by_hand,
     create_account,
+    create_category,
     create_person,
+    create_rule,
+    delete_rule,
     get_account_by_name,
     get_person_by_name,
+    get_transaction,
     list_feed_accounts,
     list_feed_links,
     list_new_feed_accounts,
@@ -40,10 +47,12 @@ from finances.db.repositories import (
     resolve_owner,
     set_account_owner,
     set_cardholder_alias,
+    set_category_by_hand,
     set_feed_account_ignored,
 )
 from finances.domain.feed_setup import new_accounts
 from finances.domain.models import Account, AccountType, Transaction
+from finances.domain.rules import MATCHES
 from finances.sync import transport
 from finances.sync.links import (
     delete_access_url,
@@ -54,6 +63,13 @@ from finances.sync.links import (
 from finances.sync.runner import run_links
 from finances.sync.simplefin import SyncError, claim_access_url, fetch_accounts
 from finances.views.accounts import account_rows
+from finances.views.categories import (
+    category_choices,
+    category_lines,
+    rule_lines,
+    transaction_detail,
+    uncategorized_lines,
+)
 from finances.views.people import people_rows
 from finances.views.sync import (
     run_rows,
@@ -88,6 +104,11 @@ NOTICES = {
     "mapped": "Account mapped.",
     "ignored": "That SimpleFIN account will not be tracked.",
     "tracked": "That SimpleFIN account is offered for setup again.",
+    "category-added": "Category added.",
+    "rule-added": "Rule added, and the rules were run again.",
+    "rule-deleted": "Rule deleted, and the rules were run again.",
+    "category-set": "Category saved.",
+    "category-cleared": "Category left to the rules.",
 }
 ACCOUNT_TYPES = tuple(item.value for item in AccountType)
 
@@ -95,11 +116,15 @@ _HERE = Path(__file__).parent
 _TEMPLATES = Jinja2Templates(directory=_HERE / "templates")
 _HEADER_BYTES = [(name.encode(), value.encode()) for name, value in SECURITY_HEADERS.items()]
 _DEFAULT_LIMIT = "50"
+_UNCATEGORIZED_LIMIT = 50
 _LIMIT_MAX = 1000
 _DATE = re.compile(r"[0-9]{4}-[0-9]{2}-[0-9]{2}")
 _WHOLE = re.compile(r"[0-9]+")
+_ID = re.compile(r"[0-9]{1,18}")
+_PRIORITY = re.compile(r"-?[0-9]{1,6}")
+TRANSACTION_NOT_FOUND = "transaction not found"
 _TOKEN = re.compile(r"[A-Za-z0-9_-]{43}")
-_REFUSALS = (ValueError, SyncError, AccountExistsError, PersonExistsError)
+_REFUSALS = (ValueError, SyncError, AccountExistsError, PersonExistsError, CategoryExistsError)
 _Field = Annotated[str, Form()]
 
 
@@ -310,6 +335,81 @@ def _error_page(request: Request, message: str) -> Response:
     return _render(request, "error", {"message": message, "back": "/sync"}, status_code=400)
 
 
+def _id(text: str) -> int | None:
+    return int(text) if _ID.fullmatch(text) is not None else None
+
+
+def _priority(text: str) -> int:
+    if not text:
+        return 0
+    if _PRIORITY.fullmatch(text) is None:
+        raise ValueError("priority must be a whole number")
+    return int(text)
+
+
+def _rule_form(
+    pattern: str = "", match: str = "contains", priority: str = "0", category: str = ""
+) -> dict[str, str]:
+    return {"pattern": pattern, "match": match, "priority": priority, "category": category}
+
+
+def _categories_page(
+    request: Request,
+    *,
+    rule_form: dict[str, str] | None = None,
+    category_form: dict[str, str] | None = None,
+    error: str | None = None,
+    status_code: int = 200,
+) -> Response:
+    with _reading() as session:
+        choices = category_choices(session)
+        context = {
+            "uncategorized": uncategorized_lines(session, _UNCATEGORIZED_LIMIT),
+            "limit": _UNCATEGORIZED_LIMIT,
+            "rules": rule_lines(session),
+            "matches": MATCHES,
+            "choices": choices,
+            "rule_form": rule_form if rule_form is not None else _rule_form(),
+            "tree": category_lines(session),
+            "groups": [group for group, _ in choices],
+            "category_form": category_form or {"name": "", "group": ""},
+            "error": error,
+        }
+    return _render(request, "categories", context, status_code)
+
+
+def _missing_transaction(request: Request) -> Response:
+    context = {"message": TRANSACTION_NOT_FOUND, "back": "/transactions"}
+    return _render(request, "error", context, status_code=404)
+
+
+def _transaction_page(
+    request: Request, text: str, *, error: str | None = None, status_code: int = 200
+) -> Response:
+    transaction_id = _id(text)
+    with _reading() as session:
+        detail = None if transaction_id is None else transaction_detail(session, transaction_id)
+        choices = category_choices(session)
+    if detail is None:
+        return _missing_transaction(request)
+    context = {
+        "detail": detail,
+        "choices": choices,
+        "matches": MATCHES,
+        "rule_form": _rule_form(pattern=detail.merchant, category=detail.category),
+        "error": error,
+    }
+    return _render(request, "transactions_one", context, status_code)
+
+
+def _known_transaction(text: str) -> int | None:
+    transaction_id = _id(text)
+    if transaction_id is None:
+        return None
+    with _reading() as session:
+        return transaction_id if get_transaction(session, transaction_id) is not None else None
+
+
 def create_app(port: int) -> ASGIApp:
     """Return the web application for a server listening on HOST at this port."""
     api = FastAPI(docs_url=None, redoc_url=None, openapi_url=None)
@@ -436,10 +536,110 @@ def create_app(port: int) -> ASGIApp:
             "choices": choices,
             "special": (JOINT_FILTER, UNASSIGNED_FILTER),
             "chosen": chosen,
-            "rows": [transaction_row(item, who, names) for item, who in found],
+            "rows": [(item.id, transaction_row(item, who, names)) for item, who in found],
             "error": error,
         }
         return _render(request, "transactions", context, 200 if error is None else 400)
+
+    @api.get("/transactions/{transaction_id}")
+    def transaction(request: Request, transaction_id: str) -> Response:
+        stopped = _not_migrated(request)
+        if stopped is not None:
+            return stopped
+        return _transaction_page(request, transaction_id)
+
+    @api.post("/transactions/{transaction_id}/category")
+    def set_category(
+        request: Request, transaction_id: str, csrf: _Field = "", category: _Field = ""
+    ) -> Response:
+        stopped = refused(request, csrf)
+        if stopped is not None:
+            return stopped
+        found = _known_transaction(transaction_id)
+        if found is None:
+            return _missing_transaction(request)
+        try:
+            with _reading() as session:
+                set_category_by_hand(session, found, category)
+        except _REFUSALS as error:
+            return _transaction_page(request, transaction_id, error=str(error), status_code=400)
+        return _done(f"/transactions/{found}?notice=category-set")
+
+    @api.post("/transactions/{transaction_id}/category/clear")
+    def clear_category(request: Request, transaction_id: str, csrf: _Field = "") -> Response:
+        stopped = refused(request, csrf)
+        if stopped is not None:
+            return stopped
+        found = _known_transaction(transaction_id)
+        if found is None:
+            return _missing_transaction(request)
+        with _reading() as session:
+            clear_category_by_hand(session, found)
+            categorize(session)
+        return _done(f"/transactions/{found}?notice=category-cleared")
+
+    @api.get("/categories")
+    def categories(request: Request) -> Response:
+        stopped = _not_migrated(request)
+        if stopped is not None:
+            return stopped
+        return _categories_page(request)
+
+    @api.post("/categories/add")
+    def add_category(
+        request: Request, csrf: _Field = "", name: _Field = "", group: _Field = ""
+    ) -> Response:
+        stopped = refused(request, csrf)
+        if stopped is not None:
+            return stopped
+        try:
+            with _reading() as session:
+                create_category(session, name, group)
+        except _REFUSALS as error:
+            form = {"name": name, "group": group}
+            return _categories_page(request, category_form=form, error=str(error), status_code=400)
+        return _done("/categories?notice=category-added")
+
+    @api.post("/categories/rules/add")
+    def add_rule(
+        request: Request,
+        csrf: _Field = "",
+        pattern: _Field = "",
+        match: _Field = "",
+        priority: _Field = "",
+        category: _Field = "",
+        back: _Field = "",
+    ) -> Response:
+        stopped = refused(request, csrf)
+        if stopped is not None:
+            return stopped
+        try:
+            number = _priority(priority)
+            with _reading() as session:
+                create_rule(session, pattern, category, match, number)
+                categorize(session)
+        except _REFUSALS as error:
+            form = _rule_form(pattern, match, priority, category)
+            return _categories_page(request, rule_form=form, error=str(error), status_code=400)
+        if _WHOLE.fullmatch(back) is not None:
+            return _done(f"/transactions/{back}?notice=rule-added")
+        return _done("/categories?notice=rule-added")
+
+    @api.post("/categories/rules/delete")
+    def remove_rule(request: Request, csrf: _Field = "", rule: _Field = "") -> Response:
+        stopped = refused(request, csrf)
+        if stopped is not None:
+            return stopped
+        try:
+            rule_id = _id(rule)
+            if rule_id is None:
+                raise ValueError("rule not found")
+            with _reading() as session:
+                delete_rule(session, rule_id)
+                categorize(session)
+        except _REFUSALS as error:
+            return _categories_page(request, error=str(error), status_code=400)
+        return _done("/categories?notice=rule-deleted")
 
     @api.get("/sync")
     def sync(request: Request) -> Response:
@@ -603,6 +803,9 @@ def create_app(port: int) -> ASGIApp:
             with session_scope(engine) as session:
                 links = list_feed_links(session)
             runs = run_links(engine, links, today=_today(), transport=transport.urllib_transport)
+            if any(item.report is not None for item in runs):
+                with session_scope(engine) as session:
+                    categorize(session)
             with session_scope(engine) as session:
                 rows = run_rows(runs, account_names(session))
                 waiting = waiting_counts(session, runs)

@@ -1,0 +1,35 @@
+{% extends "layout.html" %}
+{% block title %}Transaction {{ detail.id }} · Finances{% endblock %}
+{% block content %}
+<h1>Transaction {{ detail.id }}</h1>
+{% include "messages.html" %}
+<p><a href="/transactions">Back to transactions</a> · <a href="/categories">Categories</a></p>
+<table class="detail">
+<tbody>
+<tr><th>Date</th><td>{{ detail.date }}</td></tr>
+<tr><th>Account</th><td>{{ detail.account }}</td></tr>
+<tr><th>Description</th><td>{{ detail.description }}</td></tr>
+<tr><th>Merchant</th><td>{{ detail.merchant }}</td></tr>
+<tr><th>Amount</th><td>{{ detail.amount }}</td></tr>
+<tr><th>Card</th><td>{{ detail.card }}</td></tr>
+<tr><th>Category</th><td>{{ detail.category }}</td></tr>
+<tr><th>Set</th><td>{{ detail.set_by }}</td></tr>
+</tbody>
+</table>
+<h2>Set the category</h2>
+<form method="post" action="/transactions/{{ detail.id }}/category" class="fields">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <label>Category
+    {% with selected = detail.category %}{% include "category_select.html" %}{% endwith %}
+  </label>
+  <button type="submit">Save</button>
+</form>
+{% if detail.set_by == "by hand" %}
+<form method="post" action="/transactions/{{ detail.id }}/category/clear" class="fields">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <button type="submit">Leave it to the rules</button>
+</form>
+{% endif %}
+<h2>Make a rule from this merchant</h2>
+{% with back = detail.id %}{% include "rule_form.html" %}{% endwith %}
+{% endblock %}

@@ -22,3 +22,5 @@ form.inline { display: inline; }
 ul.links li { margin: .3rem 0; }
 section.map { border-top: 1px solid var(--line); margin-top: 1rem; }
 h3 { font-size: 1rem; margin-bottom: .4rem; }
+table.detail { width: auto; }
+table.detail th { color: var(--muted); font-weight: normal; padding-right: 1.5rem; }

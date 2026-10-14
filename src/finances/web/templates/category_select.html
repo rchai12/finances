@@ -1,0 +1,7 @@
+<select name="category" required>
+      <option value=""{% if not selected %} selected{% endif %}>Choose a category</option>
+      {% for group, names in choices %}<optgroup label="{{ group }}">
+        {% for name in names %}<option value="{{ name }}"{% if name == selected %} selected{% endif %}>{{ name }}</option>
+        {% endfor %}</optgroup>
+      {% endfor %}
+    </select>

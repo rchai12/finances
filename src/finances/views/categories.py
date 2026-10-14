@@ -5,10 +5,18 @@ from dataclasses import dataclass
 from sqlalchemy.orm import Session
 
 from finances.categorize.service import CategorizeResult
-from finances.db.repositories import account_names, list_categories, list_rules, list_uncategorized
+from finances.db.repositories import (
+    account_names,
+    get_transaction,
+    list_categories,
+    list_category_assignments,
+    list_rules,
+    list_uncategorized,
+)
 from finances.domain.merchants import clean_merchant
-from finances.domain.models import Category
+from finances.domain.models import MANUAL, Category, CategoryAssignment
 from finances.domain.money import format_cents
+from finances.views.format import mask_last4
 
 
 @dataclass(frozen=True)
@@ -36,6 +44,19 @@ class UncategorizedLine:
     amount: str
 
 
+@dataclass(frozen=True)
+class TransactionDetail:
+    id: int
+    date: str
+    account: str
+    description: str
+    merchant: str
+    amount: str
+    card: str
+    category: str
+    set_by: str
+
+
 def _kind(category: Category) -> str:
     flags = (
         ("transfer", category.is_transfer),
@@ -54,6 +75,16 @@ def category_lines(session: Session) -> list[CategoryLine]:
         if group.group_id is None
         for category in found
         if category.group_id == group.id
+    ]
+
+
+def category_choices(session: Session) -> list[tuple[str, list[str]]]:
+    """Each group with its categories' names, both in name order ignoring case."""
+    found = list_categories(session)
+    return [
+        (group.name, [category.name for category in found if category.group_id == group.id])
+        for group in found
+        if group.group_id is None
     ]
 
 
@@ -79,6 +110,33 @@ def uncategorized_lines(session: Session, limit: int) -> list[UncategorizedLine]
         )
         for item in list_uncategorized(session, limit)
     ]
+
+
+def _set_by(assignment: CategoryAssignment | None) -> str:
+    if assignment is None:
+        return ""
+    if assignment.source == MANUAL:
+        return "by hand"
+    return f"by rule {assignment.rule_id}"
+
+
+def transaction_detail(session: Session, transaction_id: int) -> TransactionDetail | None:
+    item = get_transaction(session, transaction_id)
+    if item is None:
+        return None
+    assignment = list_category_assignments(session).get(transaction_id)
+    names = {category.id: category.name for category in list_categories(session)}
+    return TransactionDetail(
+        item.id,
+        item.posted_date.isoformat(),
+        account_names(session)[item.account_id],
+        item.description,
+        clean_merchant(item.description),
+        format_cents(item.amount_cents),
+        mask_last4(item.card_last4),
+        "" if assignment is None else names[assignment.category_id],
+        _set_by(assignment),
+    )
 
 
 def categorized_text(result: CategorizeResult) -> str:

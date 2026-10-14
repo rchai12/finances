@@ -934,6 +934,12 @@ def list_transaction_descriptions(session: Session) -> list[tuple[int, str]]:
     return [(row.id, row.description) for row in session.execute(stmt).all()]
 
 
+def get_transaction(session: Session, transaction_id: int) -> Transaction | None:
+    """Return the transaction with this id, or None."""
+    row = session.get(TransactionRow, transaction_id)
+    return to_transaction(row) if row is not None else None
+
+
 def list_uncategorized(session: Session, limit: int) -> list[Transaction]:
     """Return transactions without a category, latest posted date first, at most limit."""
     if limit < 1:

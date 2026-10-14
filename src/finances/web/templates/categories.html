@@ -1,0 +1,51 @@
+{% extends "layout.html" %}
+{% block title %}Categories · Finances{% endblock %}
+{% block content %}
+<h1>Categories</h1>
+{% include "messages.html" %}
+<h2>Uncategorized</h2>
+{% if uncategorized %}
+<table>
+<thead><tr><th>ID</th><th>Date</th><th>Account</th><th>Merchant</th><th class="amount">Amount</th></tr></thead>
+<tbody>
+{% for row in uncategorized %}<tr><td><a href="/transactions/{{ row.id }}">{{ row.id }}</a></td><td>{{ row.date }}</td><td>{{ row.account }}</td><td>{{ row.merchant }}</td><td class="amount">{{ row.amount }}</td></tr>
+{% endfor %}</tbody>
+</table>
+{% if uncategorized|length >= limit %}<p class="hint">Showing the {{ limit }} latest. Open one to set its category, or add a rule below.</p>{% endif %}
+{% else %}
+<p class="empty">No uncategorized transactions.</p>
+{% endif %}
+<h2>Rules</h2>
+<p class="hint">The highest priority wins; a category set by hand is never changed. Adding or deleting a rule runs the rules again over every transaction.</p>
+{% if rules %}
+<table>
+<thead><tr><th>ID</th><th>Priority</th><th>Match</th><th>Pattern</th><th>Category</th><th></th></tr></thead>
+<tbody>
+{% for row in rules %}<tr><td>{{ row.id }}</td><td>{{ row.priority }}</td><td>{{ row.match }}</td><td>{{ row.pattern }}</td><td>{{ row.category }}</td><td><form method="post" action="/categories/rules/delete" class="inline"><input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="rule" value="{{ row.id }}"><button type="submit">Delete</button></form></td></tr>
+{% endfor %}</tbody>
+</table>
+{% else %}
+<p class="empty">No rules.</p>
+{% endif %}
+<h2>Add a rule</h2>
+{% with back = "" %}{% include "rule_form.html" %}{% endwith %}
+<h2>Categories</h2>
+<table>
+<thead><tr><th>Group</th><th>Category</th><th>Kind</th></tr></thead>
+<tbody>
+{% for row in tree %}<tr><td>{{ row.group }}</td><td>{{ row.category }}</td><td>{{ row.kind }}</td></tr>
+{% endfor %}</tbody>
+</table>
+<h2>Add a category</h2>
+<form method="post" action="/categories/add" class="fields">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <label>Name <input name="name" required maxlength="50" value="{{ category_form.name }}"></label>
+  <label>Group
+    <select name="group">
+      {% for group in groups %}<option value="{{ group }}"{% if group == category_form.group %} selected{% endif %}>{{ group }}</option>
+      {% endfor %}
+    </select>
+  </label>
+  <button type="submit">Add category</button>
+</form>
+{% endblock %}
