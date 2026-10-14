@@ -1,6 +1,6 @@
 # Rules for AI coding agents
 
-This file applies to every phase. Read it, then `docs/architecture.md`, then the phase spec you were assigned.
+This file applies to every phase. Read it, then `docs/architecture.md`, then `docs/phase-conventions.md` (what every phase spec and guide assume), then the phase spec you were assigned.
 
 ## Scope discipline
 
