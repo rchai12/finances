@@ -78,6 +78,7 @@ Record each result here, one line per phase:
 - 16a (a web app with a host check and security headers, four read-only pages, given templates, 14 requirements, 68 given tests, none left to the coder): result pending. The probe starts the real server on 127.0.0.1 and checks that the machine's network address is refused.
 - 16b (form token and origin check, nine form routes over the existing functions, a per-link sync runner, a proxy-proof transport, seven given templates, 19 requirements, 133 given tests, none left to the coder): result pending. The probe drives every form through the real server with a cookie, an in-memory keychain, and a fake SimpleFIN in the same process.
 - 9 (a hardening phase: property and fuzz tests written and run by the architect first, five bugs they found fixed in six production modules, 15 requirements, 127 given tests replacing one earlier given file, two test files left to the coder): result pending. The bugs, not the tests, are the coder's work.
+- 16c (one header value, three requirements, 21 given tests): result pending. A repair for a bug the owner found in the first real browser: every form was refused, which no test client could show.
 
 Order sub-phases so each depends only on phases before it.
 
@@ -183,6 +184,7 @@ These hold for any coder. Each one comes from a failure in an earlier phase.
 - **When a property shows an earlier spec's rule is wrong, replace the rule.** Phase 8 pinned closest-first pairing in a given test; Phase 9 replaces that requirement and that test file, and says so. Do not bend a new test around an old mistake.
 - **Separate the model's limits from bugs.** Some failures are ambiguity no code can resolve (two equal purchases five days apart across a period edge). Write them down as known limits in the spec, exclude them from the property, and keep the property to what the code can guarantee.
 - **Never swap source in a clone while a background run uses it.** A long run that imports the code mid-swap reports nonsense. Copy the clone for variant runs.
+- **Try a web phase in a real browser before it ships.** 16a's `Referrer-Policy: no-referrer` and 16b's origin check were each right, but together they refused every form, because a browser sends `Origin: null` under `no-referrer` and test clients send no `Origin` at all. Headless Chrome with `--dump-dom` and a helper page served beside the site (the site forbids scripts) shows what a person would see. In headless Chrome, `--disable-background-networking` and `--disable-extensions` make such a page hang, and each run needs its own profile.
 
 What the local format required and this one does not: single-action steps, a stub for every unit, the expected output of every command, a repair table, tests for everything given in full, a fixed order of work, and "facts you will need" for each library call. Add any of these back to one spec when that spec's subject warrants it.
 
