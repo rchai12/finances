@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block title %}Finances{% endblock %}</title>
+<link rel="stylesheet" href="/static/app.css">
+</head>
+<body>
+<nav>
+  <span class="brand">Finances</span>
+  <a href="/accounts"{% if section == "accounts" %} aria-current="page"{% endif %}>Accounts</a>
+  <a href="/people"{% if section == "people" %} aria-current="page"{% endif %}>People</a>
+  <a href="/transactions"{% if section == "transactions" %} aria-current="page"{% endif %}>Transactions</a>
+  <a href="/sync"{% if section == "sync" %} aria-current="page"{% endif %}>SimpleFIN</a>
+</nav>
+<main>
+{% block content %}{% endblock %}
+</main>
+</body>
+</html>

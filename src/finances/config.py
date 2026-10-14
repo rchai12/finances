@@ -13,6 +13,7 @@ class Settings(BaseSettings):
     data_dir: Path = Path("data")
     database_url: str | None = None
     log_level: str = "INFO"
+    web_port: int = 8765
 
     @property
     def effective_database_url(self) -> str:

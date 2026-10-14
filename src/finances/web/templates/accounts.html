@@ -1,0 +1,16 @@
+{% extends "layout.html" %}
+{% block title %}Accounts · Finances{% endblock %}
+{% block content %}
+<h1>Accounts</h1>
+{% if closed %}<p><a href="/accounts">Hide closed accounts</a></p>{% else %}<p><a href="/accounts?closed=true">Show closed accounts</a></p>{% endif %}
+{% if rows %}
+<table>
+<thead><tr><th>Name</th><th>Institution</th><th>Type</th><th>Last 4</th><th>Active</th><th>Owner</th></tr></thead>
+<tbody>
+{% for row in rows %}<tr><td>{{ row.name }}</td><td>{{ row.institution }}</td><td>{{ row.type }}</td><td>{{ row.last4 }}</td><td>{{ row.active }}</td><td>{{ row.owner }}</td></tr>
+{% endfor %}</tbody>
+</table>
+{% else %}
+<p class="empty">No accounts.</p>
+{% endif %}
+{% endblock %}

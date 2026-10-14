@@ -1,0 +1,15 @@
+{% extends "layout.html" %}
+{% block title %}SimpleFIN · Finances{% endblock %}
+{% block content %}
+<h1>SimpleFIN</h1>
+{% if rows %}
+<table>
+<thead><tr><th>Link</th><th>Account</th><th>SimpleFIN account</th><th>Keychain</th><th>Last pull</th><th>Balance date</th><th class="amount">Drift</th></tr></thead>
+<tbody>
+{% for row in rows %}<tr><td>{{ row.link }}</td><td>{{ row.account }}</td><td>{{ row.feed_account }}</td><td>{{ row.keychain }}</td><td>{{ row.last_pull }}</td><td>{{ row.balance_date }}</td><td class="amount">{{ row.drift }}</td></tr>
+{% endfor %}</tbody>
+</table>
+{% else %}
+<p class="empty">No mapped accounts.</p>
+{% endif %}
+{% endblock %}
