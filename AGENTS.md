@@ -18,6 +18,7 @@ This file applies to every phase. Read it, then `docs/architecture.md`, then the
 - `.venv/` already exists. It is gitignored, so `git status` and `git ls-files` do not show it. Do not create another virtual environment and do not reinstall packages unless the phase spec has a step for it.
 - If a command prints `command not found` or `No module named ...`, it was not typed as written. Stop and fix the command; do not skip the step.
 - On Windows the same commands start with `.\.venv\Scripts\python`.
+- Before reporting a phase, run `.venv/bin/python scripts/check.py`. It must end with `All checks passed.`
 
 ## Privacy rules (non-negotiable)
 

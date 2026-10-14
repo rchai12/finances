@@ -1,0 +1,11 @@
+# Modules where a bug silently corrupts money data. Every line and every branch of each must be
+# covered by tests. One path per line, relative to src/finances/. Read by scripts/check.py.
+domain/money.py
+ingest/parsers/helpers.py
+ingest/reconcile.py
+ingest/dedup.py
+domain/matching.py
+sync/service.py
+sync/simplefin.py
+domain/feed_setup.py
+analysis/people.py

@@ -1,0 +1,15 @@
+#!/bin/sh
+# finances pre-commit hook: installed by scripts/install-git-hooks.sh.
+# Checks lint and format before each commit. Remove it with scripts/uninstall-git-hooks.sh.
+cd "$(git rev-parse --show-toplevel)" || exit 1
+if [ -x .venv/bin/python ]; then
+    PY=.venv/bin/python
+else
+    PY=.venv/Scripts/python.exe
+fi
+if "$PY" -m ruff check . && "$PY" -m ruff format --check .; then
+    exit 0
+fi
+echo "Commit stopped: fix the lint or format problems above, then commit again." >&2
+echo "Formatting is fixed with: $PY -m ruff format ." >&2
+exit 1
