@@ -32,7 +32,7 @@ Status: Phases 1 and 2 are built. The specs for Phases 3 to 10 were written befo
 | 20 | Remote access | Web UI login and hardening so the app can sit behind a private VPN | outline below |
 | 21 | People and ownership | The household's people; each account owned by one person or joint; statement cardholder names mapped to people; every view filterable by person, bank, and card | [phase-21](phases/phase-21-people-and-ownership.md) |
 | 22 | Shared view rows | A clean-up with no behaviour change: `finances.views` builds each view's rows once for the command line and the web; `fin sync run` uses `run_links`; setup offers move out of the web page | [phase-22](phases/phase-22-shared-view-rows.md) |
-| 23 | Shared rules | A clean-up with no behaviour change: one home for text cutting and column limits (`domain/text.py`, used by the ORM), typed-input checks moved into the repositories, small shared helpers | outline: from the code audit after Phase 16d |
+| 23 | Shared rules | A clean-up with no behaviour change: one home for text cutting and column limits (`domain/text.py`, used by the ORM), typed-input checks moved into the repositories, small shared helpers | [phase-23](phases/phase-23-shared-rules.md) |
 
 Phase numbers are stable. A removed phase keeps its number, and a phase that is too large for one coding session is split into lettered sub-phases (`2a`, `2b`, ...), never renumbered.
 
