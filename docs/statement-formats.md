@@ -6,6 +6,8 @@ Layouts of the PDF statements the app must parse, as seen in `pypdf` **layout-mo
 
 Notes that apply to every format:
 - Plain `pdftotext` scrambles the columns on several of these statements. Use `pypdf` layout mode.
+- **Confirmed on real statements (Phase 6a):** layout mode pads columns with very long runs of spaces (one statement is over a million characters, almost all padding), so `extract_pages` narrows every run of three or more spaces to two. Layout mode also fails on a page with no content, which some statements end with; such a page is read in plain mode and comes out empty. Layout mode can print a label with wider gaps between its words, or with spaces inside a word.
+- Real statements are never read to learn a layout. `tests/real_samples/describe_layout.py` reports counts and yes-or-no answers about it (`AGENTS.md` rule 6).
 - Row regexes below are starting points. Confirm them with the real-sample tests; exact spacing may differ.
 - Lines that do not match a row pattern are ignored unless the format notes say otherwise. In particular, **continuation lines** (no leading date) are **ignored**, not appended. They sometimes contain passenger names or masked account numbers.
 - "Holder perspective" signs (AGENTS.md): purchases negative, payments/credits to a card positive, card debt negative.
@@ -197,7 +199,7 @@ Deposits, credits and interest | + 13,390.00
 Your new balance as of 09/11/2026 | = $1,518.59
 ```
 - `period_start` = previous-balance date + 1 day, `period_end` = new-balance date. Savings statements can be quarterly.
-- Labels and values can be misaligned in extraction; search per label.
+- **Confirmed on real statements:** each balance stands on the same line as its label and date, directly after the date. The line can carry a second, unrelated amount after the balance. The label, the date, the section headings, and the total labels can all be printed with uneven spacing (`ser vice`, `12/31/20 26`), so they are matched with spaces ignored. A heading stands alone on its line. A statement with no activity has the summary and no sections.
 
 **Sections** (amounts are unsigned; the section decides the sign):
 ```

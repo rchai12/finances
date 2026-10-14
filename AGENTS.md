@@ -26,7 +26,7 @@ This file applies to every phase. Read it, then `docs/architecture.md`, then the
 3. **Tests use synthetic data only.** Invented merchants (e.g. "ACME COFFEE", "FOOBAR GROCERY"), invented amounts, no real names, no realistic account numbers.
 4. **Do not log transaction descriptions, amounts, balances, or account numbers** at INFO level or above. DEBUG is allowed but must never be the default.
 5. Error messages may reference a file line number and field name. Avoid echoing whole raw rows.
-6. **Real statements live in `data/samples/`** (gitignored). You may run the opt-in real-sample check against them (`.venv/bin/python -m pytest tests/real_samples/check_real_samples.py --no-cov -rA`), but **never print, log, copy, or quote their contents**, and never derive fixtures from them by copying text. Those tests assert only pass/fail and counts. If a real sample fails, report which check failed (e.g. "reconciliation off by N cents, 23 lines parsed") and debug using the synthetic layouts in `docs/statement-formats.md`.
+6. **Real statements live in `data/samples/`** (gitignored). You may run the opt-in real-sample check against them (`.venv/bin/python -m pytest tests/real_samples/check_real_samples.py --no-cov -rA`) and the layout report (`.venv/bin/python tests/real_samples/describe_layout.py`, which prints counts and yes-or-no answers only), but **never print, log, copy, or quote their contents**, and never derive fixtures from them by copying text. Those tests assert only pass/fail and counts. If a real sample fails, report which check failed (e.g. "reconciliation off by N cents, 23 lines parsed") and debug using the synthetic layouts in `docs/statement-formats.md`.
 
 ## Money and signs
 

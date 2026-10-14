@@ -1,0 +1,36 @@
+T r u  i s  t .c  o  m
+Truist Bank, Member FDIC  Your account statement
+For 03/11/2027
+TRUIST ONE CHECKING - LEVEL 1 1000000004444
+
+Account summary
+Your previous balance as of 02/10/2027  $1,800.00
+Checks  - 0.00
+Other withdr awals, debits and service charges  - 1,252.11
+Deposits, credits and interest  + 2,145.00
+Your new balance as of 03/11/2027  = $2,692.89
+
+Other  withdrawals, debits and  service charges
+DATE  DESCRIPTION  AMOUNT($)
+02/12  DEBIT CARD PURCHASE ACME GROCERY 02-11 DECATUR GA 2979  84.12
+02/16  INTERNET PAYMENT TRANSFER EXAMPLE SAVINGS BA 000300000001111  500.00
+02/20  DEBIT CARD RECURRING PYMT STREAMCO.COM 02-19 866-555-0100 CA 2979  15.99
+continued
+PAGE 1 OF 2T r u  i s  t .c  o  m
+Truist Bank, Member FDIC  Your account statement
+For 03/11/2027
+TRUIST ONE CHECKING - LEVEL 1 1000000004444
+
+Other withdrawals, debits and service charges (continued)
+DATE  DESCRIPTION  AMOUNT($)
+03/01  ACH CORP DEBIT PAYMENT EXAMPLE CARD CUSTOMER ID 4400000000009999  640.00
+03/09  MAINTENANCE FEE  12.00
+Total other withdrawals, debits and ser vice char ges  = $1,252.11
+
+Deposits, cr edits and inter est
+DATE  DESCRIPTION  AMOUNT($)
+02/26  ACH CORP CREDIT PAYROLL EXAMPLE EMPLOYER INC  2,100.00
+03/05  MOBILE DEPOSIT  45.00
+Total deposits, credits and interest  = $2,145.00
+Important: questions about your statement
+10/01  Call the number on your card by this date  1.00

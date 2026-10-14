@@ -25,7 +25,7 @@ def test_a_pdf_with_no_pages_gives_an_empty_list(make_pdf) -> None:
 def test_layout_mode_keeps_wide_gaps_between_columns(make_pdf) -> None:
     content = make_pdf([["03/04\tACME COFFEE\t4.50"]])
     row = extract_pages(content)[0]
-    assert re.fullmatch(r"03/04 {5,}ACME COFFEE {5,}4\.50", row)
+    assert re.fullmatch(r"03/04 {2,}ACME COFFEE {2,}4\.50", row)
 
 
 def test_empty_user_password_opens_an_owner_encrypted_pdf(make_pdf, encrypt_pdf) -> None:
