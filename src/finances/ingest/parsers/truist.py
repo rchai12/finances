@@ -4,21 +4,32 @@ import re
 from datetime import date, timedelta
 
 from finances.domain.models import AccountType
-from finances.ingest.parsers.helpers import (
-    collapse_ws,
-    find_labeled_amount,
-    parse_amount,
-    parse_month_day,
-)
+from finances.ingest.parsers.helpers import collapse_ws, parse_amount, parse_month_day
 from finances.ingest.statement import ParsedStatement, Section, StatementError, StatementLine
 
 _AMOUNT = r"(?:[0-9]{1,3}(?:,[0-9]{3})+|[0-9]+)\.[0-9]{2}"
 _SHORT_DATE = r"[0-9]{2}/[0-9]{2}"
+_MONEY = rf"(?P<money>(?:[-+=] *)*\${_AMOUNT})(?![0-9])"
+_DIGIT = "[0-9]"
+_SPACED_DATE = r"\s*".join(
+    [_DIGIT, _DIGIT, "/", _DIGIT, _DIGIT, "/", _DIGIT, _DIGIT, _DIGIT, _DIGIT]
+)
+
+
+def _squeezed(text: str) -> str:
+    return "".join(text.split())
+
+
+def _loose(label: str, after: str) -> re.Pattern[str]:
+    """Match label with any whitespace inside it, at the line start or after two whitespace."""
+    spaced = r"\s*".join(re.escape(character) for character in _squeezed(label))
+    return re.compile(rf"(?:^|(?<=\s\s)){spaced}{after}")
+
 
 _KIND = re.compile(r"\b(CHECKING|SAVINGS)\b")
 _NUMBER_AT_END = re.compile(r".*\s([0-9]{4,})")
-_PREVIOUS = re.compile(r"Your previous balance as of ([0-9]{2})/([0-9]{2})/([0-9]{4})")
-_NEW = re.compile(r"Your new balance as of ([0-9]{2})/([0-9]{2})/([0-9]{4})")
+_PREVIOUS = _loose("Your previous balance as of", rf"\s*(?P<date>{_SPACED_DATE})\s+{_MONEY}")
+_NEW = _loose("Your new balance as of", rf"\s*(?P<date>{_SPACED_DATE})\s+{_MONEY}")
 _ROW = re.compile(rf"({_SHORT_DATE})\s+(.+?)\s+({_AMOUNT})")
 _CHECK = re.compile(rf"({_SHORT_DATE})\s+(?:\*\s*)?([0-9]+)\s+({_AMOUNT})")
 _CARD = re.compile(r"[0-9]{4}")
@@ -26,14 +37,18 @@ _MONTH_DAY = re.compile(r"[0-9]{2}-[0-9]{2}")
 
 _TYPES = {"CHECKING": AccountType.CHECKING, "SAVINGS": AccountType.SAVINGS}
 _SECTIONS = {
-    "Checks": Section.CHECKS,
-    "Other withdrawals, debits and service charges": Section.WITHDRAWALS,
-    "Deposits, credits and interest": Section.DEPOSITS,
+    _squeezed("Checks"): Section.CHECKS,
+    _squeezed("Other withdrawals, debits and service charges"): Section.WITHDRAWALS,
+    _squeezed("Deposits, credits and interest"): Section.DEPOSITS,
 }
 _TOTALS = (
-    ("Total checks", Section.CHECKS, -1),
-    ("Total other withdrawals, debits and service charges", Section.WITHDRAWALS, -1),
-    ("Total deposits, credits and interest", Section.DEPOSITS, 1),
+    (_loose("Total checks", rf"\s+{_MONEY}"), Section.CHECKS, -1),
+    (
+        _loose("Total other withdrawals, debits and service charges", rf"\s+{_MONEY}"),
+        Section.WITHDRAWALS,
+        -1,
+    ),
+    (_loose("Total deposits, credits and interest", rf"\s+{_MONEY}"), Section.DEPOSITS, 1),
 )
 
 _NO_ACCOUNT = "truist: account line not found"
@@ -88,27 +103,45 @@ def _account(lines: list[str]) -> tuple[AccountType, str] | None:
     return None
 
 
+def _money(match: re.Match[str]) -> int | None:
+    try:
+        return parse_amount(match.group("money"))
+    except ValueError:
+        return None
+
+
+def _date(match: re.Match[str]) -> date | None:
+    month, day, year = (int(part) for part in _squeezed(match.group("date")).split("/"))
+    try:
+        return date(year, month, day)
+    except ValueError:
+        return None
+
+
 def _balance(lines: list[str], pattern: re.Pattern[str]) -> tuple[date, int] | None:
-    """Return the date and amount of the first line where pattern is followed by money."""
+    """Return the date and amount of the first line that fits pattern with a real date and money."""
     for line in lines:
-        match = pattern.search(line)
-        if match is None:
-            continue
-        month, day, year = (int(part) for part in match.groups())
-        try:
-            when = date(year, month, day)
-        except ValueError:
-            continue
-        amount = find_labeled_amount([line], match.group(0))
-        if amount is not None:
-            return when, amount
+        for match in pattern.finditer(line):
+            when = _date(match)
+            amount = _money(match)
+            if when is not None and amount is not None:
+                return when, amount
+    return None
+
+
+def _first_money(lines: list[str], pattern: re.Pattern[str]) -> int | None:
+    for line in lines:
+        for match in pattern.finditer(line):
+            amount = _money(match)
+            if amount is not None:
+                return amount
     return None
 
 
 def _declared_totals(lines: list[str]) -> dict[Section, int]:
     totals: dict[Section, int] = {}
-    for label, section, sign in _TOTALS:
-        found = find_labeled_amount(lines, label)
+    for pattern, section, sign in _TOTALS:
+        found = _first_money(lines, pattern)
         if found is not None:
             totals[section] = sign * found
     return totals
@@ -173,9 +206,10 @@ def _rows(lines: list[str], start: date, end: date) -> list[StatementLine]:
     rows: list[StatementLine] = []
     section: Section | None = None
     for line in lines:
-        if line in _SECTIONS:
-            section = _SECTIONS[line]
-        elif line.startswith("Total "):
+        tight = _squeezed(line)
+        if tight in _SECTIONS:
+            section = _SECTIONS[tight]
+        elif tight.startswith("Total"):
             section = None
         elif section is Section.CHECKS:
             rows += _checks(line, start, end)
