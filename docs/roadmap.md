@@ -26,7 +26,7 @@ Status: Phases 1 and 2 are built. The specs for Phases 3 to 10 were written befo
 | 14 | Agent interface (MCP server) | Read-only MCP tools over stdio for the finance subagent: accounts, balances, transactions, reports, findings, data coverage | outline below |
 | 15 | *Removed* | Was "LLM advice". Advice now comes from the external agent | |
 | 16 | Local web UI | FastAPI dashboard on 127.0.0.1, statement upload, review of agent writes | outline below |
-| 17 | Aggregator sync | Daily pull of transactions and balances into provisional rows; the only network code | [phase-17a](phases/phase-17a-feed-core.md) (feed core), [phase-17b](phases/phase-17b-simplefin-sync.md) (SimpleFIN client and sync), [phase-17c](phases/phase-17c-sync-commands.md) (links, commands, Keychain) |
+| 17 | Aggregator sync | Daily pull of transactions and balances into provisional rows; the only network code | [phase-17a](phases/phase-17a-feed-core.md) (feed core), [phase-17b](phases/phase-17b-simplefin-sync.md) (SimpleFIN client and sync), [phase-17c](phases/phase-17c-sync-commands.md) (links, commands, Keychain), [phase-17d](phases/phase-17d-user-agent.md) (a user agent Cloudflare accepts) |
 | 18 | *Removed* | Was "Azure deployment". The app stays on the household's machine | |
 | 19 | Agent write tools | MCP tools that write the interpretation layer only, tagged, reversible, with `fin review` | outline below |
 | 20 | Remote access | Web UI login and hardening so the app can sit behind a private VPN | outline below |
