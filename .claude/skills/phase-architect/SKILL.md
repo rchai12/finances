@@ -75,6 +75,7 @@ Record each result here, one line per phase:
 - 17c (a migration in batch mode, a keychain module, six commands, a redirect-proof transport, 22 requirements, 73 given tests, none left to the coder): built and accepted. Written after 17b had shipped, so a requirement the owner raised late (one SimpleFIN subscription per person) became a new migration with backward-compatible signatures, and three older tests were first made independent of later columns.
 - 17d (one header, five given tests): built and accepted. Found only by the owner's first real `fin sync link`.
 - 21 (a migration with three tables, a pure rule, seven repository functions, a new `analysis` package, three new commands and two new columns, 22 requirements, 74 given tests, one test file left to the coder): result pending. Four older tests that pinned whole table rows were first loosened to the columns that existed.
+- 16a (a web app with a host check and security headers, four read-only pages, given templates, 14 requirements, 68 given tests, none left to the coder): result pending. The probe starts the real server on 127.0.0.1 and checks that the machine's network address is refused.
 
 Order sub-phases so each depends only on phases before it.
 
