@@ -1,0 +1,251 @@
+# Verify Phase 22: one source for view rows
+
+Spec: `docs/phases/phase-22-shared-view-rows.md`
+
+Do not modify any file in the repository. Report findings only. The work under review is uncommitted, so "the diff" means `git status --short` plus `git diff HEAD`.
+
+This phase must change **no behaviour**: it moves the building of view rows into `finances.views`, makes `fin sync run` use `run_links`, and replaces copies of small helpers. The probe below proves "no behaviour change" directly: it runs one scenario on the last commit's code and on the work under review, and compares every command's output and every page.
+
+Judge the code by what it does. These are correct and must not be reported: helpers inside `finances.views`; building a Rich row with `astuple` or by listing fields; keeping `_not_set_up` in `cli/sync.py`.
+
+## 1. Gates
+
+Run each command on its own line from the repository root. Do not activate the virtual environment.
+
+**N** is the passed count before the phase; the coder's entry in `docs/progress.md` states it. It is `1986` when Phase 10 was the last phase built.
+
+| Command | Expected |
+|---|---|
+| `.venv/bin/python scripts/check.py` | last line `All checks passed.`; at least N + 21 passed in the `tests` step, 0 failed, 0 skipped, 0 xfailed |
+| `.venv/bin/python -m pytest tests/integration/test_views.py tests/unit/test_link_run_failures.py --no-cov` | exactly `21 passed` |
+| the coverage command below | `Required test coverage of 100% reached` |
+| `git diff HEAD --stat -- tests src/finances/web/templates src/finances/db/migrations` | nothing |
+
+`.venv/bin/python -m pytest -o addopts="" --import-mode=importlib --cov=finances.views --cov=finances.cli --cov=finances.web --cov=finances.sync --cov=finances.db --cov-branch --cov-report=term-missing --cov-fail-under=100`
+
+## 2. Scope audit
+
+- `git status --short` shows only these paths. Report every other one.
+
+```
+ M docs/architecture.md
+ M docs/progress.md
+ M src/finances/cli/accounts.py
+ M src/finances/cli/listing.py
+ M src/finances/cli/people.py
+ M src/finances/cli/sync.py
+ M src/finances/db/repositories.py
+ M src/finances/sync/runner.py
+ M src/finances/web/app.py
+?? src/finances/views/
+?? tests/integration/test_views.py
+?? tests/unit/test_link_run_failures.py
+```
+
+- The two given test files are identical to the blocks in the spec. No existing test, template, or migration changed (gate 4).
+
+## 3. Requirement checklist
+
+| Id | Check | How | Pass when |
+|---|---|---|---|
+| R1 | layering | the third search | no output |
+| R2 to R11 | the views | gate 2 | passes |
+| R12 | failure kinds | gate 2 (`tests/unit/test_link_run_failures.py`) | passes |
+| R13, R14 | same output | probe | every line starting `same:` |
+| R15 | helpers gone | the first and second searches | no output |
+| R16 | the document | `git diff HEAD -- docs/architecture.md` | the one paragraph |
+
+Run each of these searches. Each must print nothing.
+
+`git grep -n -E "def (_run_cells|_transaction_cells|_sync_row|_run_row|_transaction_row|_drift|_balance_date|_keychain|_account_names)\(|_BULLETS|u2022|run_sync|guess_account|guess_owner|suggest_existing" -- src/finances/cli/sync.py src/finances/cli/accounts.py src/finances/cli/people.py src/finances/cli/listing.py src/finances/web/app.py`
+
+`git grep -n -E "(item|account)\.id: (item|account)\.name" -- src/finances/cli src/finances/web`
+
+`git grep -n --untracked -E "^ *(from|import) +(finances\.(cli|web)|typer|rich|fastapi|jinja2)" -- src/finances/views`
+
+## 4. Independent probe
+
+The script extracts the last commit's `src/` into a temporary folder with `git archive` (it does not touch the repository), then runs one scenario twice in fresh interpreters: once on that copy and once on the work under review. The scenario uses a temporary data folder, an in-memory keychain, and a fake SimpleFIN; it contacts nothing. It runs `fin accounts list` (with and without `--all`), `fin people list`, `fin transactions list`, `fin statements list`, `fin sync run` (all links, one link, with a refused link and a link not set up, and with a broken keychain), `fin sync status`, and every page including Sync now. It compares each output after replacing form tokens and clock times, which differ between any two runs.
+
+Save the script in a temporary directory **outside the repository**, run it from the repository root with `.venv/bin/python <path>`, and delete it afterwards. It takes about ten seconds. Every line must end in `ok`; the last line must be `FAILURES 0`.
+
+```python
+import os
+import re
+import subprocess
+import sys
+import tempfile
+from pathlib import Path
+
+failures = 0
+ROOT = Path.cwd()
+# Runs in a fresh interpreter against one copy of the code. Prints each section as
+# "@@ NAME" followed by its output. Uses a temporary data folder, an in-memory keychain,
+# and a fake SimpleFIN; it contacts nothing.
+SCENARIO = r"""
+import base64, json, os, sys, tempfile
+from datetime import UTC, date, datetime, timedelta
+import keyring, keyring.backend, keyring.errors
+
+class Memory(keyring.backend.KeyringBackend):
+    priority = 1
+    def __init__(self):
+        super().__init__(); self.p = {}
+    def get_password(self, s, u): return self.p.get((s, u))
+    def set_password(self, s, u, v): self.p[(s, u)] = v
+    def delete_password(self, s, u): del self.p[(s, u)]
+
+class Broken(keyring.backend.KeyringBackend):
+    priority = 1
+    def get_password(self, s, u): raise keyring.errors.KeyringError("locked")
+    def set_password(self, s, u, v): raise keyring.errors.KeyringError("locked")
+    def delete_password(self, s, u): raise keyring.errors.KeyringError("locked")
+
+memory = Memory(); keyring.set_keyring(memory)
+os.environ["FIN_DATA_DIR"] = tempfile.mkdtemp()
+os.environ["COLUMNS"] = "220"
+from typer.testing import CliRunner
+from fastapi.testclient import TestClient
+from finances.cli.main import app as cli
+from finances.db.engine import get_engine, session_scope
+from finances.db.orm import AccountRow, TransactionRow
+from finances.db.repositories import create_account, create_person, set_account_owner, set_cardholder_alias, map_feed_account
+from finances.sync import transport
+from finances.web.app import create_app
+
+runner = CliRunner(env={"COLUMNS": "220"})
+def show(name, text):
+    print("@@ " + name); print(text)
+def cli_run(name, *args):
+    result = runner.invoke(cli, list(args))
+    show(name, f"exit={result.exit_code}\n--stdout--\n{result.stdout}--stderr--\n{result.stderr}")
+
+ALEX = "https://alex-u:alex-p@bridge.simplefin.org/simplefin"
+SAM = "https://sam-u:sam-p@bridge.simplefin.org/simplefin"
+def key(access):
+    user, password = access.split("//")[1].split("@")[0].split(":")
+    return "Basic " + base64.b64encode(f"{user}:{password}".encode()).decode()
+noon = int(datetime.now(UTC).replace(hour=12, minute=0, second=0, microsecond=0).timestamp())
+def acct(feed_id, name, balance, *moves):
+    return {"id": feed_id, "name": name, "conn_id": "C", "currency": "USD", "balance": balance, "balance-date": noon,
+            "transactions": [{"id": t, "posted": noon - days * 86400, "amount": amount, "description": "PROBE " + t} for t, days, amount in moves]}
+answers = {
+    key(ALEX): [200, [acct("A-1", "Probe Card", "-12.50", ("T1", 2, "-12.50")), acct("A-7", "Rewards Visa 2468", "0.00")], ["Probe note"]],
+    key(SAM): [200, [acct("S-1", "Sam Savings 9999", "40.00", ("T2", 1, "40.00"))], []],
+}
+def bridge(method, url, headers):
+    status, accounts, notes = answers[headers["Authorization"]]
+    body = {"errlist": [{"code": "x", "msg": n} for n in notes], "connections": [{"conn_id": "C", "name": "Probe Bank", "org_id": "O", "sfin_url": "x"}], "accounts": accounts}
+    return status, json.dumps(body).encode()
+transport.urllib_transport = bridge
+
+cli_run("db upgrade", "db", "upgrade")
+with session_scope(get_engine()) as s:
+    card = create_account(s, "Probe Card", "Probe Bank", "credit_card", last4="1111")
+    checking = create_account(s, "Probe Checking", "Probe Bank", "checking")
+    old = create_account(s, "Probe Old", "Probe Bank", "savings", last4="9999")
+    kim = create_person(s, "Kim"); lee = create_person(s, "Lee")
+    set_account_owner(s, card.id, kim.id); set_account_owner(s, checking.id, None); set_account_owner(s, old.id, lee.id)
+    set_cardholder_alias(s, "LEE PROBE", lee.id)
+    s.get(AccountRow, old.id).is_active = False
+    for i, (acc, cents, card4, holder) in enumerate(((card.id, -1875, "2222", "LEE PROBE"), (checking.id, 90000, None, None))):
+        s.add(TransactionRow(account_id=acc, posted_date=date(2026, 4, 10 + i), amount_cents=cents, description=f"PROBE <b>{i}</b>",
+                             section="purchases", card_last4=card4, cardholder=holder, source="statement", fingerprint=f"p{i}".ljust(64, "0")))
+    map_feed_account(s, card.id, "A-1", "alex"); map_feed_account(s, checking.id, "B-1", "bob"); map_feed_account(s, old.id, "S-1", "sam")
+memory.p[("finances-simplefin", "alex")] = ALEX
+memory.p[("finances-simplefin", "sam")] = SAM
+
+cli_run("accounts list", "accounts", "list")
+cli_run("accounts list --all", "accounts", "list", "--all")
+cli_run("people list", "people", "list")
+cli_run("transactions list", "transactions", "list")
+cli_run("statements list", "statements", "list")
+cli_run("sync run", "sync", "run")
+cli_run("sync run --link sam", "sync", "run", "--link", "sam")
+answers[key(ALEX)][0] = 403
+cli_run("sync run with a refused link", "sync", "run")
+answers[key(ALEX)][0] = 200
+cli_run("sync status", "sync", "status")
+
+client = TestClient(create_app(8765), base_url="http://127.0.0.1:8765")
+for path in ("/accounts", "/accounts?closed=true", "/people", "/transactions", "/transactions?person=lee", "/sync"):
+    show("page " + path, client.get(path).text)
+show("page sync run", client.post("/sync/run", data={"csrf": client.cookies["fin_csrf"]}).text)
+
+keyring.set_keyring(Broken())
+cli_run("sync run with a broken keychain", "sync", "run")
+cli_run("sync status with a broken keychain", "sync", "status")
+show("page /sync with a broken keychain", client.get("/sync").text)
+"""
+
+
+def check(label, ok):
+    global failures
+    failures += 0 if ok else 1
+    print(label, "ok" if ok else "FAIL")
+
+
+def sections(src: Path) -> dict[str, str]:
+    env = {**os.environ, "PYTHONPATH": str(src), "PYTHONDONTWRITEBYTECODE": "1"}
+    done = subprocess.run(
+        [sys.executable, "-c", SCENARIO], capture_output=True, text=True, env=env, check=False
+    )
+    if done.returncode != 0:
+        return {"scenario": "crashed: " + done.stderr.strip().splitlines()[-1]}
+    text = re.sub(r'name="csrf" value="[^"]*"', 'name="csrf" value="TOKEN"', done.stdout)
+    text = re.sub(r"\d{4}-\d{2}-\d{2} \d{2}:\d{2} UTC", "TIME UTC", text)
+    found = {}
+    for part in text.split("@@ ")[1:]:
+        name, _, body = part.partition("\n")
+        found[name] = body
+    return found
+
+
+with tempfile.TemporaryDirectory() as folder:
+    archive = subprocess.run(
+        ["git", "archive", "HEAD", "src"], cwd=ROOT, capture_output=True, check=True
+    ).stdout
+    subprocess.run(["tar", "-x", "-C", folder], input=archive, check=True)
+    before = sections(Path(folder) / "src")
+after = sections(ROOT / "src")
+check("scenario: runs on the last commit", "scenario" not in before and len(before) == 20)
+check("scenario: runs on the work under review", "scenario" not in after)
+for name in before:
+    if name != "scenario":
+        check(f"same: {name}", after.get(name) == before[name])
+check("same: no section added or lost", set(after) == set(before))
+print("FAILURES", failures)
+```
+
+## 5. The coder's tests
+
+There are none to review. Confirm that the coder added no test file other than the two given ones and changed no existing test (gate 4). Then, for each change below, say which test would fail, by reading the tests. If none would, that is a finding.
+
+1. `account_rows` leaves the owner empty for a joint account.
+2. `run_links` sets `failure` to `AGGREGATOR_FAILED` when the keychain fails.
+3. `waiting_counts` includes a link whose run failed.
+4. `fin sync run` prints `Error: link alex: could not use the system keychain` when the keychain fails. (`tests/e2e/test_cli_sync.py::test_reading_the_keychain_fails_for_accounts_and_run`.)
+
+## 6. Out of scope
+
+Each of these must be absent. Report any that is present.
+
+- A change to any output (the probe).
+- Phase 23's changes: a `domain/text.py`, moved input checks, `_fail` moved to `cli/common.py`.
+- A split of `web/app.py` or `db/repositories.py`.
+
+## 7. Progress log
+
+`docs/progress.md` ends with an entry headed `## Phase 22: one source for view rows (YYYY-MM-DD)` with a real date, N, and the passed count.
+
+## Verdict
+
+`PASS`, or `FAIL` followed by one line per finding:
+
+`<requirement id or section> | <file>:<line> | expected <...> | found <...>`
+
+Then: `Total passed: <the count from the tests step>`
+
+## If the verdict is FAIL
+
+Send the coder each finding as: the requirement, what was observed, and what is required. Do not prescribe the code.

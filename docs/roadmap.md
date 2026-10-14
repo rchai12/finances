@@ -6,7 +6,7 @@ Each phase is sized for one focused coding session: a few modules, their tests, 
 
 Status: Phases 1 and 2 are built. The specs for Phases 3 to 10 were written before the small-phase rules and before the agent redesign. Each is re-issued as lettered sub-phases, with a verification guide, before the coder receives it. Phases 11 and later are outlines.
 
-**Build order:** 2 → 3 → 4 → 17a → 8 → 17b → 17c → 21 → 16a → 16b → 9 → 16c → 16d → 10 → 11 → 12 → 13 → 14 → 19 → 16 → 20. Phases 5 and 6 (more statement parsers) can be built any time after 4, when audit coverage for those banks is wanted.
+**Build order:** 2 → 3 → 4 → 17a → 8 → 17b → 17c → 21 → 16a → 16b → 9 → 16c → 16d → 10 → 22 → 23 → 11 → 12 → 13 → 14 → 19 → 16 → 20. Phases 5 and 6 (more statement parsers) can be built any time after 4, when audit coverage for those banks is wanted.
 
 | # | Phase | Outcome | Spec |
 |---|---|---|---|
@@ -31,6 +31,8 @@ Status: Phases 1 and 2 are built. The specs for Phases 3 to 10 were written befo
 | 19 | Agent write tools | MCP tools that write the interpretation layer only, tagged, reversible, with `fin review` | outline below |
 | 20 | Remote access | Web UI login and hardening so the app can sit behind a private VPN | outline below |
 | 21 | People and ownership | The household's people; each account owned by one person or joint; statement cardholder names mapped to people; every view filterable by person, bank, and card | [phase-21](phases/phase-21-people-and-ownership.md) |
+| 22 | Shared view rows | A clean-up with no behaviour change: `finances.views` builds each view's rows once for the command line and the web; `fin sync run` uses `run_links`; setup offers move out of the web page | [phase-22](phases/phase-22-shared-view-rows.md) |
+| 23 | Shared rules | A clean-up with no behaviour change: one home for text cutting and column limits (`domain/text.py`, used by the ORM), typed-input checks moved into the repositories, small shared helpers | outline: from the code audit after Phase 16d |
 
 Phase numbers are stable. A removed phase keeps its number, and a phase that is too large for one coding session is split into lettered sub-phases (`2a`, `2b`, ...), never renumbered.
 
