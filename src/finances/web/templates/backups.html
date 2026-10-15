@@ -1,0 +1,33 @@
+{% extends "layout.html" %}
+{% block title %}Backups · Finances{% endblock %}
+{% block content %}
+<h1>Backups</h1>
+{% include "messages.html" %}
+<p class="hint">Kept in {{ folder }}: the newest {{ keep }} backups. Copies set aside by a restore are never deleted for you. Backups are not downloaded through the browser; see docs/backups.md.</p>
+<form method="post" action="/backups/run" class="fields">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <button type="submit">Back up now</button>
+</form>
+<h2>Backups</h2>
+{% if backups %}
+<table>
+<thead><tr><th>File</th><th>Taken (UTC)</th><th class="amount">Size</th><th></th></tr></thead>
+<tbody>
+{% for row in backups %}<tr><td>{{ row.file }}</td><td>{{ row.taken }}</td><td class="amount">{{ row.size }}</td><td><a href="/backups/restore?name={{ row.file|urlencode }}">Restore</a> <a href="/backups/delete?name={{ row.file|urlencode }}">Delete</a></td></tr>
+{% endfor %}</tbody>
+</table>
+{% else %}
+<p class="empty">No backups.</p>
+{% endif %}
+<h2>Set aside before a restore</h2>
+{% if set_asides %}
+<table>
+<thead><tr><th>File</th><th>Taken (UTC)</th><th class="amount">Size</th><th></th></tr></thead>
+<tbody>
+{% for row in set_asides %}<tr><td>{{ row.file }}</td><td>{{ row.taken }}</td><td class="amount">{{ row.size }}</td><td><a href="/backups/restore?name={{ row.file|urlencode }}">Restore</a> <a href="/backups/delete?name={{ row.file|urlencode }}">Delete</a></td></tr>
+{% endfor %}</tbody>
+</table>
+{% else %}
+<p class="empty">No set-aside copies.</p>
+{% endif %}
+{% endblock %}

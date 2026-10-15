@@ -12,6 +12,10 @@ It copies the database with SQLite's own backup, which is safe while the app is 
 
 `.venv/bin/fin backup list` shows the backups, newest first.
 
+## On the web
+
+The **Backups** page (`fin web serve`, then Backups in the menu) does the same: **Back up now**, the list with each file's size, **Delete** (after a confirmation page), and **Restore** (after typing the backup's name). The web restore pauses the site's other requests while it works, so the server need not be stopped. Backups are not downloaded through the browser: a full copy in the downloads folder, often synced to the cloud, would break the rule below.
+
 ## Where backups go
 
 `data/backups/` unless `FIN_BACKUP_DIR` says otherwise; `FIN_BACKUP_KEEP` sets how many to keep. Both can go in `.env`.
@@ -30,7 +34,7 @@ Output goes to `data/logs/backup.log`. To stop it: `scripts/uninstall-backup-sch
 
 ## Restoring
 
-Stop `fin web serve` first. Then:
+From the terminal, stop `fin web serve` first. Then:
 
 ```
 .venv/bin/fin backup restore data/backups/finances-20261015-020000.db

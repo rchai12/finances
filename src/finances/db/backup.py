@@ -17,6 +17,8 @@ from sqlalchemy.engine import make_url
 from finances.db.migrate import MIGRATIONS, head_revision
 
 _BACKUP_NAME = re.compile(r"finances-[0-9]{8}-[0-9]{6}\.db")
+_SET_ASIDE_NAME = re.compile(r"finances-[0-9]{8}-[0-9]{6}-before-restore\.db")
+_STAMP_AT = slice(len("finances-"), len("finances-YYYYMMDD-HHMMSS"))
 _STAMP = "%Y%m%d-%H%M%S"
 
 
@@ -50,12 +52,43 @@ def _set_aside_name(moment: datetime) -> str:
     return f"finances-{moment.astimezone(UTC).strftime(_STAMP)}-before-restore.db"
 
 
-def list_backups(folder: Path) -> list[Path]:
-    """The folder's backups, newest first; nothing when the folder does not exist."""
+def _named(folder: Path, pattern: re.Pattern[str]) -> list[Path]:
     if not folder.is_dir():
         return []
-    found = [path for path in folder.iterdir() if _BACKUP_NAME.fullmatch(path.name)]
+    found = [path for path in folder.iterdir() if pattern.fullmatch(path.name)]
     return sorted(found, key=lambda path: path.name, reverse=True)
+
+
+def list_backups(folder: Path) -> list[Path]:
+    """The folder's backups, newest first; nothing when the folder does not exist."""
+    return _named(folder, _BACKUP_NAME)
+
+
+def list_set_asides(folder: Path) -> list[Path]:
+    """The copies a restore set aside, newest first; nothing when the folder does not exist."""
+    return _named(folder, _SET_ASIDE_NAME)
+
+
+def taken_at(path: Path) -> datetime:
+    """When a backup or a set-aside copy was taken, read from its name, in UTC."""
+    return datetime.strptime(path.name[_STAMP_AT], _STAMP).replace(tzinfo=UTC)
+
+
+def find_backup(folder: Path, name: str) -> Path:
+    """The backup or set-aside file of this name in the folder; the name is checked first."""
+    missing = ValueError(f"{name} is not a backup in the folder")
+    if _BACKUP_NAME.fullmatch(name) is None and _SET_ASIDE_NAME.fullmatch(name) is None:
+        raise missing
+    path = folder / name
+    if not path.is_file():
+        raise missing
+    return path
+
+
+def delete_backup(folder: Path, name: str) -> Path:
+    path = find_backup(folder, name)
+    path.unlink()
+    return path
 
 
 def _read_only(path: Path) -> sqlite3.Connection:

@@ -3,6 +3,7 @@
 import hmac
 import re
 import secrets
+import threading
 from collections.abc import Iterator
 from contextlib import contextmanager
 from datetime import UTC, date, datetime
@@ -29,6 +30,17 @@ from finances.analysis.search import TransactionQuery, search_transactions
 from finances.analysis.spending import spending_report
 from finances.categorize.service import categorize
 from finances.categorize.transfers import pair_transfers
+from finances.config import get_settings
+from finances.db.backup import (
+    BackupCheck,
+    check_backup,
+    delete_backup,
+    find_backup,
+    list_backups,
+    list_set_asides,
+    make_backup,
+    restore_backup,
+)
 from finances.db.engine import get_engine, session_scope
 from finances.db.migrate import current_revision, head_revision
 from finances.db.repositories import (
@@ -74,6 +86,7 @@ from finances.sync.links import (
 from finances.sync.runner import run_links
 from finances.sync.simplefin import SyncError, claim_access_url, fetch_accounts
 from finances.views.accounts import account_rows
+from finances.views.backups import backup_rows, taken_text
 from finances.views.balances import balance_rows, balance_summary
 from finances.views.categories import (
     category_choices,
@@ -135,6 +148,15 @@ NOTICES = {
     "transfer-confirmed": "Transfer saved.",
     "transfer-rejected": "Those two will not be paired.",
     "transfer-removed": "Transfer removed; those two will not be paired again.",
+    "backed-up": "Backup written.",
+    "deleted": "Backup deleted.",
+    "restored": (
+        "Backup restored. The database it replaced is listed under Set aside before a restore."
+    ),
+    "restored-old": (
+        "Backup restored. It comes from an older version of the app: run fin db upgrade in the"
+        " terminal before using the other pages."
+    ),
 }
 ACCOUNT_TYPES = tuple(item.value for item in AccountType)
 
@@ -153,6 +175,8 @@ TRANSACTION_NOT_FOUND = "transaction not found"
 _TOKEN = re.compile(r"[A-Za-z0-9_-]{43}")
 _REFUSALS = (ValueError, SyncError, AccountExistsError, PersonExistsError, CategoryExistsError)
 _Field = Annotated[str, Form()]
+_RESTORE_GATE = threading.Lock()
+_CONFIRM_NAME = "type the backup's name to confirm"
 
 
 class _Guard:
@@ -187,6 +211,8 @@ class _Guard:
 
 @contextmanager
 def _engine() -> Iterator[Engine]:
+    with _RESTORE_GATE:
+        pass
     engine = get_engine()
     try:
         yield engine
@@ -202,6 +228,10 @@ def _reading() -> Iterator[Session]:
 
 def _today() -> date:
     return datetime.now(UTC).date()
+
+
+def _now() -> datetime:
+    return datetime.now(UTC)
 
 
 def _render(request: Request, name: str, context: dict, status_code: int = 200) -> Response:
@@ -294,6 +324,36 @@ def _mapped(link: str, next_page: str) -> Response:
     if next_page == "sync":
         return _done("/sync?notice=mapped")
     return _done(f"/sync/accounts?link={link}&notice=mapped")
+
+
+def _backups_page(request: Request, error: str | None = None, status_code: int = 200) -> Response:
+    settings = get_settings()
+    folder = settings.effective_backup_dir
+    context = {
+        "folder": str(folder.resolve()),
+        "keep": settings.backup_keep,
+        "backups": backup_rows(list_backups(folder)),
+        "set_asides": backup_rows(list_set_asides(folder)),
+        "error": error,
+    }
+    return _render(request, "backups", context, status_code)
+
+
+def _backup_confirm(
+    request: Request,
+    action: str,
+    path: Path,
+    check: BackupCheck | None = None,
+    error: str | None = None,
+) -> Response:
+    context = {
+        "action": action,
+        "name": path.name,
+        "taken": taken_text(path),
+        "check": check,
+        "error": error,
+    }
+    return _render(request, "backup_confirm", context, 200 if error is None else 400)
 
 
 def _accounts_page(
@@ -483,8 +543,8 @@ def create_app(port: int) -> ASGIApp:
     api.mount("/static", StaticFiles(directory=_HERE / "static"), name="static")
     origins = {f"http://{HOST}:{port}", f"http://localhost:{port}"}
 
-    def refused(request: Request, csrf: str) -> Response | None:
-        """Check a form before it is used: its origin, its token, then the database."""
+    def forged(request: Request, csrf: str) -> Response | None:
+        """Check a form's origin and token, on any database."""
         origin = request.headers.get("origin")
         if origin is not None and origin not in origins:
             return PlainTextResponse("Bad origin", status_code=403)
@@ -493,7 +553,11 @@ def create_app(port: int) -> ASGIApp:
             cookie.encode(), csrf.encode()
         ):
             return PlainTextResponse("Bad form token", status_code=403)
-        return _not_migrated(request)
+        return None
+
+    def refused(request: Request, csrf: str) -> Response | None:
+        """Check a form before it is used: its origin, its token, then the database."""
+        return forged(request, csrf) or _not_migrated(request)
 
     @api.get("/")
     def home() -> Response:
@@ -1029,5 +1093,81 @@ def create_app(port: int) -> ASGIApp:
             "waiting": [f"{link}: {new_accounts(count)} to set up." for link, count in waiting],
         }
         return _render(request, "sync_run", context)
+
+    @api.get("/backups")
+    def backups(request: Request) -> Response:
+        return _backups_page(request)
+
+    @api.post("/backups/run")
+    def back_up(request: Request, csrf: _Field = "") -> Response:
+        stopped = refused(request, csrf)
+        if stopped is not None:
+            return stopped
+        settings = get_settings()
+        try:
+            make_backup(
+                settings.effective_database_url,
+                settings.effective_backup_dir,
+                settings.backup_keep,
+                _now(),
+            )
+        except ValueError as error:
+            return _backups_page(request, str(error), 400)
+        return _done("/backups?notice=backed-up")
+
+    @api.get("/backups/delete")
+    def delete_confirm(request: Request) -> Response:
+        name = request.query_params.get("name", "")
+        try:
+            path = find_backup(get_settings().effective_backup_dir, name)
+        except ValueError as error:
+            return _backups_page(request, str(error), 400)
+        return _backup_confirm(request, "delete", path)
+
+    @api.post("/backups/delete")
+    def delete(request: Request, csrf: _Field = "", name: _Field = "") -> Response:
+        stopped = forged(request, csrf)
+        if stopped is not None:
+            return stopped
+        try:
+            delete_backup(get_settings().effective_backup_dir, name)
+        except ValueError as error:
+            return _backups_page(request, str(error), 400)
+        return _done("/backups?notice=deleted")
+
+    @api.get("/backups/restore")
+    def restore_confirm(request: Request) -> Response:
+        name = request.query_params.get("name", "")
+        try:
+            path = find_backup(get_settings().effective_backup_dir, name)
+            check = check_backup(path)
+        except ValueError as error:
+            return _backups_page(request, str(error), 400)
+        return _backup_confirm(request, "restore", path, check)
+
+    @api.post("/backups/restore")
+    def restore(
+        request: Request, csrf: _Field = "", name: _Field = "", confirm: _Field = ""
+    ) -> Response:
+        stopped = forged(request, csrf)
+        if stopped is not None:
+            return stopped
+        settings = get_settings()
+        folder = settings.effective_backup_dir
+        try:
+            path = find_backup(folder, name)
+            check = check_backup(path)
+        except ValueError as error:
+            return _backups_page(request, str(error), 400)
+        if confirm != name:
+            return _backup_confirm(request, "restore", path, check, _CONFIRM_NAME)
+        try:
+            with _RESTORE_GATE:
+                result = restore_backup(settings.effective_database_url, path, folder, _now())
+        except ValueError as error:
+            return _backups_page(request, str(error), 400)
+        if result.needs_upgrade:
+            return _done("/backups?notice=restored-old")
+        return _done("/backups?notice=restored")
 
     return _Guard(api, port)

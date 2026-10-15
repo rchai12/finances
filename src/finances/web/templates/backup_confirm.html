@@ -1,0 +1,24 @@
+{% extends "layout.html" %}
+{% block title %}{{ "Restore" if action == "restore" else "Delete" }} a backup · Finances{% endblock %}
+{% block content %}
+<h1>{{ "Restore" if action == "restore" else "Delete" }} a backup</h1>
+{% include "messages.html" %}
+{% if action == "restore" %}
+<p class="summary">Restore {{ name }}: {{ check.accounts }} accounts and {{ check.transactions }} transactions, taken {{ taken }} UTC.</p>
+<p class="hint">The current database is set aside first and appears in the list, so restoring it undoes this. Type the backup's name to confirm.</p>
+<form method="post" action="/backups/restore" class="fields">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <input type="hidden" name="name" value="{{ name }}">
+  <label>Name <input name="confirm" value="" autocomplete="off" required></label>
+  <button type="submit">Restore</button>
+</form>
+{% else %}
+<p class="summary">Delete {{ name }}, taken {{ taken }} UTC? This cannot be undone.</p>
+<form method="post" action="/backups/delete" class="fields">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <input type="hidden" name="name" value="{{ name }}">
+  <button type="submit">Delete</button>
+</form>
+{% endif %}
+<p><a href="/backups">Cancel</a></p>
+{% endblock %}

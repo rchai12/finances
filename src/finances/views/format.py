@@ -20,3 +20,17 @@ def balance_date_text(pull: FeedPull | None) -> str:
 
 def last_pull_text(pull: FeedPull | None) -> str:
     return "never" if pull is None else pull.pulled_at.strftime("%Y-%m-%d %H:%M UTC")
+
+
+_KB = 1024
+_MB = 1024 * 1024
+
+
+def size_text(size: int) -> str:
+    """A file size in bytes, kilobytes (rounded down), or megabytes to one decimal (half up)."""
+    if size < _KB:
+        return f"{size} B"
+    if size < _MB:
+        return f"{size // _KB} KB"
+    tenths = (20 * size + _MB) // (2 * _MB)
+    return f"{tenths // 10}.{tenths % 10} MB"

@@ -318,3 +318,16 @@ Template:
   - `tests/integration/test_backup_more.py` has `test_a_check_changes_none_of_the_files_it_reads`, added after verification: with the not-a-file guard in place, no test failed when `check_backup` opened read-write. A read-write open merges and deletes a backup's leftover `-wal` file; the test checks the database and its `-wal` are left byte for byte.
 - Follow-ups:
   - A phase that adds a critical module should list `tests/unit/test_check_script.py` and `docs/testing.md` in its Scope.
+
+## Phase 24b: backups on the web (2026-10-15)
+- Tests: 2611 -> 2652 (given 35)
+- New public names: `db.backup`: `list_set_asides`, `find_backup`, `delete_backup`, `taken_at`; `views.format`: `size_text`; `views.backups`: `BackupRow`, `backup_rows`, `taken_text`; `web.app`: `GET /backups`, `POST /backups/run`, `GET`/`POST /backups/delete`, `GET`/`POST /backups/restore`
+- Changed files: 11
+- Deviations:
+  - The given `test_only_backups_in_the_folder_can_be_deleted[""]` expected the paragraph `" is not a backup in the folder"`, but `tests/support.Page` strips paragraph text, so no code could pass it; with the owner's approval its one assertion compares `NOT_A_BACKUP.format(name).strip()`. The message sent is the spec's, the name as sent.
+  - `create_app` splits the form check: `forged` checks the origin and the token on any database, and `refused` is `forged` then the database check; only `POST /backups/run` uses `refused`.
+  - The Backups page and the confirmation page are rendered by private `_backups_page` and `_backup_confirm`; `_engine` waits on the gate with `with _RESTORE_GATE: pass`.
+  - `size_text` rounds megabytes half up as `(20 * size + MB) // (2 * MB)` tenths.
+  - `tests/integration/test_backups_page_more.py` also covers a refused Back up now (`keep` below 1), which no given test reached.
+- Follow-ups:
+  - A given test that names an empty or space-edged value should expect the text `Page` reads, which is stripped.
