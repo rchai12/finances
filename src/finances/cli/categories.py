@@ -16,8 +16,12 @@ from finances.db.repositories import (
     clear_category_by_hand,
     create_category,
     create_rule,
+    delete_category,
     delete_rule,
+    edit_rule,
     get_category_by_name,
+    list_categories,
+    rename_category,
     set_category_by_hand,
 )
 from finances.views.categories import (
@@ -73,6 +77,50 @@ def add_category_command(
     typer.echo(f'Added category "{made.name}" to {parent.name}.')
 
 
+@categories_app.command("rename")
+def rename_category_command(
+    name: Annotated[str, typer.Option("--name", help="The category or group to rename.")],
+    to: Annotated[str, typer.Option("--to", help="Its new name.")],
+) -> None:
+    """Rename a category or a group."""
+    require_current_schema()
+    with session_scope(get_engine()) as session:
+        try:
+            old, renamed = rename_category(session, name, to)
+        except (CategoryExistsError, ValueError) as error:
+            fail(str(error))
+    typer.echo(f'Renamed "{old}" to "{renamed.name}".')
+
+
+@categories_app.command("delete")
+def delete_category_command(
+    name: Annotated[str, typer.Option("--name", help="The category or group to delete.")],
+    move_to: Annotated[
+        str,
+        typer.Option(
+            "--move-to",
+            help="When the category is in use, move its transactions and rules here first.",
+        ),
+    ] = "",
+) -> None:
+    """Delete a category or an empty group."""
+    require_current_schema()
+    with session_scope(get_engine()) as session:
+        try:
+            deleted = delete_category(session, name, move_to)
+        except ValueError as error:
+            fail(str(error))
+    if deleted.was_group:
+        typer.echo(f'Deleted group "{deleted.name}".')
+    elif deleted.moved_to is not None:
+        typer.echo(
+            f'Deleted category "{deleted.name}"; moved its transactions ({deleted.transactions}) '
+            f'and rules ({deleted.rules}) to "{deleted.moved_to}".'
+        )
+    else:
+        typer.echo(f'Deleted category "{deleted.name}".')
+
+
 @rules_app.command("list")
 def list_rules_command() -> None:
     """List the rules in the order they are tried."""
@@ -118,6 +166,44 @@ def delete_rule_command(
         except ValueError as error:
             fail(str(error))
     typer.echo(f"Deleted rule {rule_id}.")
+    typer.echo(categorized_text(categorize_all()))
+
+
+@rules_app.command("edit")
+def edit_rule_command(
+    rule_id: Annotated[int, typer.Option("--id", help="The rule's id (see fin rules list).")],
+    pattern: Annotated[
+        str | None, typer.Option("--pattern", help="Text to look for in the merchant.")
+    ] = None,
+    match: Annotated[
+        str | None, typer.Option("--match", help="contains, starts_with, or equals.")
+    ] = None,
+    priority: Annotated[
+        int | None, typer.Option("--priority", help="Higher is tried first.")
+    ] = None,
+    category: Annotated[
+        str | None, typer.Option("--category", help="The category it gives.")
+    ] = None,
+) -> None:
+    """Change a rule, then categorize every transaction."""
+    require_current_schema()
+    if pattern is None and match is None and priority is None and category is None:
+        fail("give at least one of --pattern, --match, --priority, --category")
+    with session_scope(get_engine()) as session:
+        try:
+            rule = edit_rule(
+                session,
+                rule_id,
+                pattern=pattern,
+                match=match,
+                priority=priority,
+                category=category,
+            )
+        except ValueError as error:
+            fail(str(error))
+        names = {item.id: item.name for item in list_categories(session)}
+        target_name = names[rule.category_id]
+    typer.echo(f'Changed rule {rule.id}: {rule.match} "{rule.pattern}" -> {target_name}.')
     typer.echo(categorized_text(categorize_all()))
 
 

@@ -54,16 +54,21 @@ from finances.db.repositories import (
     create_person,
     create_rule,
     create_transfer_pair,
+    delete_category,
     delete_rule,
+    edit_rule,
     get_account_by_name,
     get_person_by_name,
     get_transaction,
+    list_categories,
     list_feed_accounts,
     list_feed_links,
     list_new_feed_accounts,
     list_people,
+    list_rules,
     map_feed_account,
     reject_transfer,
+    rename_category,
     resolve_owner,
     set_account_owner,
     set_cardholder_alias,
@@ -142,6 +147,9 @@ NOTICES = {
     "category-added": "Category added.",
     "rule-added": "Rule added, and the rules were run again.",
     "rule-deleted": "Rule deleted, and the rules were run again.",
+    "category-renamed": "Category renamed.",
+    "category-deleted": "Category deleted.",
+    "rule-changed": "Rule changed, and the rules were run again.",
     "category-set": "Category saved.",
     "category-cleared": "Category left to the rules.",
     "transfers-found": "Clear transfers were paired; the rest wait for review.",
@@ -463,6 +471,8 @@ def _categories_page(
     *,
     rule_form: dict[str, str] | None = None,
     category_form: dict[str, str] | None = None,
+    rename_form: dict[str, str] | None = None,
+    delete_form: dict[str, str] | None = None,
     error: str | None = None,
     status_code: int = 200,
 ) -> Response:
@@ -478,9 +488,38 @@ def _categories_page(
             "tree": category_lines(session),
             "groups": [group for group, _ in choices],
             "category_form": category_form or {"name": "", "group": ""},
+            "rename_form": rename_form or {"name": "", "to": ""},
+            "delete_form": delete_form or {"name": "", "move_to": ""},
             "error": error,
         }
     return _render(request, "categories", context, status_code)
+
+
+def _rule_edit_page(
+    request: Request,
+    rule_id: int,
+    *,
+    rule_form: dict[str, str] | None = None,
+    error: str | None = None,
+    status_code: int = 200,
+) -> Response:
+    with _reading() as session:
+        rules = {rule.id: rule for rule in list_rules(session)}
+        rule = rules.get(rule_id)
+        if rule is None:
+            return _render(request, "error", {"message": "rule not found"}, status_code=404)
+        names = {item.id: item.name for item in list_categories(session)}
+        form = rule_form or _rule_form(
+            rule.pattern, rule.match, str(rule.priority), names[rule.category_id]
+        )
+        context = {
+            "rule_id": rule_id,
+            "rule_form": form,
+            "matches": MATCHES,
+            "choices": category_choices(session),
+            "error": error,
+        }
+    return _render(request, "rule_edit", context, status_code)
 
 
 def _missing_transaction(request: Request) -> Response:
@@ -774,6 +813,81 @@ def create_app(port: int) -> ASGIApp:
         except _REFUSALS as error:
             return _categories_page(request, error=str(error), status_code=400)
         return _done("/categories?notice=rule-deleted")
+
+    @api.post("/categories/rename")
+    def rename(request: Request, csrf: _Field = "", name: _Field = "", to: _Field = "") -> Response:
+        stopped = refused(request, csrf)
+        if stopped is not None:
+            return stopped
+        try:
+            with _reading() as session:
+                rename_category(session, name, to)
+        except _REFUSALS as error:
+            form = {"name": name, "to": to}
+            return _categories_page(request, rename_form=form, error=str(error), status_code=400)
+        return _done("/categories?notice=category-renamed")
+
+    @api.post("/categories/delete")
+    def remove_category(
+        request: Request, csrf: _Field = "", name: _Field = "", move_to: _Field = ""
+    ) -> Response:
+        stopped = refused(request, csrf)
+        if stopped is not None:
+            return stopped
+        try:
+            with _reading() as session:
+                delete_category(session, name, move_to)
+        except _REFUSALS as error:
+            form = {"name": name, "move_to": move_to}
+            return _categories_page(request, delete_form=form, error=str(error), status_code=400)
+        return _done("/categories?notice=category-deleted")
+
+    @api.get("/categories/rules/{rule_id}")
+    def show_rule(request: Request, rule_id: str) -> Response:
+        if rule_id in ("add", "delete"):
+            return Response(status_code=405)
+        stopped = _not_migrated(request)
+        if stopped is not None:
+            return stopped
+        number = _id(rule_id)
+        if number is None:
+            return _render(request, "error", {"message": "rule not found"}, status_code=404)
+        return _rule_edit_page(request, number)
+
+    @api.post("/categories/rules/{rule_id}")
+    def change_rule(
+        request: Request,
+        rule_id: str,
+        csrf: _Field = "",
+        pattern: _Field = "",
+        match: _Field = "",
+        priority: _Field = "",
+        category: _Field = "",
+    ) -> Response:
+        stopped = refused(request, csrf)
+        if stopped is not None:
+            return stopped
+        number = _id(rule_id)
+        if number is None:
+            return _render(request, "error", {"message": "rule not found"}, status_code=404)
+        form = _rule_form(pattern, match, priority, category)
+        try:
+            level = _priority(priority)
+            with _reading() as session:
+                edit_rule(
+                    session,
+                    number,
+                    pattern=pattern,
+                    match=match,
+                    priority=level,
+                    category=category,
+                )
+                categorize(session)
+        except _REFUSALS as error:
+            return _rule_edit_page(
+                request, number, rule_form=form, error=str(error), status_code=400
+            )
+        return _done("/categories?notice=rule-changed")
 
     @api.get("/reports")
     def reports(request: Request) -> Response:

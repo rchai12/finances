@@ -1,9 +1,10 @@
 """Database reads and writes. Functions take a Session and return domain objects."""
 
 from collections.abc import Iterable
+from dataclasses import dataclass
 from datetime import date
 
-from sqlalchemy import ColumnElement, delete, exists, func, or_, select
+from sqlalchemy import ColumnElement, delete, exists, func, or_, select, update
 from sqlalchemy.orm import Session
 
 from finances.db.orm import (
@@ -930,6 +931,134 @@ def delete_rule(session: Session, rule_id: int) -> None:
     session.execute(delete(TransactionCategoryRow).where(TransactionCategoryRow.rule_id == rule_id))
     session.delete(row)
     session.flush()
+
+
+@dataclass(frozen=True)
+class CategoryDeletion:
+    name: str
+    was_group: bool
+    moved_to: str | None
+    transactions: int
+    rules: int
+
+
+def rename_category(session: Session, name: str, new_name: str) -> tuple[str, Category]:
+    """Rename a group or category; return its old name and the renamed row. The caller commits."""
+    row = _category_row(session, name)
+    if row is None:
+        raise ValueError("category not found")
+    clean = new_name.strip()
+    if not 1 <= len(clean) <= CATEGORY_NAME_LIMIT:
+        raise ValueError(f"a category name must be 1 to {CATEGORY_NAME_LIMIT} characters")
+    other = _category_row(session, clean)
+    if other is not None and other.id != row.id:
+        raise CategoryExistsError("a category with this name already exists")
+    old = row.name
+    row.name = clean
+    session.flush()
+    return old, to_category(row)
+
+
+def delete_category(session: Session, name: str, move_to: str = "") -> CategoryDeletion:
+    """Delete a category or empty group, moving a category's uses first. The caller commits."""
+    row = _category_row(session, name)
+    if row is None:
+        raise ValueError("category not found")
+    if row.parent_id is None:
+        children = session.scalars(
+            select(CategoryRow).where(CategoryRow.parent_id == row.id).limit(1)
+        ).first()
+        if children is not None:
+            raise ValueError("a group can be deleted only when it has no categories")
+        deleted = CategoryDeletion(row.name, True, None, 0, 0)
+        session.delete(row)
+        session.flush()
+        return deleted
+
+    target = None
+    if move_to.strip():
+        target = _leaf_category(session, move_to)
+        if target.id == row.id:
+            raise ValueError("a category cannot be moved to itself")
+
+    transactions = (
+        session.scalar(
+            select(func.count())
+            .select_from(TransactionCategoryRow)
+            .where(TransactionCategoryRow.category_id == row.id)
+        )
+        or 0
+    )
+    rules = (
+        session.scalar(
+            select(func.count())
+            .select_from(CategoryRuleRow)
+            .where(CategoryRuleRow.category_id == row.id)
+        )
+        or 0
+    )
+    if (transactions > 0 or rules > 0) and target is None:
+        raise ValueError(
+            f"{row.name} is in use (transactions: {transactions}, rules: {rules}); "
+            "choose a category to move them to"
+        )
+
+    moved_to = None
+    if target is not None:
+        session.execute(
+            update(TransactionCategoryRow)
+            .where(TransactionCategoryRow.category_id == row.id)
+            .values(category_id=target.id)
+        )
+        session.execute(
+            update(CategoryRuleRow)
+            .where(CategoryRuleRow.category_id == row.id)
+            .values(category_id=target.id)
+        )
+        moved_to = target.name if transactions > 0 or rules > 0 else None
+
+    deleted = CategoryDeletion(row.name, False, moved_to, transactions, rules)
+    session.delete(row)
+    session.flush()
+    return deleted
+
+
+def edit_rule(
+    session: Session,
+    rule_id: int,
+    *,
+    pattern: str | None = None,
+    match: str | None = None,
+    priority: int | None = None,
+    category: str | None = None,
+) -> CategoryRule:
+    """Change a rule's fields and return it. The caller commits and runs categorize."""
+    row = session.get(CategoryRuleRow, rule_id)
+    if row is None:
+        raise ValueError("rule not found")
+    clean = normalize_pattern(row.pattern if pattern is None else pattern)
+    if not 1 <= len(clean) <= RULE_PATTERN_LIMIT:
+        raise ValueError(f"a rule pattern must be 1 to {RULE_PATTERN_LIMIT} characters")
+    chosen_match = row.match if match is None else match
+    if chosen_match not in MATCHES:
+        raise ValueError(f"match must be one of: {', '.join(MATCHES)}")
+    if category is None:
+        category_id = row.category_id
+    else:
+        category_id = _leaf_category(session, category).id
+    taken = select(CategoryRuleRow).where(
+        CategoryRuleRow.match == chosen_match,
+        CategoryRuleRow.pattern == clean,
+        CategoryRuleRow.id != rule_id,
+    )
+    if session.scalars(taken).first() is not None:
+        raise ValueError("a rule with this pattern and match already exists")
+    row.pattern = clean
+    row.match = chosen_match
+    row.priority = row.priority if priority is None else priority
+    row.category_id = category_id
+    session.flush()
+    return to_category_rule(row)
 
 
 def list_category_assignments(session: Session) -> dict[int, CategoryAssignment]:

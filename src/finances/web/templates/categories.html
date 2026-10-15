@@ -16,12 +16,12 @@
 <p class="empty">No uncategorized transactions.</p>
 {% endif %}
 <h2>Rules</h2>
-<p class="hint">The highest priority wins; a category set by hand is never changed. Adding or deleting a rule runs the rules again over every transaction.</p>
+<p class="hint">The highest priority wins; a category set by hand is never changed. Adding, editing, or deleting a rule runs the rules again over every transaction. Open a rule's ID to edit it.</p>
 {% if rules %}
 <table>
 <thead><tr><th>ID</th><th>Priority</th><th>Match</th><th>Pattern</th><th>Category</th><th></th></tr></thead>
 <tbody>
-{% for row in rules %}<tr><td>{{ row.id }}</td><td>{{ row.priority }}</td><td>{{ row.match }}</td><td>{{ row.pattern }}</td><td>{{ row.category }}</td><td><form method="post" action="/categories/rules/delete" class="inline"><input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="rule" value="{{ row.id }}"><button type="submit">Delete</button></form></td></tr>
+{% for row in rules %}<tr><td><a href="/categories/rules/{{ row.id }}" title="Edit this rule">{{ row.id }}</a></td><td>{{ row.priority }}</td><td>{{ row.match }}</td><td>{{ row.pattern }}</td><td>{{ row.category }}</td><td><form method="post" action="/categories/rules/delete" class="inline"><input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="rule" value="{{ row.id }}"><button type="submit">Delete</button></form></td></tr>
 {% endfor %}</tbody>
 </table>
 {% else %}
@@ -47,5 +47,46 @@
     </select>
   </label>
   <button type="submit">Add category</button>
+</form>
+<h2>Rename a category or group</h2>
+<form method="post" action="/categories/rename" class="fields">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <label>Category or group
+    <select name="name" required>
+      <option value=""{% if not rename_form.name %} selected{% endif %}>Choose</option>
+      {% for group, names in choices %}<optgroup label="{{ group }}">
+        <option value="{{ group }}"{% if group == rename_form.name %} selected{% endif %}>{{ group }} (the group)</option>
+        {% for name in names %}<option value="{{ name }}"{% if name == rename_form.name %} selected{% endif %}>{{ name }}</option>
+        {% endfor %}</optgroup>
+      {% endfor %}
+    </select>
+  </label>
+  <label>New name <input name="to" required maxlength="50" value="{{ rename_form.to }}"></label>
+  <button type="submit">Rename</button>
+</form>
+<h2>Delete a category or group</h2>
+<p class="hint">A category in use is deleted only after its transactions and rules move to another category. A group can be deleted when it has no categories.</p>
+<form method="post" action="/categories/delete" class="fields">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <label>Category or group
+    <select name="name" required>
+      <option value=""{% if not delete_form.name %} selected{% endif %}>Choose</option>
+      {% for group, names in choices %}<optgroup label="{{ group }}">
+        <option value="{{ group }}"{% if group == delete_form.name %} selected{% endif %}>{{ group }} (the group)</option>
+        {% for name in names %}<option value="{{ name }}"{% if name == delete_form.name %} selected{% endif %}>{{ name }}</option>
+        {% endfor %}</optgroup>
+      {% endfor %}
+    </select>
+  </label>
+  <label>Move its transactions and rules to
+    <select name="move_to">
+      <option value=""{% if not delete_form.move_to %} selected{% endif %}>Do not move</option>
+      {% for group, names in choices %}<optgroup label="{{ group }}">
+        {% for name in names %}<option value="{{ name }}"{% if name == delete_form.move_to %} selected{% endif %}>{{ name }}</option>
+        {% endfor %}</optgroup>
+      {% endfor %}
+    </select>
+  </label>
+  <button type="submit">Delete</button>
 </form>
 {% endblock %}

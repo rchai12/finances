@@ -331,3 +331,13 @@ Template:
   - `tests/integration/test_backups_page_more.py` also covers a refused Back up now (`keep` below 1), which no given test reached.
 - Follow-ups:
   - A given test that names an empty or space-edged value should expect the text `Page` reads, which is stripped.
+
+## Phase 16f: editing categories and rules (2026-10-15)
+- Tests: 2652 -> 2692 (given 32)
+- New public names: `db.repositories`: `CategoryDeletion`, `rename_category`, `delete_category`, `edit_rule`; `cli.categories`: `rename_category_command`, `delete_category_command`, `edit_rule_command`; `web.app`: `POST /categories/rename`, `POST /categories/delete`, `GET`/`POST /categories/rules/{id}`
+- Changed files: 9
+- Deviations:
+  - `GET /categories/rules/{rule_id}` answers 405 when the id is `add` or `delete`, so earlier tests that expect Method Not Allowed on those POST-only paths still pass; without that, the parameterized route would answer 404.
+  - The Categories page and the rule edit page are rendered by private `_categories_page` (now with `rename_form` and `delete_form`) and `_rule_edit_page`.
+- Follow-ups:
+  - When a phase adds `GET /path/{id}` beside existing `POST /path/add` and `POST /path/delete`, say that GET on `add` and `delete` must stay 405 (or reserve those names).
