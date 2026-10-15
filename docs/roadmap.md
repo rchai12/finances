@@ -22,7 +22,7 @@ Status: Phases 1 and 2 are built. The specs for Phases 3 to 10 were written befo
 | 10 | Quality gates | One check command (`scripts/check.py`: lint, format, tests, full coverage of the critical modules, optional real samples) and a pre-commit hook for lint and format; mutation testing and CI left for later | [phase-10](phases/phase-10-quality-gates.md) (re-issued, slim) |
 | 11 | Categorization and transfers | Merchant normalization, categories, rules, own-account transfer matching | [phase-11a](phases/phase-11a-categories-and-rules.md) (categories, merchants, rules; terminal), [phase-11b](phases/phase-11b-categories-on-the-web.md) (the same on the web), [phase-11c](phases/phase-11c-transfers.md) (transfers between own accounts; terminal), [phase-11d](phases/phase-11d-transfers-on-the-web.md) (the same on the web) |
 | 12 | Core reports | Balances, net worth, spending by category/merchant/person, month-over-month | [phase-12a](phases/phase-12a-spending.md) (spending; terminal), [phase-12b](phases/phase-12b-balances-and-months.md) (balances, net worth, month over month; terminal), [phase-12c](phases/phase-12c-reports-on-the-web.md) (a Reports page on the web) |
-| 13 | Insights engine | Recurring charges, spikes, frequent small purchases, findings list | outline below |
+| 13 | Insights engine | Recurring charges, spikes, frequent small purchases, findings list | [phase-13a](phases/phase-13a-recurring-charges.md) (recurring charges; terminal); 13b (merchant stats and findings) and 13c (the web) follow |
 | 14 | Agent interface (MCP server) | Read-only MCP tools over stdio for the finance subagent: accounts, balances, transactions, reports, findings, data coverage | outline below |
 | 15 | *Removed* | Was "LLM advice". Advice now comes from the external agent | |
 | 16 | Local web UI | FastAPI dashboard on 127.0.0.1, statement upload, review of agent writes | outline below |
@@ -120,6 +120,7 @@ Testing rules for every phase are in [testing.md](testing.md). Each later phase 
 - Recurring charge detection (similar amount, regular interval), including many charges to the same digital merchant (e.g. app store billing) grouped together.
 - Findings with type, severity, estimated monthly savings: spike, frequent small purchases, subscription overlap, price increase, interest charged, fees charged.
 - All local and rule-based. `fin insights`.
+- **Split (2026-10-15).** 13a: recurring charges. A merchant's spending charges form a series when every gap falls in one band (week 6 to 8 days, month 27 to 33, quarter 85 to 97, year 350 to 380), with at least 3 charges (2 for a year); when a merchant's charges together are not a series, each amount is tried alone, which finds several subscriptions billed by one app store. Active until the last charge plus the band's top. 13b: merchant stats and findings, which build on 13a (subscription overlap, price increase). 13c: the web.
 
 ### Phase 14: Agent interface (MCP server)
 - New package `src/finances/mcp_server/`; new dependency: the official `mcp` Python SDK. `fin mcp serve` runs the server on **stdio only** (no HTTP transport, no port).
