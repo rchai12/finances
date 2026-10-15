@@ -20,7 +20,7 @@ Status: Phases 1 and 2 are built. The specs for Phases 3 to 10 were written befo
 | 8 | Statements supersede feed rows | A statement upgrades the feed's rows in place and drops the ones it does not print; a late feed row is linked to its statement row; order of arrival does not matter | [phase-08](phases/phase-08-statements-supersede-feed.md) (re-issued for the aggregator feed) |
 | 9 | Test hardening | Property and fuzz tests over money, dates, parsers, SimpleFIN answers, web forms, and statements and feed pulls in any order; the bugs they found fixed (pairing that lost or doubled equal purchases near a period's edge, text longer than its column, any text as a currency, a SimpleFIN answer that crashed the reader); the migration chain and log hygiene tested | [phase-09](phases/phase-09-test-hardening.md) (re-issued for the current format) |
 | 10 | Quality gates | One check command (`scripts/check.py`: lint, format, tests, full coverage of the critical modules, optional real samples) and a pre-commit hook for lint and format; mutation testing and CI left for later | [phase-10](phases/phase-10-quality-gates.md) (re-issued, slim) |
-| 11 | Categorization and transfers | Merchant normalization, categories, rules, own-account transfer matching | [phase-11a](phases/phase-11a-categories-and-rules.md) (categories, merchants, rules; terminal), [phase-11b](phases/phase-11b-categories-on-the-web.md) (the same on the web), [phase-11c](phases/phase-11c-transfers.md) (transfers between own accounts; terminal); 11d (transfers on the web) follows |
+| 11 | Categorization and transfers | Merchant normalization, categories, rules, own-account transfer matching | [phase-11a](phases/phase-11a-categories-and-rules.md) (categories, merchants, rules; terminal), [phase-11b](phases/phase-11b-categories-on-the-web.md) (the same on the web), [phase-11c](phases/phase-11c-transfers.md) (transfers between own accounts; terminal), [phase-11d](phases/phase-11d-transfers-on-the-web.md) (the same on the web) |
 | 12 | Core reports | Balances, net worth, spending by category/merchant/person, month-over-month | outline below |
 | 13 | Insights engine | Recurring charges, spikes, frequent small purchases, findings list | outline below |
 | 14 | Agent interface (MCP server) | Read-only MCP tools over stdio for the finance subagent: accounts, balances, transactions, reports, findings, data coverage | outline below |
@@ -127,6 +127,7 @@ Testing rules for every phase are in [testing.md](testing.md). Each later phase 
   - `list_transactions` (filters: account, bank, card, person, date range, category, merchant, text; hard row cap with paging)
   - `spending_by_category`, `spending_by_merchant`, `spending_by_person`, `month_over_month`
   - `list_findings` (the Phase 13 insights), `merchant_stats`
+  - `list_uncategorized`, `list_categories`, `list_rules`, `list_transfers`, `transfer_suggestions` (the transfers waiting for review): the work queues, so the agent knows what to recommend on. Each wraps a function Phases 11a and 11c already built.
   - `data_coverage`: per account, the periods covered, the date of the newest data, which periods are statement-audited, and any sync drift, so the agent can say when its answer rests on stale or partial months
 - Results: integer cents, ISO dates, holder-perspective signs, raw merchant and cardholder names. Tool descriptions state the sign convention and units, since the agent reads them.
 - The server opens the database read-only where the dialect allows it, and no tool calls a write repository function.
@@ -163,10 +164,11 @@ No cloud deployment. If the app ever moves off the household's machine, the priv
 
 ### Phase 19: Agent write tools
 - Depends on Phases 11, 13, and 14. Rules are fixed in `architecture.md`, Agent interface.
-- Schema: an origin column (`user` / `rule` / `agent`) wherever a category, alias, or transfer pairing is stored; a `finding_status` table; an `advice_log` table; an `agent_changes` journal holding the previous value of everything the agent changed.
-- Tools, in the order they are built: `set_category` (uncategorized or agent-set transactions only), `set_finding_status`, `log_advice` / `list_advice`, `confirm_transfer_pair`, `propose_rule`, `propose_merchant_alias`.
-- A tool refuses to overwrite a `user` value. Proposals have no effect until approved.
-- `fin review` lists agent changes and proposals; accept, reject, or undo each. The web UI gets the same queue.
+- **The agent recommends; it does not act** (the owner's decision, 2026-10-14). Every write tool except the advice log stores a **proposal** that changes nothing until a person accepts it. Accepting a proposal calls the same function the terminal and web use, so the result is recorded as the person's choice.
+- Schema: a `proposals` table (kind, the target, the proposed value, the agent's one-line reason, status `open` / `accepted` / `declined`, timestamps); a `finding_status` table; an `advice_log` table.
+- Tools, in the order they are built: `log_advice` / `list_advice` (the agent's own notes, the only direct write), `propose_category` (for an uncategorized transaction), `propose_transfer` and `propose_not_transfer` (for a candidate waiting for review), `propose_rule`, `propose_merchant_alias`, `propose_finding_status`, `list_proposals`.
+- A proposal on something a person has since decided (a category set, a pair confirmed or rejected) is shown as out of date and cannot be accepted. The agent cannot accept or decline a proposal, and cannot propose again what a person declined.
+- `fin review` lists open proposals with the agent's reason; accept or decline each, or several at once. The web UI gets the same queue, and the Categories and Transfers pages show the agent's suggestion beside each item.
 - No tool for amounts, dates, balances, accounts, imports, deletions, sync, or reconciliation overrides.
 
 ### Phase 20: Remote access
