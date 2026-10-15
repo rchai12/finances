@@ -351,3 +351,13 @@ Template:
   - `tests/integration/test_account_and_bulk_repositories.py` raises Starlette's form `max_fields` to 2000 for the 1001-id refusal, because the default of 1000 would answer before the app's message.
 - Follow-ups:
   - A bulk POST that sends more than about 1000 form fields needs a higher `Request.form` `max_fields` (or another shape) before the route can refuse with the app's own message.
+
+## Phase 16g: statement upload (2026-10-15)
+- Tests: 2728 -> 2763 (given 23)
+- New public names: `domain.periods.statement_gaps`; `analysis.statements`: `StatementGap`, `statement_gap_lines`; `views.statements`: `StatementRow`, `GapRow`, `statement_rows`, `gap_rows`, `import_rows`; `web.app`: `GET /statements`, `POST /statements/upload`, bulk form `max_fields=1100`
+- Changed files: 11
+- Deviations:
+  - `POST /transactions/bulk` and `POST /statements/upload` are `async` and run database work with `run_in_threadpool`.
+  - Private `_upload_name` and `_statements_page` hold the file-name cut and the page context.
+- Follow-ups:
+  - The TestClient's multipart layer already strips a Windows-style file path, and `import_statement` uses `Path.name`, so a given test that only uploads through the client does not prove the route's own folder strip; call `_upload_name` directly for that.

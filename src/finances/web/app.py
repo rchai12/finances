@@ -17,6 +17,8 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from sqlalchemy import Engine
 from sqlalchemy.orm import Session
+from starlette.concurrency import run_in_threadpool
+from starlette.datastructures import UploadFile
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 from finances.analysis.balances import balance_report
@@ -29,6 +31,7 @@ from finances.analysis.people import (
 from finances.analysis.recurring import recurring_charges
 from finances.analysis.search import TransactionQuery, search_transactions
 from finances.analysis.spending import spending_report
+from finances.analysis.statements import statement_gap_lines
 from finances.categorize.service import categorize
 from finances.categorize.transfers import pair_transfers
 from finances.config import get_settings
@@ -62,12 +65,14 @@ from finances.db.repositories import (
     get_account_by_name,
     get_person_by_name,
     get_transaction,
+    list_accounts,
     list_categories,
     list_feed_accounts,
     list_feed_links,
     list_new_feed_accounts,
     list_people,
     list_rules,
+    list_statements,
     map_feed_account,
     reject_transfer,
     rename_account,
@@ -86,6 +91,7 @@ from finances.domain.models import CONFIRMED, Account, AccountType
 from finances.domain.rules import MATCHES
 from finances.domain.spending import BY, month_bounds, month_range
 from finances.domain.transfers import TRANSFER_MAX_DAYS
+from finances.ingest.service import ImportStatus, StatementImportResult, import_statement
 from finances.sync import transport
 from finances.sync.links import (
     delete_access_url,
@@ -115,6 +121,7 @@ from finances.views.months import month_notes, month_rows
 from finances.views.people import people_rows
 from finances.views.recurring import recurring_rows, recurring_summary
 from finances.views.spending import spending_heading, spending_rows, spending_summary
+from finances.views.statements import gap_rows, import_rows, statement_rows
 from finances.views.sync import (
     run_rows,
     setup_offers,
@@ -127,6 +134,7 @@ from finances.views.transactions import found_rows
 from finances.views.transfers import suggestion_lines, transfer_lines, transfer_of
 
 HOST = "127.0.0.1"
+UPLOAD_LIMIT = 20 * 1024 * 1024
 SECURITY_HEADERS = {
     "content-security-policy": (
         "default-src 'self'; script-src 'none'; style-src 'self'; img-src 'self'; "
@@ -455,6 +463,38 @@ def _transactions_page(
         "error": error,
     }
     return _render(request, "transactions", context, status_code)
+
+
+def _upload_name(sent: str) -> str:
+    """The file name after its last folder separator, cut to 255 characters."""
+    name = sent.replace("\\", "/").rpartition("/")[2]
+    return name[:255]
+
+
+def _statements_page(
+    request: Request,
+    *,
+    chosen_account: str = "",
+    dry_run: bool = False,
+    result: list[tuple[str, str]] | None = None,
+    error: str | None = None,
+    status_code: int = 200,
+) -> Response:
+    with _reading() as session:
+        accounts = [account.name for account in list_accounts(session)]
+        names = account_names(session)
+        statements = statement_rows(list_statements(session), names)
+        gaps = gap_rows(statement_gap_lines(session))
+    context = {
+        "accounts": accounts,
+        "chosen_account": chosen_account,
+        "dry_run": dry_run,
+        "result": result,
+        "statements": statements,
+        "gaps": gaps,
+        "error": error,
+    }
+    return _render(request, "statements", context, status_code)
 
 
 def _people_page(request: Request, *, error: str | None = None, status_code: int = 200) -> Response:
@@ -798,21 +838,20 @@ def create_app(port: int) -> ASGIApp:
         return _transactions_page(request)
 
     @api.post("/transactions/bulk")
-    def bulk_category(
-        request: Request,
-        csrf: _Field = "",
-        category: _Field = "",
-        action: _Field = "",
-        back: _Field = "",
-        id: Annotated[list[str] | None, Form()] = None,
-    ) -> Response:
+    async def bulk_category(request: Request) -> Response:
+        form = await request.form(max_fields=1100)
+        csrf = str(form.get("csrf") or "")
         stopped = refused(request, csrf)
         if stopped is not None:
             return stopped
+        category = str(form.get("category") or "")
+        action = str(form.get("action") or "")
+        back = str(form.get("back") or "")
+        chosen_ids = [str(value) for value in form.getlist("id")]
         filters = _back_filters(back)
         query = urlencode(list(filters.items()))
-        chosen_ids = id or []
-        try:
+
+        def apply() -> str:
             numbers = []
             for text in chosen_ids:
                 number = _id(text)
@@ -824,11 +863,13 @@ def create_app(port: int) -> ASGIApp:
             with _reading() as session:
                 if action == "set":
                     set_categories_by_hand(session, numbers, category)
-                    notice = "bulk-set"
-                else:
-                    clear_categories_by_hand(session, numbers)
-                    categorize(session)
-                    notice = "bulk-cleared"
+                    return "bulk-set"
+                clear_categories_by_hand(session, numbers)
+                categorize(session)
+                return "bulk-cleared"
+
+        try:
+            notice = await run_in_threadpool(apply)
         except _REFUSALS as error:
             return _transactions_page(request, filters, error=str(error), status_code=400)
         location = (
@@ -872,6 +913,74 @@ def create_app(port: int) -> ASGIApp:
             clear_category_by_hand(session, found)
             categorize(session)
         return _done(f"/transactions/{found}?notice=category-cleared")
+
+    @api.get("/statements")
+    def statements(request: Request) -> Response:
+        stopped = _not_migrated(request)
+        if stopped is not None:
+            return stopped
+        return _statements_page(request)
+
+    @api.post("/statements/upload")
+    async def upload_statement(request: Request) -> Response:
+        form = await request.form()
+        csrf = str(form.get("csrf") or "")
+        stopped = refused(request, csrf)
+        if stopped is not None:
+            return stopped
+        account = str(form.get("account") or "")
+        dry_run = form.get("dry_run") == "yes"
+        uploaded = form.get("file")
+
+        def refuse(message: str) -> Response:
+            return _statements_page(
+                request,
+                chosen_account=account,
+                dry_run=dry_run,
+                error=message,
+                status_code=400,
+            )
+
+        if not isinstance(uploaded, UploadFile):
+            return refuse("choose a PDF statement")
+        content = uploaded.file.read(UPLOAD_LIMIT + 1)
+        if not content:
+            return refuse("choose a PDF statement")
+        if len(content) > UPLOAD_LIMIT:
+            return refuse("a statement must be at most 20 MB")
+        if not content.startswith(b"%PDF-"):
+            return refuse("the file is not a PDF")
+        stored = _upload_name(uploaded.filename or "")
+        if not stored:
+            return refuse("choose a PDF statement")
+
+        def run_import() -> StatementImportResult:
+            with _reading() as session:
+                return import_statement(
+                    session,
+                    filename=stored,
+                    content=content,
+                    account_name=account or None,
+                    dry_run=dry_run,
+                )
+
+        answer = await run_in_threadpool(run_import)
+        if answer.status is ImportStatus.FAILED:
+            return refuse(answer.message)
+        if answer.status is ImportStatus.IMPORTED:
+
+            def after() -> None:
+                with _reading() as session:
+                    categorize(session)
+                    pair_transfers(session)
+
+            await run_in_threadpool(after)
+        return _statements_page(
+            request,
+            chosen_account=account,
+            dry_run=dry_run,
+            result=import_rows(answer),
+        )
 
     @api.get("/categories")
     def categories(request: Request) -> Response:

@@ -1,11 +1,12 @@
 """Calendar months, and which accounts' data covers a range. Pure: no database."""
 
-from collections.abc import Mapping
-from datetime import date
+from collections.abc import Iterable, Mapping
+from datetime import date, timedelta
 
 from finances.domain.spending import month_bounds
 
 MONTHS_MAX = 24
+_DAY = timedelta(days=1)
 
 
 def months_ending(day: date, count: int) -> list[tuple[date, date]]:
@@ -27,3 +28,20 @@ def uncovered(spans: Mapping[str, tuple[date, date] | None], start: date, end: d
         if span is None or not (span[0] <= start and span[1] >= end)
     ]
     return sorted(names, key=lambda name: (name.lower(), name))
+
+
+def statement_gaps(periods: Iterable[tuple[date, date]]) -> list[tuple[date, date]]:
+    """Each run of days between joined periods, as (first missing day, last missing day)."""
+    ordered = sorted(periods, key=lambda period: period[0])
+    if not ordered:
+        return []
+    joined: list[list[date]] = [[ordered[0][0], ordered[0][1]]]
+    for start, end in ordered[1:]:
+        _, last_end = joined[-1]
+        if start <= last_end + _DAY:
+            joined[-1][1] = max(last_end, end)
+        else:
+            joined.append([start, end])
+    return [
+        (joined[index][1] + _DAY, joined[index + 1][0] - _DAY) for index in range(len(joined) - 1)
+    ]
