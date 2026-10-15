@@ -1,16 +1,32 @@
-"""The `fin spending` command: where the money went in a month or range."""
+"""Report commands: `fin spending`, `fin balances`, and `fin months`."""
 
+from collections.abc import Iterable, Sequence
+from dataclasses import astuple
 from datetime import date, datetime
 from typing import Annotated
 
 import typer
 from rich.table import Table
 
+from finances.analysis.balances import balance_report
+from finances.analysis.months import month_report
 from finances.analysis.spending import spending_report
 from finances.cli.common import fail, print_table, require_current_schema
 from finances.db.engine import get_engine, session_scope
+from finances.domain.periods import MONTHS_MAX
 from finances.domain.spending import month_bounds, month_range
+from finances.views.balances import balance_rows, balance_summary
+from finances.views.months import month_heading, month_notes, month_rows
 from finances.views.spending import spending_heading, spending_rows, spending_summary
+
+
+def _print_rows(headings: Sequence[str], rows: Iterable[object]) -> None:
+    table = Table()
+    for heading in headings:
+        table.add_column(heading)
+    for row in rows:
+        table.add_row(*astuple(row))
+    print_table(table)
 
 
 def _range(month: str | None, start: datetime | None, end: datetime | None) -> tuple[date, date]:
@@ -54,13 +70,46 @@ def spending_command(
     typer.echo(spending_heading(report))
     rows = spending_rows(report)
     if rows:
-        table = Table()
-        for heading in (by.capitalize(), "Spent", "Count"):
-            table.add_column(heading)
-        for row in rows:
-            table.add_row(row.label, row.spent, row.count)
-        print_table(table)
+        _print_rows((by.capitalize(), "Spent", "Count"), rows)
     else:
         typer.echo("No spending.")
     for line in spending_summary(report):
         typer.echo(line)
+
+
+def balances_command() -> None:
+    """Show each active account's newest balance, and the net worth."""
+    require_current_schema()
+    with session_scope(get_engine()) as session:
+        report = balance_report(session)
+    if not report.lines:
+        typer.echo("No accounts.")
+        return
+    _print_rows(("Account", "Type", "Balance", "As of", "From"), balance_rows(report))
+    for line in balance_summary(report):
+        typer.echo(line)
+
+
+def months_command(
+    to: Annotated[
+        str | None, typer.Option("--to", help="The last month, YYYY-MM (this month by default).")
+    ] = None,
+    count: Annotated[int, typer.Option("--count", help=f"How many months, 1 to {MONTHS_MAX}.")] = 6,
+) -> None:
+    """Compare the spending and income of recent months, and say which data covers them."""
+    require_current_schema()
+    day = date.today()
+    if to is not None:
+        try:
+            day = month_range(to)[0]
+        except ValueError as error:
+            fail(str(error))
+    with session_scope(get_engine()) as session:
+        try:
+            lines = month_report(session, day, count)
+        except ValueError as error:
+            fail(str(error))
+    typer.echo(month_heading(lines))
+    _print_rows(("Month", "Spent", "Income", "Change", "Covered"), month_rows(lines))
+    for note in month_notes(lines):
+        typer.echo(note)

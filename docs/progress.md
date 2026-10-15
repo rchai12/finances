@@ -242,3 +242,14 @@ Template:
   - `cli/reports.py` builds its Rich table inline instead of copying `_print_rows` a third time.
 - Follow-ups:
   - None
+
+## Phase 12b: balances and months (2026-10-15)
+- Tests: 2403 -> 2433 (given 17)
+- New public names: `domain.periods`: `MONTHS_MAX`, `months_ending`, `uncovered`; `db.repositories`: `account_data_span`; `analysis.balances`: `BalanceLine`, `BalanceReport`, `balance_report`; `analysis.months`: `MonthLine`, `month_report`; `views.balances`: `BalanceRow`, `balance_rows`, `balance_summary`; `views.months`: `MonthRow`, `month_rows`, `month_heading`, `month_notes`; `cli.reports`: `balances_command`, `months_command`
+- Changed files: 12
+- Deviations:
+  - `account_data_span` reads the earliest and latest feed pull through `to_feed_pull`, so `pulled_at` is taken as UTC before its date is used.
+  - `cli/reports.py` gained a private `_print_rows`, and `fin spending` now uses it too, replacing its inline table.
+  - `fin months` with no active account still prints the heading and every month as covered; the spec gives it no `No accounts.` line.
+- Follow-ups:
+  - `_print_rows` is now in three CLI modules (`categories`, `transfers`, `reports`); it could move to `cli/common.py` in a phase that touches that file.

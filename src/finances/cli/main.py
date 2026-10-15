@@ -17,7 +17,7 @@ from finances.cli.db import app as db_app
 from finances.cli.importing import app as import_app
 from finances.cli.listing import statements_app, transactions_app
 from finances.cli.people import app as people_app
-from finances.cli.reports import spending_command
+from finances.cli.reports import balances_command, months_command, spending_command
 from finances.cli.sync import app as sync_app
 from finances.cli.transfers import transfers_app
 from finances.cli.web import app as web_app
@@ -40,6 +40,8 @@ app.add_typer(transfers_app, name="transfers")
 app.command("categorize")(categorize_command)
 app.command("uncategorized")(uncategorized_command)
 app.command("spending")(spending_command)
+app.command("balances")(balances_command)
+app.command("months")(months_command)
 
 
 @app.callback(invoke_without_command=True)

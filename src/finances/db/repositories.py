@@ -302,6 +302,31 @@ def list_transactions_between(session: Session, start: date, end: date) -> list[
     return [to_transaction(row) for row in session.scalars(stmt).all()]
 
 
+def account_data_span(session: Session, account_id: int) -> tuple[date, date] | None:
+    """The earliest and latest day of the account's statements, posted transactions, and pulls."""
+    statements = session.execute(
+        select(func.min(StatementRow.period_start), func.max(StatementRow.period_end)).where(
+            StatementRow.account_id == account_id
+        )
+    ).one()
+    day = func.coalesce(TransactionRow.transaction_date, TransactionRow.posted_date)
+    transactions = session.execute(
+        select(func.min(day), func.max(day)).where(
+            TransactionRow.account_id == account_id, TransactionRow.is_pending.is_(False)
+        )
+    ).one()
+    pulls = select(FeedPullRow).where(FeedPullRow.account_id == account_id).limit(1)
+    first = session.scalars(pulls.order_by(FeedPullRow.pulled_at, FeedPullRow.id)).first()
+    last = session.scalars(
+        pulls.order_by(FeedPullRow.pulled_at.desc(), FeedPullRow.id.desc())
+    ).first()
+    days = [found for found in (*statements, *transactions) if found is not None]
+    days += [to_feed_pull(row).pulled_at.date() for row in (first, last) if row is not None]
+    if not days:
+        return None
+    return min(days), max(days)
+
+
 def add_balance_snapshot(
     session: Session, account_id: int, as_of_date: date, balance_cents: int, source: DataSource
 ) -> BalanceSnapshot:
