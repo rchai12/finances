@@ -253,3 +253,14 @@ Template:
   - `fin months` with no active account still prints the heading and every month as covered; the spec gives it no `No accounts.` line.
 - Follow-ups:
   - `_print_rows` is now in three CLI modules (`categories`, `transfers`, `reports`); it could move to `cli/common.py` in a phase that touches that file.
+
+## Phase 12c: reports on the web (2026-10-15)
+- Tests: 2433 -> 2449 (given 16)
+- New public names: None
+- Changed files: 5
+- Deviations:
+  - A `by` field sent empty is read as `category`, like a missing one, matching "given means not empty" for the other fields.
+  - The private `_spending_range` in `web/app.py` reads the four fields in the spec's order; the months end on the spending report's end day, or on today when the request is refused.
+  - No `tests/integration/test_web_reports_more.py`: the given tests reach every branch.
+- Follow-ups:
+  - None

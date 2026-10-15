@@ -17,11 +17,14 @@ from sqlalchemy import Engine
 from sqlalchemy.orm import Session
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
+from finances.analysis.balances import balance_report
+from finances.analysis.months import month_report
 from finances.analysis.people import (
     JOINT_FILTER,
     UNASSIGNED_FILTER,
     list_transactions_with_people,
 )
+from finances.analysis.spending import spending_report
 from finances.categorize.service import categorize
 from finances.categorize.transfers import pair_transfers
 from finances.db.engine import get_engine, session_scope
@@ -57,6 +60,7 @@ from finances.db.repositories import (
 from finances.domain.feed_setup import new_accounts
 from finances.domain.models import CONFIRMED, Account, AccountType, Transaction
 from finances.domain.rules import MATCHES
+from finances.domain.spending import BY, month_bounds, month_range
 from finances.domain.transfers import TRANSFER_MAX_DAYS
 from finances.sync import transport
 from finances.sync.links import (
@@ -68,6 +72,7 @@ from finances.sync.links import (
 from finances.sync.runner import run_links
 from finances.sync.simplefin import SyncError, claim_access_url, fetch_accounts
 from finances.views.accounts import account_rows
+from finances.views.balances import balance_rows, balance_summary
 from finances.views.categories import (
     category_choices,
     category_lines,
@@ -75,7 +80,9 @@ from finances.views.categories import (
     transaction_detail,
     uncategorized_lines,
 )
+from finances.views.months import month_notes, month_rows
 from finances.views.people import people_rows
+from finances.views.spending import spending_heading, spending_rows, spending_summary
 from finances.views.sync import (
     run_rows,
     setup_offers,
@@ -127,6 +134,7 @@ _TEMPLATES = Jinja2Templates(directory=_HERE / "templates")
 _HEADER_BYTES = [(name.encode(), value.encode()) for name, value in SECURITY_HEADERS.items()]
 _DEFAULT_LIMIT = "50"
 _UNCATEGORIZED_LIMIT = 50
+_REPORT_MONTHS = 6
 _LIMIT_MAX = 1000
 _DATE = re.compile(r"[0-9]{4}-[0-9]{2}-[0-9]{2}")
 _WHOLE = re.compile(r"[0-9]+")
@@ -224,6 +232,20 @@ def _day(text: str, name: str) -> date | None:
         except ValueError:
             pass
     raise ValueError(f"{name} must be a date as YYYY-MM-DD")
+
+
+def _spending_range(form: dict[str, str]) -> tuple[date, date]:
+    """The days the Reports page's spending covers, refusing a form that does not fit."""
+    if form["month"] and (form["start"] or form["end"]):
+        raise ValueError("give a month, or from and to, not both")
+    if bool(form["start"]) != bool(form["end"]):
+        raise ValueError("give both from and to")
+    start, end = _day(form["start"], "from"), _day(form["end"], "to")
+    if start is not None and end is not None:
+        return start, end
+    if form["month"]:
+        return month_range(form["month"])
+    return month_bounds(_today())
 
 
 def _limit(text: str) -> int:
@@ -672,6 +694,47 @@ def create_app(port: int) -> ASGIApp:
         except _REFUSALS as error:
             return _categories_page(request, error=str(error), status_code=400)
         return _done("/categories?notice=rule-deleted")
+
+    @api.get("/reports")
+    def reports(request: Request) -> Response:
+        stopped = _not_migrated(request)
+        if stopped is not None:
+            return stopped
+        query = request.query_params
+        form = {
+            "month": query.get("month", ""),
+            "start": query.get("from", ""),
+            "end": query.get("to", ""),
+            "by": query.get("by") or "category",
+        }
+        spending, error, last = None, None, _today()
+        with _reading() as session:
+            balances = balance_report(session)
+            try:
+                start, end = _spending_range(form)
+                report = spending_report(session, start, end, form["by"])
+            except ValueError as refusal:
+                error = str(refusal)
+            else:
+                spending = {
+                    "heading": spending_heading(report),
+                    "by": report.by,
+                    "rows": spending_rows(report),
+                    "summary": spending_summary(report),
+                }
+                last = report.end
+            lines = month_report(session, last, _REPORT_MONTHS)
+        context = {
+            "balances": balance_rows(balances),
+            "balance_summary": balance_summary(balances),
+            "months": month_rows(lines),
+            "month_notes": month_notes(lines),
+            "spending": spending,
+            "form": form,
+            "bys": BY,
+            "error": error,
+        }
+        return _render(request, "reports", context, 200 if error is None else 400)
 
     @api.get("/transfers")
     def transfers(request: Request) -> Response:

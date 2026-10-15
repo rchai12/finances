@@ -1,0 +1,58 @@
+{% extends "layout.html" %}
+{% block title %}Reports · Finances{% endblock %}
+{% block content %}
+<h1>Reports</h1>
+{% include "messages.html" %}
+<h2>Balances</h2>
+{% if balances %}
+<table>
+<thead><tr><th>Account</th><th>Type</th><th class="amount">Balance</th><th>As of</th><th>From</th></tr></thead>
+<tbody>
+{% for row in balances %}<tr><td>{{ row.account }}</td><td>{{ row.type }}</td><td class="amount">{{ row.balance }}</td><td>{{ row.as_of }}</td><td>{{ row.source }}</td></tr>
+{% endfor %}</tbody>
+</table>
+{% for line in balance_summary %}<p class="summary">{{ line }}</p>
+{% endfor %}
+{% else %}
+<p class="empty">No accounts.</p>
+{% endif %}
+<h2>Months</h2>
+{% if months %}
+<table>
+<thead><tr><th>Month</th><th class="amount">Spent</th><th class="amount">Income</th><th class="amount">Change</th><th>Covered</th></tr></thead>
+<tbody>
+{% for row in months %}<tr><td><a href="/reports?month={{ row.month }}">{{ row.month }}</a></td><td class="amount">{{ row.spent }}</td><td class="amount">{{ row.income }}</td><td class="amount">{{ row.change }}</td><td>{{ row.covered }}</td></tr>
+{% endfor %}</tbody>
+</table>
+{% for line in month_notes %}<p class="hint">{{ line }}</p>
+{% endfor %}
+{% endif %}
+<h2>Spending</h2>
+<form method="get" action="/reports" class="fields">
+  <label>Month <input type="month" name="month" value="{{ form.month }}"></label>
+  <label>or from <input type="date" name="from" value="{{ form.start }}"></label>
+  <label>to <input type="date" name="to" value="{{ form.end }}"></label>
+  <label>By
+    <select name="by">
+      {% for item in bys %}<option value="{{ item }}"{% if item == form.by %} selected{% endif %}>{{ item }}</option>
+      {% endfor %}
+    </select>
+  </label>
+  <button type="submit">Show</button>
+</form>
+{% if spending %}
+<p class="summary">{{ spending.heading }}</p>
+{% if spending.rows %}
+<table>
+<thead><tr><th>{{ spending.by|capitalize }}</th><th class="amount">Spent</th><th class="amount">Count</th></tr></thead>
+<tbody>
+{% for row in spending.rows %}<tr><td>{{ row.label }}</td><td class="amount">{{ row.spent }}</td><td class="amount">{{ row.count }}</td></tr>
+{% endfor %}</tbody>
+</table>
+{% else %}
+<p class="empty">No spending.</p>
+{% endif %}
+{% for line in spending.summary %}<p class="summary">{{ line }}</p>
+{% endfor %}
+{% endif %}
+{% endblock %}
