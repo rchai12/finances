@@ -18,7 +18,12 @@ from finances.db.engine import get_engine, session_scope
 from finances.domain.periods import MONTHS_MAX
 from finances.domain.spending import month_bounds, month_range
 from finances.views.balances import balance_rows, balance_summary
-from finances.views.insights import finding_rows, findings_summary, merchant_rows
+from finances.views.insights import (
+    finding_rows,
+    findings_summary,
+    insights_heading,
+    merchant_rows,
+)
 from finances.views.months import month_heading, month_notes, month_rows
 from finances.views.recurring import recurring_rows, recurring_summary
 from finances.views.spending import spending_heading, spending_rows, spending_summary
@@ -162,7 +167,7 @@ def insights_command(month: Annotated[str | None, _MONTH_OPTION] = None) -> None
     first = _first_day(month)
     with session_scope(get_engine()) as session:
         report = insights_report(session, first)
-    typer.echo(f"Insights for {first.isoformat()[:7]}.")
+    typer.echo(insights_heading(report))
     rows = finding_rows(report)
     if not rows:
         typer.echo("No findings.")

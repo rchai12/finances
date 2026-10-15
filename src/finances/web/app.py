@@ -18,12 +18,14 @@ from sqlalchemy.orm import Session
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 from finances.analysis.balances import balance_report
+from finances.analysis.insights import insights_report
 from finances.analysis.months import month_report
 from finances.analysis.people import (
     JOINT_FILTER,
     UNASSIGNED_FILTER,
     list_transactions_with_people,
 )
+from finances.analysis.recurring import recurring_charges
 from finances.analysis.spending import spending_report
 from finances.categorize.service import categorize
 from finances.categorize.transfers import pair_transfers
@@ -80,8 +82,15 @@ from finances.views.categories import (
     transaction_detail,
     uncategorized_lines,
 )
+from finances.views.insights import (
+    finding_rows,
+    findings_summary,
+    insights_heading,
+    merchant_rows,
+)
 from finances.views.months import month_notes, month_rows
 from finances.views.people import people_rows
+from finances.views.recurring import recurring_rows, recurring_summary
 from finances.views.spending import spending_heading, spending_rows, spending_summary
 from finances.views.sync import (
     run_rows,
@@ -246,6 +255,13 @@ def _spending_range(form: dict[str, str]) -> tuple[date, date]:
     if form["month"]:
         return month_range(form["month"])
     return month_bounds(_today())
+
+
+def _month_start(text: str) -> date:
+    """The first day of the month typed, or of this month when nothing was typed."""
+    if not text:
+        return month_bounds(_today())[0]
+    return month_range(text)[0]
 
 
 def _limit(text: str) -> int:
@@ -735,6 +751,30 @@ def create_app(port: int) -> ASGIApp:
             "error": error,
         }
         return _render(request, "reports", context, 200 if error is None else 400)
+
+    @api.get("/insights")
+    def insights(request: Request) -> Response:
+        stopped = _not_migrated(request)
+        if stopped is not None:
+            return stopped
+        form = {"month": request.query_params.get("month", "")}
+        try:
+            first = _month_start(form["month"])
+        except ValueError as refusal:
+            context = {"form": form, "report": None, "error": str(refusal)}
+            return _render(request, "insights", context, 400)
+        with _reading() as session:
+            found = insights_report(session, first)
+            series = recurring_charges(session, month_bounds(first)[1])
+        report = {
+            "heading": insights_heading(found),
+            "findings": finding_rows(found),
+            "findings_summary": findings_summary(found),
+            "recurring": recurring_rows(series),
+            "recurring_summary": recurring_summary(series),
+            "merchants": merchant_rows(found),
+        }
+        return _render(request, "insights", {"form": form, "report": report})
 
     @api.get("/transfers")
     def transfers(request: Request) -> Response:

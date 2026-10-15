@@ -31,6 +31,10 @@ def _change(cents: int) -> str:
     return f"+{text}" if cents > 0 else text
 
 
+def insights_heading(report: InsightsReport) -> str:
+    return f"Insights for {report.month.isoformat()[:7]}."
+
+
 def finding_rows(report: InsightsReport) -> list[FindingRow]:
     return [
         FindingRow(

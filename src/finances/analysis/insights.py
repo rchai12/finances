@@ -47,7 +47,7 @@ def insights_report(session: Session, month: date) -> InsightsReport:
     findings = [
         *spikes(first, month_flows, earlier_flows),
         *frequent_small(first, month_flows),
-        *overlaps(first, series, _categories(flows)),
+        *overlaps(first, series, _categories(load_flows(session, date.min, last))),
         *price_increases(first, series),
         *charges_found(first, month_flows),
     ]

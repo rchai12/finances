@@ -1,0 +1,48 @@
+{% extends "layout.html" %}
+{% block title %}Insights · Finances{% endblock %}
+{% block content %}
+<h1>Insights</h1>
+{% include "messages.html" %}
+<form method="get" action="/insights" class="fields">
+  <label>Month <input type="month" name="month" value="{{ form.month }}"></label>
+  <button type="submit">Show</button>
+</form>
+{% if report %}
+<p class="summary">{{ report.heading }}</p>
+<h2>Findings</h2>
+{% if report.findings %}
+<table>
+<thead><tr><th>Severity</th><th>Type</th><th>About</th><th class="amount">Saves a month</th><th>Detail</th></tr></thead>
+<tbody>
+{% for row in report.findings %}<tr><td>{{ row.severity }}</td><td>{{ row.type }}</td><td>{{ row.about }}</td><td class="amount">{{ row.saves }}</td><td>{{ row.detail }}</td></tr>
+{% endfor %}</tbody>
+</table>
+<p class="summary">{{ report.findings_summary }}</p>
+{% else %}
+<p class="empty">No findings.</p>
+{% endif %}
+<h2>Recurring charges</h2>
+{% if report.recurring %}
+<table>
+<thead><tr><th>Merchant</th><th>Every</th><th class="amount">Amount</th><th class="amount">Monthly</th><th class="amount">Count</th><th>Last</th><th>Next</th></tr></thead>
+<tbody>
+{% for row in report.recurring %}<tr><td>{{ row.merchant }}</td><td>{{ row.every }}</td><td class="amount">{{ row.amount }}</td><td class="amount">{{ row.monthly }}</td><td class="amount">{{ row.count }}</td><td>{{ row.last }}</td><td>{{ row.next }}</td></tr>
+{% endfor %}</tbody>
+</table>
+{% else %}
+<p class="empty">No recurring charges.</p>
+{% endif %}
+<p class="summary">{{ report.recurring_summary }}</p>
+<h2>Merchants</h2>
+{% if report.merchants %}
+<table>
+<thead><tr><th>Merchant</th><th class="amount">Visits</th><th class="amount">Spent</th><th class="amount">Average</th><th class="amount">Baseline</th><th class="amount">Change</th><th class="amount">Weekend</th></tr></thead>
+<tbody>
+{% for row in report.merchants %}<tr><td>{{ row.merchant }}</td><td class="amount">{{ row.visits }}</td><td class="amount">{{ row.spent }}</td><td class="amount">{{ row.average }}</td><td class="amount">{{ row.baseline }}</td><td class="amount">{{ row.change }}</td><td class="amount">{{ row.weekend }}</td></tr>
+{% endfor %}</tbody>
+</table>
+{% else %}
+<p class="empty">No spending.</p>
+{% endif %}
+{% endif %}
+{% endblock %}

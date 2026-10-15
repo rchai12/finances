@@ -285,3 +285,14 @@ Template:
   - The thresholds are private constants in `domain/insights.py`; `views/insights.py` has its own `_change`, the same as `views/months.py`'s.
 - Follow-ups:
   - If overlaps should see yearly subscriptions, the category map needs charges from before the four-month window (a second read or a wider one).
+
+## Phase 13c: insights on the web (2026-10-15)
+- Tests: 2523 -> 2533 (given 9)
+- New public names: `views.insights`: `insights_heading`
+- Changed files: 11
+- Deviations:
+  - `tests/integration/test_web_insights_more.py` holds one test, added after verification: no given test failed when the page listed inactive recurring charges (the given data has none), so R4's "active only" had no test. The spec allows this file only for an unreached branch.
+  - Of the two failing-first tests named for R1, only `test_a_month` failed before the fix; `test_a_yearly_plan_charged_before_the_window_still_overlaps` already passed, since an April report reads January to April and the yearly charge is on 8 January.
+  - The category map reads the charges a second time, from `date.min` to the month's last day; the route reads the month through a private `_month_start` and calls `recurring_charges` itself for the page's recurring table.
+- Follow-ups:
+  - None

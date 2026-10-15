@@ -22,6 +22,7 @@ Applies to every phase. Phase specs list the specific tests; this file sets the 
 5. **Integration tests use migrations**, never `metadata.create_all`, so migrations are always exercised.
 6. **Coverage**: branch coverage is measured on every run. Overall `fail_under = 85`. Every line and every branch of each critical module must be covered; `scripts/check.py` checks it.
 7. Tests for a module live in the matching layer folder, named `test_<module>.py`.
+8. **Shared helpers live in `tests/support.py`** (from Phase 13c): running `fin` and reading its tables (`run`, `table_rows`, `plain_lines`, `failed_cleanly`) and reading web pages (`Page`, `page`, `post`, `texts`). New tests import them instead of copying them; older tests keep their copies until they are next changed.
 
 ## Critical modules
 
