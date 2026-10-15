@@ -9,6 +9,7 @@ from contextlib import contextmanager
 from datetime import UTC, date, datetime
 from pathlib import Path
 from typing import Annotated
+from urllib.parse import parse_qsl, urlencode
 
 from fastapi import FastAPI, Form, Request
 from fastapi.responses import PlainTextResponse, RedirectResponse, Response
@@ -48,6 +49,7 @@ from finances.db.repositories import (
     CategoryExistsError,
     PersonExistsError,
     account_names,
+    clear_categories_by_hand,
     clear_category_by_hand,
     create_account,
     create_category,
@@ -68,10 +70,13 @@ from finances.db.repositories import (
     list_rules,
     map_feed_account,
     reject_transfer,
+    rename_account,
     rename_category,
     resolve_owner,
+    set_account_active,
     set_account_owner,
     set_cardholder_alias,
+    set_categories_by_hand,
     set_category_by_hand,
     set_feed_account_ignored,
     unpair_transfer,
@@ -136,6 +141,9 @@ NOT_MIGRATED = "The database is not up to date. Run: fin db upgrade"
 CSRF_COOKIE = "fin_csrf"
 NOTICES = {
     "account-added": "Account added.",
+    "account-renamed": "Account renamed.",
+    "account-closed": "Account closed.",
+    "account-reopened": "Account reopened.",
     "owner-set": "Owner saved.",
     "person-added": "Person added.",
     "alias-set": "Cardholder name saved.",
@@ -152,6 +160,10 @@ NOTICES = {
     "rule-changed": "Rule changed, and the rules were run again.",
     "category-set": "Category saved.",
     "category-cleared": "Category left to the rules.",
+    "bulk-set": "Category set by hand on the chosen transactions.",
+    "bulk-cleared": (
+        "The chosen transactions were left to the rules, and the rules were run again."
+    ),
     "transfers-found": "Clear transfers were paired; the rest wait for review.",
     "transfer-confirmed": "Transfer saved.",
     "transfer-rejected": "Those two will not be paired.",
@@ -309,6 +321,7 @@ def _limit(text: str) -> int:
 
 
 _SEARCH_FIELDS = ("text", "account", "person", "category", "merchant", "group", "bank", "card")
+_FILTER_FIELDS = (*_SEARCH_FIELDS, "kind", "from", "to", "limit")
 _KEPT = ("group", "bank", "card", "kind")
 
 
@@ -318,6 +331,18 @@ def _search_query(chosen: dict[str, str]) -> TransactionQuery:
     limit = _limit(chosen["limit"])
     labels = {key: chosen[key] for key in _SEARCH_FIELDS}
     return TransactionQuery(**labels, kind=chosen["kind"], start=start, end=end, limit=limit)
+
+
+def _filter_query(values: dict[str, str]) -> str:
+    """The page's filter fields that are set, in field order, URL-encoded."""
+    return urlencode([(key, values[key]) for key in _FILTER_FIELDS if values.get(key)])
+
+
+def _back_filters(back: str) -> dict[str, str]:
+    """The filter fields kept from a bulk form's back value, in field order."""
+    allowed = set(_FILTER_FIELDS)
+    got = {key: value for key, value in parse_qsl(back) if key in allowed and value}
+    return {key: got[key] for key in _FILTER_FIELDS if key in got}
 
 
 def _blank_account_form() -> dict[str, str]:
@@ -369,6 +394,7 @@ def _accounts_page(
     *,
     closed: bool = False,
     form: dict[str, str] | None = None,
+    rename_form: dict[str, str] | None = None,
     error: str | None = None,
     status_code: int = 200,
 ) -> Response:
@@ -383,9 +409,52 @@ def _accounts_page(
         "every_account": every_account,
         "people": people,
         "form": form if form is not None else _blank_account_form(),
+        "rename_form": rename_form or {"account": "", "to": ""},
         "error": error,
     }
     return _render(request, "accounts", context, status_code)
+
+
+def _transactions_page(
+    request: Request,
+    filters: dict[str, str] | None = None,
+    *,
+    error: str | None = None,
+    status_code: int = 200,
+) -> Response:
+    query = request.query_params if filters is None else filters
+    chosen = {key: query.get(key, "") for key in _FILTER_FIELDS if key != "limit"}
+    chosen["limit"] = query.get("limit") or _DEFAULT_LIMIT
+    sent = {key: query.get(key, "") for key in _FILTER_FIELDS}
+    back = _filter_query(sent)
+    select_all_query = f"{back}&select=all" if back else "select=all"
+    select_all = (request.query_params if filters is None else {}).get("select") == "all"
+    if filters is not None:
+        select_all = False
+    with _reading() as session:
+        names = account_names(session)
+        choices = {
+            "accounts": list(names.values()),
+            "people": [person.name for person in list_people(session)],
+            "categories": category_choices(session),
+        }
+        try:
+            found = search_transactions(session, _search_query(chosen))
+        except ValueError as refusal:
+            found, error = [], str(refusal) if error is None else error
+            status_code = 400
+    context = {
+        "choices": choices,
+        "special": (JOINT_FILTER, UNASSIGNED_FILTER),
+        "chosen": chosen,
+        "kept": [key for key in _KEPT if chosen[key]],
+        "back": back,
+        "select_all_query": select_all_query,
+        "select_all": select_all,
+        "rows": found_rows(found, names),
+        "error": error,
+    }
+    return _render(request, "transactions", context, status_code)
 
 
 def _people_page(request: Request, *, error: str | None = None, status_code: int = 200) -> Response:
@@ -647,6 +716,44 @@ def create_app(port: int) -> ASGIApp:
             return _accounts_page(request, error=str(error), status_code=400)
         return _done("/accounts?notice=owner-set")
 
+    @api.post("/accounts/rename")
+    def rename_account_route(
+        request: Request, csrf: _Field = "", account: _Field = "", to: _Field = ""
+    ) -> Response:
+        stopped = refused(request, csrf)
+        if stopped is not None:
+            return stopped
+        try:
+            with _reading() as session:
+                found = get_account_by_name(session, account)
+                if found is None:
+                    raise ValueError("account not found")
+                rename_account(session, found.id, to)
+        except _REFUSALS as error:
+            form = {"account": account, "to": to}
+            return _accounts_page(request, rename_form=form, error=str(error), status_code=400)
+        return _done("/accounts?notice=account-renamed")
+
+    @api.post("/accounts/active")
+    def set_active(
+        request: Request, csrf: _Field = "", account: _Field = "", active: _Field = ""
+    ) -> Response:
+        stopped = refused(request, csrf)
+        if stopped is not None:
+            return stopped
+        try:
+            if active not in ("true", "false"):
+                raise ValueError("choose Close or Reopen")
+            with _reading() as session:
+                found = get_account_by_name(session, account)
+                if found is None:
+                    raise ValueError("account not found")
+                set_account_active(session, found.id, active == "true")
+        except _REFUSALS as error:
+            return _accounts_page(request, error=str(error), status_code=400)
+        notice = "account-reopened" if active == "true" else "account-closed"
+        return _done(f"/accounts?notice={notice}")
+
     @api.get("/people")
     def people(request: Request) -> Response:
         stopped = _not_migrated(request)
@@ -688,31 +795,46 @@ def create_app(port: int) -> ASGIApp:
         stopped = _not_migrated(request)
         if stopped is not None:
             return stopped
-        query = request.query_params
-        keys = (*_SEARCH_FIELDS, "kind", "from", "to")
-        chosen = {key: query.get(key, "") for key in keys}
-        chosen["limit"] = query.get("limit") or _DEFAULT_LIMIT
-        error = None
-        with _reading() as session:
-            names = account_names(session)
-            choices = {
-                "accounts": list(names.values()),
-                "people": [person.name for person in list_people(session)],
-                "categories": category_choices(session),
-            }
-            try:
-                found = search_transactions(session, _search_query(chosen))
-            except ValueError as refusal:
-                found, error = [], str(refusal)
-        context = {
-            "choices": choices,
-            "special": (JOINT_FILTER, UNASSIGNED_FILTER),
-            "chosen": chosen,
-            "kept": [key for key in _KEPT if chosen[key]],
-            "rows": found_rows(found, names),
-            "error": error,
-        }
-        return _render(request, "transactions", context, 200 if error is None else 400)
+        return _transactions_page(request)
+
+    @api.post("/transactions/bulk")
+    def bulk_category(
+        request: Request,
+        csrf: _Field = "",
+        category: _Field = "",
+        action: _Field = "",
+        back: _Field = "",
+        id: Annotated[list[str] | None, Form()] = None,
+    ) -> Response:
+        stopped = refused(request, csrf)
+        if stopped is not None:
+            return stopped
+        filters = _back_filters(back)
+        query = urlencode(list(filters.items()))
+        chosen_ids = id or []
+        try:
+            numbers = []
+            for text in chosen_ids:
+                number = _id(text)
+                if number is None:
+                    raise ValueError("transaction not found")
+                numbers.append(number)
+            if action not in ("set", "clear"):
+                raise ValueError("choose Set category or Leave to the rules")
+            with _reading() as session:
+                if action == "set":
+                    set_categories_by_hand(session, numbers, category)
+                    notice = "bulk-set"
+                else:
+                    clear_categories_by_hand(session, numbers)
+                    categorize(session)
+                    notice = "bulk-cleared"
+        except _REFUSALS as error:
+            return _transactions_page(request, filters, error=str(error), status_code=400)
+        location = (
+            f"/transactions?{query}&notice={notice}" if query else f"/transactions?notice={notice}"
+        )
+        return _done(location)
 
     @api.get("/transactions/{transaction_id}")
     def transaction(request: Request, transaction_id: str) -> Response:

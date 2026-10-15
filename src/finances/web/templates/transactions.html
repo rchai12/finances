@@ -2,6 +2,7 @@
 {% block title %}Transactions · Finances{% endblock %}
 {% block content %}
 <h1>Transactions</h1>
+{% include "messages.html" %}
 <form method="get" action="/transactions" class="filters">
   <label>Search <input type="search" name="text" value="{{ chosen.text }}"></label>
   <label>Account
@@ -38,15 +39,26 @@
   {% endfor %}<button type="submit">Show</button>
 </form>
 {% if kept %}<p class="hint">Also filtered by: {% for key in kept %}{{ key }} {{ chosen[key] }}{% if not loop.last %}, {% endif %}{% endfor %}. <a href="/transactions">Clear all filters</a></p>{% endif %}
-{% if error %}<p class="error">{{ error }}</p>
-{% elif rows %}
+{% if rows %}
+<p class="selection"><a href="/transactions?{{ select_all_query }}">Select all shown</a> <a href="/transactions?{{ back }}">Clear the selection</a></p>
+<form method="post" action="/transactions/bulk" class="bulk">
+<input type="hidden" name="csrf" value="{{ csrf }}">
+<input type="hidden" name="back" value="{{ back }}">
 <table>
 <thead><tr><th>Date</th><th>Account</th><th>Description</th><th>Category</th><th class="amount">Amount</th><th>Card</th><th>Section</th><th>Person</th></tr></thead>
 <tbody>
-{% for id, row, category in rows %}<tr><td><a href="/transactions/{{ id }}">{{ row.date }}</a></td><td>{{ row.account }}</td><td>{{ row.description }}</td><td>{{ category }}</td><td class="amount">{{ row.amount }}</td><td>{{ row.card }}</td><td>{{ row.section }}</td><td>{{ row.person }}</td></tr>
+{% for id, row, category in rows %}<tr><td><input type="checkbox" name="id" value="{{ id }}"{% if select_all %} checked{% endif %}> <a href="/transactions/{{ id }}">{{ row.date }}</a></td><td>{{ row.account }}</td><td>{{ row.description }}</td><td>{{ category }}</td><td class="amount">{{ row.amount }}</td><td>{{ row.card }}</td><td>{{ row.section }}</td><td>{{ row.person }}</td></tr>
 {% endfor %}</tbody>
 </table>
-{% else %}
+<p class="fields">
+  <label>Category for the chosen
+    {% with choices = choices.categories, selected = "" %}{% include "category_select.html" %}{% endwith %}
+  </label>
+  <button type="submit" name="action" value="set">Set category</button>
+  <button type="submit" name="action" value="clear" formnovalidate>Leave to the rules</button>
+</p>
+</form>
+{% elif not error %}
 <p class="empty">No transactions.</p>
 {% endif %}
 {% endblock %}

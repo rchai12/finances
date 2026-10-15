@@ -1105,6 +1105,73 @@ def _require_transaction(session: Session, transaction_id: int) -> None:
         raise ValueError("transaction not found")
 
 
+def rename_account(session: Session, account_id: int, new_name: str) -> Account:
+    """Rename an account and return it. The caller commits."""
+    row = session.get(AccountRow, account_id)
+    if row is None:
+        raise ValueError("account not found")
+    clean = new_name.strip()
+    if not clean:
+        raise ValueError("account name must not be empty")
+    if len(clean) > NAME_LIMIT:
+        raise ValueError(f"account name must be at most {NAME_LIMIT} characters")
+    other = session.scalars(
+        select(AccountRow).where(func.lower(AccountRow.name) == clean.lower())
+    ).first()
+    if other is not None and other.id != account_id:
+        raise AccountExistsError("an account with this name already exists")
+    row.name = clean
+    session.flush()
+    return to_account(row)
+
+
+def set_account_active(session: Session, account_id: int, active: bool) -> Account:
+    """Open or close an account and return it. The caller commits."""
+    row = session.get(AccountRow, account_id)
+    if row is None:
+        raise ValueError("account not found")
+    row.is_active = active
+    session.flush()
+    return to_account(row)
+
+
+def _distinct_transaction_ids(transaction_ids: Iterable[int]) -> list[int]:
+    found: list[int] = []
+    seen: set[int] = set()
+    for transaction_id in transaction_ids:
+        if transaction_id not in seen:
+            seen.add(transaction_id)
+            found.append(transaction_id)
+    if not found:
+        raise ValueError("choose at least one transaction")
+    if len(found) > 1000:
+        raise ValueError("at most 1000 transactions at once")
+    return found
+
+
+def set_categories_by_hand(
+    session: Session, transaction_ids: Iterable[int], category: str
+) -> tuple[int, Category]:
+    """Set each transaction's category by hand. The caller commits."""
+    ids = _distinct_transaction_ids(transaction_ids)
+    for transaction_id in ids:
+        _require_transaction(session, transaction_id)
+    target = _leaf_category(session, category)
+    for transaction_id in ids:
+        _assign(session, transaction_id, target.id, MANUAL, None)
+    return len(ids), to_category(target)
+
+
+def clear_categories_by_hand(session: Session, transaction_ids: Iterable[int]) -> int:
+    """Remove each transaction's category. The caller commits and runs categorize."""
+    ids = _distinct_transaction_ids(transaction_ids)
+    for transaction_id in ids:
+        _require_transaction(session, transaction_id)
+    for transaction_id in ids:
+        remove_category(session, transaction_id)
+    return len(ids)
+
+
 def set_category_by_hand(session: Session, transaction_id: int, category: str) -> Category:
     """Set the transaction's category by hand, so rules leave it alone. The caller commits."""
     _require_transaction(session, transaction_id)

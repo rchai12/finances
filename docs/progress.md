@@ -341,3 +341,13 @@ Template:
   - The Categories page and the rule edit page are rendered by private `_categories_page` (now with `rename_form` and `delete_form`) and `_rule_edit_page`.
 - Follow-ups:
   - When a phase adds `GET /path/{id}` beside existing `POST /path/add` and `POST /path/delete`, say that GET on `add` and `delete` must stay 405 (or reserve those names).
+
+## Phase 16j: accounts and bulk categorizing (2026-10-15)
+- Tests: 2692 -> 2728 (given 29)
+- New public names: `db.repositories`: `rename_account`, `set_account_active`, `set_categories_by_hand`, `clear_categories_by_hand`; `cli.accounts`: `rename`, `deactivate`, `activate`; `cli.categories`: `set-category` with several `--id`; `web.app`: `POST /accounts/rename`, `POST /accounts/active`, `POST /transactions/bulk`
+- Changed files: 10
+- Deviations:
+  - `web.app` has private `_filter_query` and `_back_filters` so the Transactions page and bulk redirect share one ordered filter list.
+  - `tests/integration/test_account_and_bulk_repositories.py` raises Starlette's form `max_fields` to 2000 for the 1001-id refusal, because the default of 1000 would answer before the app's message.
+- Follow-ups:
+  - A bulk POST that sends more than about 1000 form fields needs a higher `Request.form` `max_fields` (or another shape) before the route can refuse with the app's own message.

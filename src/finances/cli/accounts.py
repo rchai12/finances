@@ -12,7 +12,9 @@ from finances.db.repositories import (
     AccountExistsError,
     create_account,
     get_account_by_name,
+    rename_account,
     resolve_owner,
+    set_account_active,
     set_account_owner,
 )
 from finances.domain.models import AccountType
@@ -83,3 +85,50 @@ def set_owner(
             fail(str(error))
         set_account_owner(session, found.id, None if person is None else person.id)
         typer.echo(f'Owner of "{found.name}" is {JOINT if person is None else person.name}.')
+
+
+def _account(session, name: str):
+    found = get_account_by_name(session, name)
+    if found is None:
+        fail("account not found")
+    return found
+
+
+@app.command("rename")
+def rename_command(
+    account: Annotated[str, typer.Option("--account", help="The account to rename.")],
+    to: Annotated[str, typer.Option("--to", help="Its new name.")],
+) -> None:
+    """Rename an account."""
+    require_current_schema()
+    with session_scope(get_engine()) as session:
+        found = _account(session, account)
+        try:
+            renamed = rename_account(session, found.id, to)
+        except (AccountExistsError, ValueError) as error:
+            fail(str(error))
+    typer.echo(f'Renamed account "{found.name}" to "{renamed.name}".')
+
+
+@app.command("deactivate")
+def deactivate_command(
+    account: Annotated[str, typer.Option("--account", help="The account to close.")],
+) -> None:
+    """Close an account."""
+    require_current_schema()
+    with session_scope(get_engine()) as session:
+        found = _account(session, account)
+        closed = set_account_active(session, found.id, False)
+    typer.echo(f'Account "{closed.name}" is closed.')
+
+
+@app.command("activate")
+def activate_command(
+    account: Annotated[str, typer.Option("--account", help="The account to reopen.")],
+) -> None:
+    """Reopen a closed account."""
+    require_current_schema()
+    with session_scope(get_engine()) as session:
+        found = _account(session, account)
+        opened = set_account_active(session, found.id, True)
+    typer.echo(f'Account "{opened.name}" is open again.')

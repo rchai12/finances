@@ -13,7 +13,7 @@ from finances.cli.listing import transactions_app
 from finances.db.engine import get_engine, session_scope
 from finances.db.repositories import (
     CategoryExistsError,
-    clear_category_by_hand,
+    clear_categories_by_hand,
     create_category,
     create_rule,
     delete_category,
@@ -22,7 +22,7 @@ from finances.db.repositories import (
     get_category_by_name,
     list_categories,
     rename_category,
-    set_category_by_hand,
+    set_categories_by_hand,
 )
 from finances.views.categories import (
     categorized_text,
@@ -230,7 +230,9 @@ def uncategorized_command(
 
 @transactions_app.command("set-category")
 def set_category_command(
-    transaction_id: Annotated[int, typer.Option("--id", help="The transaction's id.")],
+    transaction_ids: Annotated[
+        list[int], typer.Option("--id", help="The transaction's id; may be given several times.")
+    ],
     category: Annotated[
         str | None, typer.Option("--category", help="The category to set by hand.")
     ] = None,
@@ -245,13 +247,18 @@ def set_category_command(
     with session_scope(get_engine()) as session:
         try:
             if category is None:
-                clear_category_by_hand(session, transaction_id)
+                count = clear_categories_by_hand(session, transaction_ids)
             else:
-                chosen = set_category_by_hand(session, transaction_id, category)
+                count, chosen = set_categories_by_hand(session, transaction_ids, category)
         except ValueError as error:
             fail(str(error))
     if category is None:
-        typer.echo(f"Transaction {transaction_id}: category left to the rules.")
+        if count == 1:
+            typer.echo(f"Transaction {transaction_ids[0]}: category left to the rules.")
+        else:
+            typer.echo(f"{count} transactions: category left to the rules.")
         typer.echo(categorized_text(categorize_all()))
+    elif count == 1:
+        typer.echo(f"Transaction {transaction_ids[0]}: {chosen.name}, set by hand.")
     else:
-        typer.echo(f"Transaction {transaction_id}: {chosen.name}, set by hand.")
+        typer.echo(f"{count} transactions: {chosen.name}, set by hand.")

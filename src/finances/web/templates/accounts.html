@@ -48,4 +48,31 @@
   <button type="submit">Save owner</button>
 </form>
 {% endif %}
+{% if every_account %}
+<h2>Rename an account</h2>
+<form method="post" action="/accounts/rename" class="fields">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <label>Account
+    <select name="account">
+      {% for name in every_account %}<option value="{{ name }}"{% if name == rename_form.account %} selected{% endif %}>{{ name }}</option>
+      {% endfor %}
+    </select>
+  </label>
+  <label>New name <input name="to" required maxlength="100" value="{{ rename_form.to }}"></label>
+  <button type="submit">Rename</button>
+</form>
+<h2>Close or reopen an account</h2>
+<p class="hint">A closed account is left out of balances, net worth, coverage, and the account choices; its transactions are kept and still count for the days they happened.</p>
+<form method="post" action="/accounts/active" class="fields">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <label>Account
+    <select name="account">
+      {% for name in every_account %}<option value="{{ name }}">{{ name }}</option>
+      {% endfor %}
+    </select>
+  </label>
+  <button type="submit" name="active" value="false">Close</button>
+  <button type="submit" name="active" value="true">Reopen</button>
+</form>
+{% endif %}
 {% endblock %}
