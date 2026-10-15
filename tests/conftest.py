@@ -30,7 +30,14 @@ settings.register_profile(
 )
 settings.load_profile("finances")
 
-_ENV_KEYS = ("FIN_ENVIRONMENT", "FIN_DATA_DIR", "FIN_DATABASE_URL", "FIN_LOG_LEVEL")
+_ENV_KEYS = (
+    "FIN_ENVIRONMENT",
+    "FIN_DATA_DIR",
+    "FIN_DATABASE_URL",
+    "FIN_LOG_LEVEL",
+    "FIN_BACKUP_DIR",
+    "FIN_BACKUP_KEEP",
+)
 
 _TERMINAL_KEYS = ("FORCE_COLOR", "NO_COLOR", "TTY_COMPATIBLE", "TTY_INTERACTIVE")
 

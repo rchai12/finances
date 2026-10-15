@@ -37,6 +37,7 @@ Bugs here silently corrupt money data, so every line and every branch of each mu
 - `sync/simplefin.py` (reading SimpleFIN's answers)
 - `domain/feed_setup.py` (guessing how to set up a new SimpleFIN account)
 - `analysis/people.py` (whose money a transaction is)
+- `db/backup.py` (copying, checking, and restoring the database)
 - Later: transfer matching (Phase 11), spending aggregation (Phase 12)
 
 ## Commands

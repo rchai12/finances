@@ -306,3 +306,15 @@ Template:
   - The route builds the query in a private `_search_query` (messages 1 to 3 in order), replacing `_find`; the fields and the kept filters are private tuples `_SEARCH_FIELDS` and `_KEPT`.
 - Follow-ups:
   - None
+
+## Phase 24: backups (2026-10-15)
+- Tests: 2578 -> 2611 (given 18)
+- New public names: `config`: `Settings.backup_dir`, `Settings.backup_keep`, `Settings.effective_backup_dir`; `db.backup`: `BackupCheck`, `BackupResult`, `RestoreResult`, `backup_name`, `list_backups`, `check_backup`, `make_backup`, `restore_backup`; `cli.backup`: `app`, `run_command`, `list_command`, `restore_command`
+- Changed files: 15
+- Deviations:
+  - Adding `db/backup.py` to `scripts/critical_modules.txt` broke `tests/unit/test_check_script.py::test_the_shipped_list` (and three tests that read the same list), which hard-codes the list; with the owner's approval, `db/backup.py` was added to its `CRITICAL` and to the critical-module list in `docs/testing.md`, as that file asks. Neither path is in the Scope table.
+  - `restore_backup` also refuses a URL that is not a database file, with `backups need a database file`, after checking the backup; the spec's message table names the case but R5 does not place it.
+  - `check_backup` reads the known revisions with `ScriptDirectory(MIGRATIONS).walk_revisions()`; the read-only open is `Path.resolve().as_uri()` plus `?mode=ro`, so no `urllib` is needed.
+  - `tests/integration/test_backup_more.py` has `test_a_check_changes_none_of_the_files_it_reads`, added after verification: with the not-a-file guard in place, no test failed when `check_backup` opened read-write. A read-write open merges and deletes a backup's leftover `-wal` file; the test checks the database and its `-wal` are left byte for byte.
+- Follow-ups:
+  - A phase that adds a critical module should list `tests/unit/test_check_script.py` and `docs/testing.md` in its Scope.

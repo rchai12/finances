@@ -14,6 +14,14 @@ class Settings(BaseSettings):
     database_url: str | None = None
     log_level: str = "INFO"
     web_port: int = 8765
+    backup_dir: Path | None = None
+    backup_keep: int = 14
+
+    @property
+    def effective_backup_dir(self) -> Path:
+        if self.backup_dir is not None:
+            return self.backup_dir
+        return self.data_dir / "backups"
 
     @property
     def effective_database_url(self) -> str:

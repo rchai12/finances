@@ -17,6 +17,7 @@ CRITICAL = [
     "sync/simplefin.py",
     "domain/feed_setup.py",
     "analysis/people.py",
+    "db/backup.py",
 ]
 
 

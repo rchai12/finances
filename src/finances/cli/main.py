@@ -6,6 +6,7 @@ from rich.table import Table
 
 from finances import __version__
 from finances.cli.accounts import app as accounts_app
+from finances.cli.backup import app as backup_app
 from finances.cli.categories import (
     categories_app,
     categorize_command,
@@ -44,6 +45,7 @@ app.add_typer(web_app, name="web")
 app.add_typer(categories_app, name="categories")
 app.add_typer(rules_app, name="rules")
 app.add_typer(transfers_app, name="transfers")
+app.add_typer(backup_app, name="backup")
 app.command("categorize")(categorize_command)
 app.command("uncategorized")(uncategorized_command)
 app.command("spending")(spending_command)
