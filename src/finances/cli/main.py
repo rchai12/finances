@@ -19,6 +19,8 @@ from finances.cli.listing import statements_app, transactions_app
 from finances.cli.people import app as people_app
 from finances.cli.reports import (
     balances_command,
+    insights_command,
+    merchants_command,
     months_command,
     recurring_command,
     spending_command,
@@ -48,6 +50,8 @@ app.command("spending")(spending_command)
 app.command("balances")(balances_command)
 app.command("months")(months_command)
 app.command("recurring")(recurring_command)
+app.command("insights")(insights_command)
+app.command("merchants")(merchants_command)
 
 
 @app.callback(invoke_without_command=True)

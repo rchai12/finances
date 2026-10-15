@@ -273,3 +273,15 @@ Template:
   - The bands, monthly factors, and calendar steps are private dictionaries in `domain/recurring.py`; `monthly_cost` rounds half up with integer arithmetic, and `next_charge` clips the day with `calendar.monthrange`.
 - Follow-ups:
   - None
+
+## Phase 13b: findings and merchant stats (2026-10-15)
+- Tests: 2490 -> 2523 (given 21)
+- New public names: `domain.recurring`: `Recurring.previous_cents`; `domain.insights`: `TYPES`, `SEVERITIES`, `Finding`, `MerchantStat`, `merchant_stats`, `spikes`, `frequent_small`, `charges_found`, `price_increases`, `overlaps`, `order_findings`; `analysis.insights`: `InsightsReport`, `insights_report`; `views.insights`: `FindingRow`, `MerchantRow`, `finding_rows`, `findings_summary`, `merchant_rows`; `cli.reports`: `insights_command`, `merchants_command`
+- Changed files: 10
+- Deviations:
+  - The merchant-to-category map for overlaps comes from the charges in the four loaded months (the one `load_flows` call), so a yearly series whose latest charge is older than that has no category and is left out of overlaps.
+  - `charges_found` splits merchants into words with `[^\W_]+` and compares them in upper case.
+  - `fin merchants` builds the whole `insights_report` and shows its merchant stats; both commands share a private `_first_day` for `--month`.
+  - The thresholds are private constants in `domain/insights.py`; `views/insights.py` has its own `_change`, the same as `views/months.py`'s.
+- Follow-ups:
+  - If overlaps should see yearly subscriptions, the category map needs charges from before the four-month window (a second read or a wider one).

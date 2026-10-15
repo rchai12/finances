@@ -1,4 +1,4 @@
-"""Report commands: `fin spending`, `fin balances`, `fin months`, and `fin recurring`."""
+"""Report commands: spending, balances, months, recurring charges, insights, and merchants."""
 
 from collections.abc import Iterable, Sequence
 from dataclasses import astuple
@@ -9,6 +9,7 @@ import typer
 from rich.table import Table
 
 from finances.analysis.balances import balance_report
+from finances.analysis.insights import insights_report
 from finances.analysis.months import month_report
 from finances.analysis.recurring import recurring_charges
 from finances.analysis.spending import spending_report
@@ -17,6 +18,7 @@ from finances.db.engine import get_engine, session_scope
 from finances.domain.periods import MONTHS_MAX
 from finances.domain.spending import month_bounds, month_range
 from finances.views.balances import balance_rows, balance_summary
+from finances.views.insights import finding_rows, findings_summary, merchant_rows
 from finances.views.months import month_heading, month_notes, month_rows
 from finances.views.recurring import recurring_rows, recurring_summary
 from finances.views.spending import spending_heading, spending_rows, spending_summary
@@ -140,3 +142,45 @@ def recurring_command(
     else:
         typer.echo("No recurring charges.")
     typer.echo(recurring_summary(items))
+
+
+_MONTH_OPTION = typer.Option("--month", help="A month, YYYY-MM (this month by default).")
+
+
+def _first_day(month: str | None) -> date:
+    if month is None:
+        return month_bounds(date.today())[0]
+    try:
+        return month_range(month)[0]
+    except ValueError as error:
+        fail(str(error))
+
+
+def insights_command(month: Annotated[str | None, _MONTH_OPTION] = None) -> None:
+    """List what deserves a look in a month, and roughly what it could save."""
+    require_current_schema()
+    first = _first_day(month)
+    with session_scope(get_engine()) as session:
+        report = insights_report(session, first)
+    typer.echo(f"Insights for {first.isoformat()[:7]}.")
+    rows = finding_rows(report)
+    if not rows:
+        typer.echo("No findings.")
+        return
+    _print_rows(("Severity", "Type", "About", "Saves a month", "Detail"), rows)
+    typer.echo(findings_summary(report))
+
+
+def merchants_command(month: Annotated[str | None, _MONTH_OPTION] = None) -> None:
+    """List each merchant of a month against its three months before."""
+    require_current_schema()
+    first = _first_day(month)
+    with session_scope(get_engine()) as session:
+        report = insights_report(session, first)
+    typer.echo(f"Merchants for {first.isoformat()[:7]}.")
+    rows = merchant_rows(report)
+    if not rows:
+        typer.echo("No spending.")
+        return
+    headings = ("Merchant", "Visits", "Spent", "Average", "Baseline", "Change", "Weekend")
+    _print_rows(headings, rows)

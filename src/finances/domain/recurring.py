@@ -40,6 +40,7 @@ class Recurring:
     last_day: date
     next_day: date
     active: bool
+    previous_cents: int | None = None
 
 
 def monthly_cost(amount_cents: int, cadence: str) -> int:
@@ -72,6 +73,7 @@ def _series(charges: list[Charge], as_of: date) -> Recurring | None:
         return None
     first, last = charges[0], charges[-1]
     amount = -last.amount_cents
+    previous = -charges[-2].amount_cents
     return Recurring(
         merchant=last.merchant,
         cadence=cadence,
@@ -82,6 +84,7 @@ def _series(charges: list[Charge], as_of: date) -> Recurring | None:
         last_day=last.day,
         next_day=next_charge(last.day, cadence),
         active=as_of <= last.day + timedelta(days=_BANDS[cadence][1]),
+        previous_cents=None if previous == amount else previous,
     )
 
 
