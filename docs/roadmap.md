@@ -6,7 +6,7 @@ Each phase is sized for one focused coding session: a few modules, their tests, 
 
 Status: Phases 1 and 2 are built. The specs for Phases 3 to 10 were written before the small-phase rules and before the agent redesign. Each is re-issued as lettered sub-phases, with a verification guide, before the coder receives it. Phases 11 and later are outlines.
 
-**Build order:** 2 → 3 → 4 → 17a → 8 → 17b → 17c → 21 → 16a → 16b → 9 → 16c → 16d → 10 → 22 → 23 → 11 → 12 → 13 → 14 → 19 → 16 → 20. Phases 5 and 6 (more statement parsers) can be built any time after 4, when audit coverage for those banks is wanted.
+**Build order:** 2 → 3 → 4 → 17a → 8 → 17b → 17c → 21 → 16a → 16b → 9 → 16c → 16d → 10 → 22 → 23 → 11 → 12 → 13 → 16e → 16f → 16g → 16h → 14 → 19 → 16 → 20. Phases 5 and 6 (more statement parsers) can be built any time after 4, when audit coverage for those banks is wanted.
 
 | # | Phase | Outcome | Spec |
 |---|---|---|---|
@@ -146,7 +146,12 @@ The app no longer calls an LLM. The finance subagent of the overarching agent pr
 - **16b, the setup workflows, is specified** ([phase-16b](phases/phase-16b-web-setup.md)): a form token on every form; add an account, a person, an owner, a cardholder name; link SimpleFIN by pasting the setup token into a password field; list SimpleFIN's accounts with a dropdown to map each one, or to create the matching account and map it in one step; a "Sync now" button; unlink.
 - **16c, forms that work in a real browser, is specified** ([phase-16c](phases/phase-16c-browser-origin.md)): the `no-referrer` policy of 16a made browsers send `Origin: null`, which the origin check of 16b refuses; the policy becomes `same-origin`.
 - **16d, new SimpleFIN accounts, is specified** ([phase-16d](phases/phase-16d-new-simplefin-accounts.md)): each sync remembers the SimpleFIN accounts it receives; `fin sync run` and Sync now say how many are new; the SimpleFIN page offers each one pre-filled (type, last four digits, owner, and an existing account it looks like) to create and map, map, or not track, in one click.
-- Later sub-phases: statement upload, a dashboard, category editing, the review queue of agent writes. When the system moves to the Mac Studio, the site sits behind the private VPN with a login (Phase 20).
+- **Decided (2026-10-15): four web sub-phases before Phase 14**, in this order, so each builds on the last and the agent's tools can reuse their filters:
+  - **16e, find and drill down** ([phase-16e](phases/phase-16e-find-and-drill-down.md)): search transactions by text; filter by category and merchant; a category column; each spending line, merchant, and finding links to its transactions.
+  - **16f, editing and bulk:** rename or delete categories, edit rules, rename or deactivate accounts, categorize several transactions at once.
+  - **16g, statement upload:** upload a PDF statement through the same import as `fin import statement`, and a page of the statements held and the gaps between them.
+  - **16h, dashboard:** the home page: net worth, this month against last, top findings, and what needs attention (uncategorized, transfers to review, accounts without recent data), each linking to its page.
+- Later sub-phases: the review queue of agent suggestions (with Phase 19). When the system moves to the Mac Studio, the site sits behind the private VPN with a login (Phase 20).
 - FastAPI + Jinja2, bound to 127.0.0.1. HTMX only if a later page needs it, served from the app itself.
 - Dashboard, transactions with category editing, insights; statement upload page that calls the same import service; sync status and a re-link prompt when a bank connection breaks; the `fin review` queue of agent writes.
 
