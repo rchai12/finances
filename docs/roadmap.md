@@ -21,7 +21,7 @@ Status: Phases 1 and 2 are built. The specs for Phases 3 to 10 were written befo
 | 9 | Test hardening | Property and fuzz tests over money, dates, parsers, SimpleFIN answers, web forms, and statements and feed pulls in any order; the bugs they found fixed (pairing that lost or doubled equal purchases near a period's edge, text longer than its column, any text as a currency, a SimpleFIN answer that crashed the reader); the migration chain and log hygiene tested | [phase-09](phases/phase-09-test-hardening.md) (re-issued for the current format) |
 | 10 | Quality gates | One check command (`scripts/check.py`: lint, format, tests, full coverage of the critical modules, optional real samples) and a pre-commit hook for lint and format; mutation testing and CI left for later | [phase-10](phases/phase-10-quality-gates.md) (re-issued, slim) |
 | 11 | Categorization and transfers | Merchant normalization, categories, rules, own-account transfer matching | [phase-11a](phases/phase-11a-categories-and-rules.md) (categories, merchants, rules; terminal), [phase-11b](phases/phase-11b-categories-on-the-web.md) (the same on the web), [phase-11c](phases/phase-11c-transfers.md) (transfers between own accounts; terminal), [phase-11d](phases/phase-11d-transfers-on-the-web.md) (the same on the web) |
-| 12 | Core reports | Balances, net worth, spending by category/merchant/person, month-over-month | outline below |
+| 12 | Core reports | Balances, net worth, spending by category/merchant/person, month-over-month | [phase-12a](phases/phase-12a-spending.md) (spending; terminal); 12b (balances, net worth, month over month) and 12c (the web) follow |
 | 13 | Insights engine | Recurring charges, spikes, frequent small purchases, findings list | outline below |
 | 14 | Agent interface (MCP server) | Read-only MCP tools over stdio for the finance subagent: accounts, balances, transactions, reports, findings, data coverage | outline below |
 | 15 | *Removed* | Was "LLM advice". Advice now comes from the external agent | |
@@ -113,6 +113,7 @@ Testing rules for every phase are in [testing.md](testing.md). Each later phase 
 - Balances per account from latest statement snapshot; net worth (cash minus card debt).
 - Spending by category and by merchant for a month or range, using `transaction_date` when present; spending by person (Phase 21: the cardholder's person when the statement names one, otherwise the account's owner, otherwise Joint), by bank, and by card.
 - Month-over-month change. Statement periods do not align with calendar months; reports use calendar months and say when a month is only partly covered.
+- **Split and decided (2026-10-14).** 12a: spending for a month or range, grouped by category, group, merchant, person, account, bank, or card. Transfers (paired, or in a transfer category) are left out; income (an income category) is totalled apart; refunds net against their line; money in without a category is totalled on its own line until categorized; pending is left out; the day bought decides the month. 12b: balances from the newest snapshot, net worth, month over month with partly covered months marked. 12c: the web pages.
 
 ### Phase 13: Insights engine
 - Per-merchant stats: visits per month, average ticket, trend vs 3-month baseline, time-of-week pattern.
