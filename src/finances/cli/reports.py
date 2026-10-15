@@ -1,4 +1,4 @@
-"""Report commands: `fin spending`, `fin balances`, and `fin months`."""
+"""Report commands: `fin spending`, `fin balances`, `fin months`, and `fin recurring`."""
 
 from collections.abc import Iterable, Sequence
 from dataclasses import astuple
@@ -10,6 +10,7 @@ from rich.table import Table
 
 from finances.analysis.balances import balance_report
 from finances.analysis.months import month_report
+from finances.analysis.recurring import recurring_charges
 from finances.analysis.spending import spending_report
 from finances.cli.common import fail, print_table, require_current_schema
 from finances.db.engine import get_engine, session_scope
@@ -17,6 +18,7 @@ from finances.domain.periods import MONTHS_MAX
 from finances.domain.spending import month_bounds, month_range
 from finances.views.balances import balance_rows, balance_summary
 from finances.views.months import month_heading, month_notes, month_rows
+from finances.views.recurring import recurring_rows, recurring_summary
 from finances.views.spending import spending_heading, spending_rows, spending_summary
 
 
@@ -113,3 +115,28 @@ def months_command(
     _print_rows(("Month", "Spent", "Income", "Change", "Covered"), month_rows(lines))
     for note in month_notes(lines):
         typer.echo(note)
+
+
+def recurring_command(
+    as_of: Annotated[
+        datetime | None,
+        typer.Option(
+            "--as-of", formats=["%Y-%m-%d"], help="The day to look from (today by default)."
+        ),
+    ] = None,
+    show_all: Annotated[
+        bool, typer.Option("--all", help="Also list charges that have stopped.")
+    ] = False,
+) -> None:
+    """List subscriptions and other charges that come at a regular rhythm."""
+    require_current_schema()
+    day = date.today() if as_of is None else as_of.date()
+    with session_scope(get_engine()) as session:
+        items = recurring_charges(session, day)
+    rows = recurring_rows(items, include_inactive=show_all)
+    if rows:
+        headings = ("Merchant", "Every", "Amount", "Monthly", "Count", "Last", "Next", "Active")
+        _print_rows(headings, rows)
+    else:
+        typer.echo("No recurring charges.")
+    typer.echo(recurring_summary(items))

@@ -264,3 +264,12 @@ Template:
   - No `tests/integration/test_web_reports_more.py`: the given tests reach every branch.
 - Follow-ups:
   - None
+
+## Phase 13a: recurring charges (2026-10-15)
+- Tests: 2449 -> 2490 (given 33)
+- New public names: `domain.recurring`: `CADENCES`, `Charge`, `Recurring`, `find_recurring`, `monthly_cost`, `next_charge`; `analysis.recurring`: `recurring_charges`; `views.recurring`: `RecurringRow`, `recurring_rows`, `recurring_summary`; `cli.reports`: `recurring_command`
+- Changed files: 9
+- Deviations:
+  - The bands, monthly factors, and calendar steps are private dictionaries in `domain/recurring.py`; `monthly_cost` rounds half up with integer arithmetic, and `next_charge` clips the day with `calendar.monthrange`.
+- Follow-ups:
+  - None
