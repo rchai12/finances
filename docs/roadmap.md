@@ -6,7 +6,7 @@ Each phase is sized for one focused coding session: a few modules, their tests, 
 
 Status: Phases 1 and 2 are built. The specs for Phases 3 to 10 were written before the small-phase rules and before the agent redesign. Each is re-issued as lettered sub-phases, with a verification guide, before the coder receives it. Phases 11 and later are outlines.
 
-**Build order:** 2 → 3 → 4 → 17a → 8 → 17b → 17c → 21 → 16a → 16b → 9 → 16c → 16d → 10 → 22 → 23 → 11 → 12 → 13 → 16e → 24 → 16f → 16g → 25 → 16h → 16i → 13d → 26 → 27 → 14 → 19 → 28 → 29 → 30 → 16 → 20. Phases 5 and 6 (more statement parsers) can be built any time after 4, when audit coverage for those banks is wanted.
+**Build order:** 2 → 3 → 4 → 17a → 8 → 17b → 17c → 21 → 16a → 16b → 9 → 16c → 16d → 10 → 22 → 23 → 11 → 12 → 13 → 16e → 24 → 24b → 16f → 16g → 25 → 16h → 16i → 13d → 26 → 27 → 14 → 19 → 28 → 29 → 30 → 16 → 20. Phases 5 and 6 (more statement parsers) can be built any time after 4, when audit coverage for those banks is wanted.
 
 | # | Phase | Outcome | Spec |
 |---|---|---|---|
@@ -34,7 +34,8 @@ Status: Phases 1 and 2 are built. The specs for Phases 3 to 10 were written befo
 | 22 | Shared view rows | A clean-up with no behaviour change: `finances.views` builds each view's rows once for the command line and the web; `fin sync run` uses `run_links`; setup offers move out of the web page | [phase-22](phases/phase-22-shared-view-rows.md) |
 | 23 | Shared rules | A clean-up with no behaviour change: one home for text cutting and column limits (`domain/text.py`, used by the ORM), typed-input checks moved into the repositories, small shared helpers | [phase-23](phases/phase-23-shared-rules.md) |
 | 24 | Backups | `fin backup`: a consistent copy of the database, the last N kept, each one checked; restore; a scheduled run | [phase-24](phases/phase-24-backups.md) |
-| 25 | Data health | Warnings for stale accounts, SimpleFIN links that need relinking, months without a statement, balance drift, and an old or missing backup; a Back up now button on the web; shown on the dashboard | outline below |
+| 24b | Backups on the web | A Backups page: back up now, the list, delete, and restore, with confirmation and the current database always set aside | [phase-24b](phases/phase-24b-backups-on-the-web.md) |
+| 25 | Data health | Warnings for stale accounts, SimpleFIN links that need relinking, months without a statement, balance drift, and an old or missing backup; shown on the dashboard | outline below |
 | 26 | Budgets | A monthly target per category or group, progress, and an over-budget finding | outline below |
 | 27 | Looking ahead | Upcoming bills from recurring charges, recurring income, a 30-day cash-flow forecast per account, and net worth over time | outline below |
 | 28 | Categorizing extras | Split transactions, tags and notes, merging merchants, and a preview before saving a rule | outline below |
@@ -204,11 +205,17 @@ The order in the build line above is the architect's recommendation: protect the
 - `fin backup --restore FILE` asks for confirmation, checks the copy first, and keeps the replaced database aside.
 - A `launchd` example for a daily run, like the sync one. No network: copying off the machine is left to the owner's own tools.
 
+### Phase 24b: Backups on the web (decided 2026-10-15)
+- A **Backups** page: the backups and the set-aside copies, newest first, with when each was taken and its size; a **Back up now** button (Phase 24's `make_backup`).
+- **Delete**: chosen from the list by name only (never a path); a confirmation page names the file. Only backup and set-aside names can be deleted.
+- **Restore**: chosen from the list only (no upload, no typed path); a confirmation page where the owner types the backup's name; the current database is always set aside first, and that copy appears in the list, so a restore can be undone by restoring it. The server pauses for it: it holds other requests, closes its database connections, copies the backup in, checks it, and carries on. A backup from an older version says to run `fin db upgrade` in the terminal.
+- **No download**: a full copy would land in the browser's downloads folder, often synced to the cloud.
+- From Phase 20 (remote access), delete and restore are allowed only from the Mac itself or after the password is entered again.
+
 ### Phase 25: Data health
 - One list of problems, each with a kind, the account, and what to do: no new data for N days; a SimpleFIN link that needs relinking; a calendar month with no statement for a statement-only account (from statement periods); balance drift from the latest pull.
 - `fin health`, and a block on the 16h dashboard. Phase 14's `data_coverage` reuses it.
-- Backups on the web (decided 2026-10-15): a Backups block with the newest backup's age, the list of backups, and a **Back up now** button (a form with the usual token that calls Phase 24's `make_backup`). A warning when the newest backup is older than a set number of days (default 2) or there is none; it also shows on the dashboard.
-- Restore and download stay terminal-only: a restore replaces the live database and needs the web server stopped, and from Phase 20 the site can be reached remotely; a download would put a full copy of the data in the browser's downloads folder.
+- A warning when the newest backup (Phase 24) is older than a set number of days (default 2) or there is none; it also shows on the dashboard. Managing backups on the web is Phase 24b.
 
 ### Phase 26: Budgets
 - A target per category or group per month (one amount repeated monthly; no rollover at first), stored with a migration.
