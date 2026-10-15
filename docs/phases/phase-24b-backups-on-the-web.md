@@ -468,7 +468,7 @@ def test_only_backups_in_the_folder_can_be_deleted(
         post(home, "/backups/delete", name=name),
     ):
         assert response.status_code == 400
-        assert ("error", NOT_A_BACKUP.format(name)) in Page(response.text).paragraphs
+        assert ("error", NOT_A_BACKUP.format(name).strip()) in Page(response.text).paragraphs
     assert names(tmp_settings.effective_backup_dir) == before
     assert (tmp_settings.data_dir / "finances.db").exists()
 
