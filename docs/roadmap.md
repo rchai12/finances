@@ -33,8 +33,8 @@ Status: Phases 1 and 2 are built. The specs for Phases 3 to 10 were written befo
 | 21 | People and ownership | The household's people; each account owned by one person or joint; statement cardholder names mapped to people; every view filterable by person, bank, and card | [phase-21](phases/phase-21-people-and-ownership.md) |
 | 22 | Shared view rows | A clean-up with no behaviour change: `finances.views` builds each view's rows once for the command line and the web; `fin sync run` uses `run_links`; setup offers move out of the web page | [phase-22](phases/phase-22-shared-view-rows.md) |
 | 23 | Shared rules | A clean-up with no behaviour change: one home for text cutting and column limits (`domain/text.py`, used by the ORM), typed-input checks moved into the repositories, small shared helpers | [phase-23](phases/phase-23-shared-rules.md) |
-| 24 | Backups | `fin backup`: a consistent copy of the database, the last N kept, each one test-restored; a scheduled run | outline below |
-| 25 | Data health | Warnings for stale accounts, SimpleFIN links that need relinking, months without a statement, and balance drift; shown on the dashboard | outline below |
+| 24 | Backups | `fin backup`: a consistent copy of the database, the last N kept, each one checked; restore; a scheduled run | [phase-24](phases/phase-24-backups.md) |
+| 25 | Data health | Warnings for stale accounts, SimpleFIN links that need relinking, months without a statement, balance drift, and an old or missing backup; a Back up now button on the web; shown on the dashboard | outline below |
 | 26 | Budgets | A monthly target per category or group, progress, and an over-budget finding | outline below |
 | 27 | Looking ahead | Upcoming bills from recurring charges, recurring income, a 30-day cash-flow forecast per account, and net worth over time | outline below |
 | 28 | Categorizing extras | Split transactions, tags and notes, merging merchants, and a preview before saving a rule | outline below |
@@ -207,6 +207,8 @@ The order in the build line above is the architect's recommendation: protect the
 ### Phase 25: Data health
 - One list of problems, each with a kind, the account, and what to do: no new data for N days; a SimpleFIN link that needs relinking; a calendar month with no statement for a statement-only account (from statement periods); balance drift from the latest pull.
 - `fin health`, and a block on the 16h dashboard. Phase 14's `data_coverage` reuses it.
+- Backups on the web (decided 2026-10-15): a Backups block with the newest backup's age, the list of backups, and a **Back up now** button (a form with the usual token that calls Phase 24's `make_backup`). A warning when the newest backup is older than a set number of days (default 2) or there is none; it also shows on the dashboard.
+- Restore and download stay terminal-only: a restore replaces the live database and needs the web server stopped, and from Phase 20 the site can be reached remotely; a download would put a full copy of the data in the browser's downloads folder.
 
 ### Phase 26: Budgets
 - A target per category or group per month (one amount repeated monthly; no rollover at first), stored with a migration.
