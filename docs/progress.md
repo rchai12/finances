@@ -296,3 +296,13 @@ Template:
   - The category map reads the charges a second time, from `date.min` to the month's last day; the route reads the month through a private `_month_start` and calls `recurring_charges` itself for the page's recurring table.
 - Follow-ups:
   - None
+
+## Phase 16e: find and drill down (2026-10-15)
+- Tests: 2533 -> 2578 (given 28)
+- New public names: `domain.spending`: `PENDING`, `KINDS`; `db.repositories`: `list_transactions_by_day`; `analysis.spending`: `flows_for`; `analysis.search`: `TransactionQuery`, `FoundTransaction`, `search_transactions`; `views.transactions`: `found_rows`
+- Changed files: 13
+- Deviations:
+  - `search_transactions` checks the account and the person with `get_account_by_name` and `get_person_by_name` (both ignore case and outer spaces), and compares `joint` and `unassigned` to the flow's `Joint` and `Unassigned` ignoring case, like every other label.
+  - The route builds the query in a private `_search_query` (messages 1 to 3 in order), replacing `_find`; the fields and the kept filters are private tuples `_SEARCH_FIELDS` and `_KEPT`.
+- Follow-ups:
+  - None

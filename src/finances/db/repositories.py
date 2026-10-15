@@ -302,6 +302,21 @@ def list_transactions_between(session: Session, start: date, end: date) -> list[
     return [to_transaction(row) for row in session.scalars(stmt).all()]
 
 
+def list_transactions_by_day(
+    session: Session, start: date | None, end: date | None
+) -> list[Transaction]:
+    """Transactions, pending included, whose day (bought, else posted) is within the bounds given;
+    latest posted first, then highest id."""
+    day = func.coalesce(TransactionRow.transaction_date, TransactionRow.posted_date)
+    stmt = select(TransactionRow)
+    if start is not None:
+        stmt = stmt.where(day >= start)
+    if end is not None:
+        stmt = stmt.where(day <= end)
+    stmt = stmt.order_by(TransactionRow.posted_date.desc(), TransactionRow.id.desc())
+    return [to_transaction(row) for row in session.scalars(stmt).all()]
+
+
 def account_data_span(session: Session, account_id: int) -> tuple[date, date] | None:
     """The earliest and latest day of the account's statements, posted transactions, and pulls."""
     statements = session.execute(

@@ -23,9 +23,9 @@ from finances.analysis.months import month_report
 from finances.analysis.people import (
     JOINT_FILTER,
     UNASSIGNED_FILTER,
-    list_transactions_with_people,
 )
 from finances.analysis.recurring import recurring_charges
+from finances.analysis.search import TransactionQuery, search_transactions
 from finances.analysis.spending import spending_report
 from finances.categorize.service import categorize
 from finances.categorize.transfers import pair_transfers
@@ -60,7 +60,7 @@ from finances.db.repositories import (
     unpair_transfer,
 )
 from finances.domain.feed_setup import new_accounts
-from finances.domain.models import CONFIRMED, Account, AccountType, Transaction
+from finances.domain.models import CONFIRMED, Account, AccountType
 from finances.domain.rules import MATCHES
 from finances.domain.spending import BY, month_bounds, month_range
 from finances.domain.transfers import TRANSFER_MAX_DAYS
@@ -100,7 +100,7 @@ from finances.views.sync import (
     unmapped_accounts,
     waiting_counts,
 )
-from finances.views.transactions import transaction_row
+from finances.views.transactions import found_rows
 from finances.views.transfers import suggestion_lines, transfer_lines, transfer_of
 
 HOST = "127.0.0.1"
@@ -270,19 +270,16 @@ def _limit(text: str) -> int:
     raise ValueError("limit must be a whole number from 1 to 1000")
 
 
-def _find(session: Session, chosen: dict[str, str]) -> list[tuple[Transaction, str | None]]:
-    account_id = None
-    if chosen["account"]:
-        account = get_account_by_name(session, chosen["account"])
-        if account is None:
-            raise ValueError("account not found")
-        account_id = account.id
+_SEARCH_FIELDS = ("text", "account", "person", "category", "merchant", "group", "bank", "card")
+_KEPT = ("group", "bank", "card", "kind")
+
+
+def _search_query(chosen: dict[str, str]) -> TransactionQuery:
     start = _day(chosen["from"], "from")
     end = _day(chosen["to"], "to")
     limit = _limit(chosen["limit"])
-    return list_transactions_with_people(
-        session, account_id, start, end, limit, chosen["person"] or None
-    )
+    labels = {key: chosen[key] for key in _SEARCH_FIELDS}
+    return TransactionQuery(**labels, kind=chosen["kind"], start=start, end=end, limit=limit)
 
 
 def _blank_account_form() -> dict[str, str]:
@@ -589,7 +586,8 @@ def create_app(port: int) -> ASGIApp:
         if stopped is not None:
             return stopped
         query = request.query_params
-        chosen = {key: query.get(key, "") for key in ("account", "person", "from", "to")}
+        keys = (*_SEARCH_FIELDS, "kind", "from", "to")
+        chosen = {key: query.get(key, "") for key in keys}
         chosen["limit"] = query.get("limit") or _DEFAULT_LIMIT
         error = None
         with _reading() as session:
@@ -597,16 +595,18 @@ def create_app(port: int) -> ASGIApp:
             choices = {
                 "accounts": list(names.values()),
                 "people": [person.name for person in list_people(session)],
+                "categories": category_choices(session),
             }
             try:
-                found = _find(session, chosen)
+                found = search_transactions(session, _search_query(chosen))
             except ValueError as refusal:
                 found, error = [], str(refusal)
         context = {
             "choices": choices,
             "special": (JOINT_FILTER, UNASSIGNED_FILTER),
             "chosen": chosen,
-            "rows": [(item.id, transaction_row(item, who, names)) for item, who in found],
+            "kept": [key for key in _KEPT if chosen[key]],
+            "rows": found_rows(found, names),
             "error": error,
         }
         return _render(request, "transactions", context, 200 if error is None else 400)
@@ -737,6 +737,8 @@ def create_app(port: int) -> ASGIApp:
                     "by": report.by,
                     "rows": spending_rows(report),
                     "summary": spending_summary(report),
+                    "start": report.start.isoformat(),
+                    "end": report.end.isoformat(),
                 }
                 last = report.end
             lines = month_report(session, last, _REPORT_MONTHS)
@@ -765,7 +767,8 @@ def create_app(port: int) -> ASGIApp:
             return _render(request, "insights", context, 400)
         with _reading() as session:
             found = insights_report(session, first)
-            series = recurring_charges(session, month_bounds(first)[1])
+            end = month_bounds(first)[1]
+            series = recurring_charges(session, end)
         report = {
             "heading": insights_heading(found),
             "findings": finding_rows(found),
@@ -773,6 +776,8 @@ def create_app(port: int) -> ASGIApp:
             "recurring": recurring_rows(series),
             "recurring_summary": recurring_summary(series),
             "merchants": merchant_rows(found),
+            "start": first.isoformat(),
+            "end": end.isoformat(),
         }
         return _render(request, "insights", {"form": form, "report": report})
 

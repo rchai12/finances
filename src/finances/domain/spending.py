@@ -13,10 +13,12 @@ SPENDING = "spending"
 INCOME = "income"
 TRANSFER = "transfer"
 UNSORTED_IN = "unsorted_in"
+PENDING = "pending"
 UNCATEGORIZED = "Uncategorized"
 UNASSIGNED = "Unassigned"
 NO_CARD = "No card"
 BY = ("category", "group", "merchant", "person", "account", "bank", "card")
+KINDS = (SPENDING, INCOME, TRANSFER, UNSORTED_IN, PENDING)
 
 _MONTH = re.compile(r"([0-9]{4})-([0-9]{2})")
 _BAD_MONTH = "month must be a year and month, like 2026-05"

@@ -200,17 +200,26 @@ def test_people_with_none(tmp_settings: Settings, client: TestClient) -> None:
     assert ("empty", "No people.") in Page(client.get("/people").text).paragraphs
 
 
-TRANSACTION_HEADINGS = ["Date", "Account", "Description", "Amount", "Card", "Section", "Person"]
+TRANSACTION_HEADINGS = [
+    "Date",
+    "Account",
+    "Description",
+    "Category",
+    "Amount",
+    "Card",
+    "Section",
+    "Person",
+]
 
 
 def test_transactions(household: TestClient) -> None:
     page = Page(household.get("/transactions").text)
     assert page.rows == [
         TRANSACTION_HEADINGS,
-        ["2026-05-08", "Test <Card>", "ACME <i>8</i>", "-$8.00", "••2222", "purchases", "Sam"],
-        ["2026-05-07", "Test Checking", "ACME <i>7</i>", "-$7.00", "", "purchases", "Joint"],
-        ["2026-05-06", "Test <Card>", "ACME <i>6</i>", "-$6.00", "", "purchases", "Alex"],
-        ["2026-05-05", "Test Savings", "ACME <i>5</i>", "$10.00", "", "", ""],
+        ["2026-05-08", "Test <Card>", "ACME <i>8</i>", "", "-$8.00", "••2222", "purchases", "Sam"],
+        ["2026-05-07", "Test Checking", "ACME <i>7</i>", "", "-$7.00", "", "purchases", "Joint"],
+        ["2026-05-06", "Test <Card>", "ACME <i>6</i>", "", "-$6.00", "", "purchases", "Alex"],
+        ["2026-05-05", "Test Savings", "ACME <i>5</i>", "", "$10.00", "", "", ""],
     ]
     assert page.options["account"] == [
         ("", "All accounts", True),

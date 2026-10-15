@@ -46,7 +46,7 @@
 <table>
 <thead><tr><th>{{ spending.by|capitalize }}</th><th class="amount">Spent</th><th class="amount">Count</th></tr></thead>
 <tbody>
-{% for row in spending.rows %}<tr><td>{{ row.label }}</td><td class="amount">{{ row.spent }}</td><td class="amount">{{ row.count }}</td></tr>
+{% for row in spending.rows %}<tr><td><a href="/transactions?from={{ spending.start }}&amp;to={{ spending.end }}&amp;{{ spending.by }}={{ row.label|urlencode }}&amp;kind=spending&amp;limit=1000">{{ row.label }}</a></td><td class="amount">{{ row.spent }}</td><td class="amount">{{ row.count }}</td></tr>
 {% endfor %}</tbody>
 </table>
 {% else %}

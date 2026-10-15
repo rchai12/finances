@@ -1,5 +1,6 @@
 """Where the money went: each transaction as a flow, and the spending report over a range."""
 
+from collections.abc import Iterable
 from dataclasses import dataclass
 from datetime import date
 
@@ -14,8 +15,10 @@ from finances.db.repositories import (
     list_transfer_pairs,
 )
 from finances.domain.merchants import clean_merchant
+from finances.domain.models import Transaction
 from finances.domain.spending import (
     NO_CARD,
+    PENDING,
     UNASSIGNED,
     UNCATEGORIZED,
     Flow,
@@ -37,8 +40,8 @@ class SpendingReport:
     summary: SpendingSummary
 
 
-def load_flows(session: Session, start: date, end: date) -> list[Flow]:
-    """One flow per posted transaction whose day is from start to end."""
+def flows_for(session: Session, transactions: Iterable[Transaction]) -> list[Flow]:
+    """One flow per transaction, in the order given; a pending one is of the kind PENDING."""
     categories = {category.id: category for category in list_categories(session)}
     assignments = list_category_assignments(session)
     paired = {
@@ -49,7 +52,7 @@ def load_flows(session: Session, start: date, end: date) -> list[Flow]:
     accounts = {account.id: account for account in list_accounts(session, include_inactive=True)}
     attribution = load_attribution(session)
     flows = []
-    for item in list_transactions_between(session, start, end):
+    for item in transactions:
         assignment = assignments.get(item.id)
         category = None if assignment is None else categories[assignment.category_id]
         account = accounts[item.account_id]
@@ -57,7 +60,9 @@ def load_flows(session: Session, start: date, end: date) -> list[Flow]:
             Flow(
                 amount_cents=item.amount_cents,
                 day=item.transaction_date or item.posted_date,
-                kind=flow_kind(item.amount_cents, paired=item.id in paired, category=category),
+                kind=PENDING
+                if item.is_pending
+                else flow_kind(item.amount_cents, paired=item.id in paired, category=category),
                 category=UNCATEGORIZED if category is None else category.name,
                 group=UNCATEGORIZED if category is None else categories[category.group_id].name,
                 merchant=clean_merchant(item.description),
@@ -68,6 +73,11 @@ def load_flows(session: Session, start: date, end: date) -> list[Flow]:
             )
         )
     return flows
+
+
+def load_flows(session: Session, start: date, end: date) -> list[Flow]:
+    """One flow per posted transaction whose day is from start to end."""
+    return flows_for(session, list_transactions_between(session, start, end))
 
 
 def spending_report(
