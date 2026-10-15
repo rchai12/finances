@@ -220,3 +220,14 @@ Template:
   - `cli/transfers.py` has its own `_print_rows`, the same as `cli/categories.py`'s, since `cli/common.py` is not in Scope.
 - Follow-ups:
   - `_print_rows` is now in two CLI modules; it could move to `cli/common.py` in a phase that touches that file.
+
+## Phase 11d: transfers on the web (2026-10-14)
+- Tests: 2311 -> 2342 (given 23)
+- New public names: `db.repositories`: `find_transfer_pair`; `views.transfers`: `transfer_of`
+- Changed files: 9
+- Deviations:
+  - `transfer_lines` and `transfer_of` build each line with the private `_line`; `transfer_lines` now sorts the finished lines by date and pair id instead of sorting the pairs first.
+  - `create_transfer_pair` uses `find_transfer_pair` for its "already in a transfer" check, replacing its own query.
+  - The `in` form field is read through `Form(alias="in")`, since `in` cannot be a parameter name; `_transfer_sides` turns `out` and `in` into ids or refuses with `transaction not found`.
+- Follow-ups:
+  - None

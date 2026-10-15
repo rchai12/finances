@@ -1003,6 +1003,13 @@ def list_transfer_pairs(session: Session) -> list[TransferPair]:
     return [to_transfer_pair(row) for row in session.scalars(stmt).all()]
 
 
+def find_transfer_pair(session: Session, transaction_id: int) -> TransferPair | None:
+    """The pair holding this transaction on either side, or None."""
+    stmt = select(TransferPairRow).where(_names(TransferPairRow, transaction_id))
+    row = session.scalars(stmt).first()
+    return to_transfer_pair(row) if row is not None else None
+
+
 def _check_transfer(session: Session, out_id: int, in_id: int) -> None:
     """Refuse two transactions that cannot be one transfer."""
     out = session.get(TransactionRow, out_id)
@@ -1034,8 +1041,7 @@ def create_transfer_pair(session: Session, out_id: int, in_id: int, status: str)
     """Pair an outflow with an inflow and return the pair. The caller commits."""
     _check_transfer(session, out_id, in_id)
     for transaction_id in (out_id, in_id):
-        taken = select(TransferPairRow.id).where(_names(TransferPairRow, transaction_id))
-        if session.scalars(taken).first() is not None:
+        if find_transfer_pair(session, transaction_id) is not None:
             raise ValueError(f"transaction {transaction_id} is already in a transfer")
     if status not in (AUTO, CONFIRMED):
         raise ValueError("status must be auto or confirmed")

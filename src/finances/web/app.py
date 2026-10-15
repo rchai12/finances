@@ -36,6 +36,7 @@ from finances.db.repositories import (
     create_category,
     create_person,
     create_rule,
+    create_transfer_pair,
     delete_rule,
     get_account_by_name,
     get_person_by_name,
@@ -45,15 +46,18 @@ from finances.db.repositories import (
     list_new_feed_accounts,
     list_people,
     map_feed_account,
+    reject_transfer,
     resolve_owner,
     set_account_owner,
     set_cardholder_alias,
     set_category_by_hand,
     set_feed_account_ignored,
+    unpair_transfer,
 )
 from finances.domain.feed_setup import new_accounts
-from finances.domain.models import Account, AccountType, Transaction
+from finances.domain.models import CONFIRMED, Account, AccountType, Transaction
 from finances.domain.rules import MATCHES
+from finances.domain.transfers import TRANSFER_MAX_DAYS
 from finances.sync import transport
 from finances.sync.links import (
     delete_access_url,
@@ -81,6 +85,7 @@ from finances.views.sync import (
     waiting_counts,
 )
 from finances.views.transactions import transaction_row
+from finances.views.transfers import suggestion_lines, transfer_lines, transfer_of
 
 HOST = "127.0.0.1"
 SECURITY_HEADERS = {
@@ -110,6 +115,10 @@ NOTICES = {
     "rule-deleted": "Rule deleted, and the rules were run again.",
     "category-set": "Category saved.",
     "category-cleared": "Category left to the rules.",
+    "transfers-found": "Clear transfers were paired; the rest wait for review.",
+    "transfer-confirmed": "Transfer saved.",
+    "transfer-rejected": "Those two will not be paired.",
+    "transfer-removed": "Transfer removed; those two will not be paired again.",
 }
 ACCOUNT_TYPES = tuple(item.value for item in AccountType)
 
@@ -391,16 +400,38 @@ def _transaction_page(
     with _reading() as session:
         detail = None if transaction_id is None else transaction_detail(session, transaction_id)
         choices = category_choices(session)
+        transfer = None if detail is None else transfer_of(session, detail.id)
     if detail is None:
         return _missing_transaction(request)
     context = {
         "detail": detail,
+        "transfer": transfer,
         "choices": choices,
         "matches": MATCHES,
         "rule_form": _rule_form(pattern=detail.merchant, category=detail.category),
         "error": error,
     }
     return _render(request, "transactions_one", context, status_code)
+
+
+def _transfers_page(
+    request: Request, *, error: str | None = None, status_code: int = 200
+) -> Response:
+    with _reading() as session:
+        context = {
+            "suggestions": suggestion_lines(session),
+            "pairs": transfer_lines(session),
+            "max_days": TRANSFER_MAX_DAYS,
+            "error": error,
+        }
+    return _render(request, "transfers", context, status_code)
+
+
+def _transfer_sides(out: str, into: str) -> tuple[int, int]:
+    out_id, in_id = _id(out), _id(into)
+    if out_id is None or in_id is None:
+        raise ValueError("transaction not found")
+    return out_id, in_id
 
 
 def _known_transaction(text: str) -> int | None:
@@ -641,6 +672,77 @@ def create_app(port: int) -> ASGIApp:
         except _REFUSALS as error:
             return _categories_page(request, error=str(error), status_code=400)
         return _done("/categories?notice=rule-deleted")
+
+    @api.get("/transfers")
+    def transfers(request: Request) -> Response:
+        stopped = _not_migrated(request)
+        if stopped is not None:
+            return stopped
+        return _transfers_page(request)
+
+    @api.post("/transfers/find")
+    def find_transfers(request: Request, csrf: _Field = "") -> Response:
+        stopped = refused(request, csrf)
+        if stopped is not None:
+            return stopped
+        with _reading() as session:
+            pair_transfers(session)
+        return _done("/transfers?notice=transfers-found")
+
+    @api.post("/transfers/confirm")
+    def confirm_transfer(
+        request: Request,
+        csrf: _Field = "",
+        out: _Field = "",
+        into: Annotated[str, Form(alias="in")] = "",
+    ) -> Response:
+        stopped = refused(request, csrf)
+        if stopped is not None:
+            return stopped
+        try:
+            out_id, in_id = _transfer_sides(out, into)
+            with _reading() as session:
+                create_transfer_pair(session, out_id, in_id, CONFIRMED)
+        except _REFUSALS as error:
+            return _transfers_page(request, error=str(error), status_code=400)
+        return _done("/transfers?notice=transfer-confirmed")
+
+    @api.post("/transfers/reject")
+    def reject(
+        request: Request,
+        csrf: _Field = "",
+        out: _Field = "",
+        into: Annotated[str, Form(alias="in")] = "",
+    ) -> Response:
+        stopped = refused(request, csrf)
+        if stopped is not None:
+            return stopped
+        try:
+            out_id, in_id = _transfer_sides(out, into)
+            with _reading() as session:
+                reject_transfer(session, out_id, in_id)
+        except _REFUSALS as error:
+            return _transfers_page(request, error=str(error), status_code=400)
+        return _done("/transfers?notice=transfer-rejected")
+
+    @api.post("/transfers/unpair")
+    def unpair(
+        request: Request, csrf: _Field = "", pair: _Field = "", back: _Field = ""
+    ) -> Response:
+        stopped = refused(request, csrf)
+        if stopped is not None:
+            return stopped
+        try:
+            pair_id = _id(pair)
+            if pair_id is None:
+                raise ValueError("transfer not found")
+            with _reading() as session:
+                unpair_transfer(session, pair_id)
+        except _REFUSALS as error:
+            return _transfers_page(request, error=str(error), status_code=400)
+        if _WHOLE.fullmatch(back) is not None:
+            return _done(f"/transactions/{back}?notice=transfer-removed")
+        return _done("/transfers?notice=transfer-removed")
 
     @api.get("/sync")
     def sync(request: Request) -> Response:

@@ -16,6 +16,16 @@
 <tr><th>Set</th><td>{{ detail.set_by }}</td></tr>
 </tbody>
 </table>
+{% if transfer %}
+<h2>Transfer</h2>
+<p>Pair {{ transfer.pair }} ({{ transfer.how }}): {{ transfer.amount }} from {{ transfer.from_account }} (<a href="/transactions/{{ transfer.out_id }}">transaction {{ transfer.out_id }}</a>) to {{ transfer.to_account }} (<a href="/transactions/{{ transfer.in_id }}">transaction {{ transfer.in_id }}</a>).</p>
+<form method="post" action="/transfers/unpair" class="fields">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <input type="hidden" name="pair" value="{{ transfer.pair }}">
+  <input type="hidden" name="back" value="{{ detail.id }}">
+  <button type="submit">Unpair</button>
+</form>
+{% endif %}
 <h2>Set the category</h2>
 <form method="post" action="/transactions/{{ detail.id }}/category" class="fields">
   <input type="hidden" name="csrf" value="{{ csrf }}">
