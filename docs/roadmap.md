@@ -6,7 +6,7 @@ Each phase is sized for one focused coding session: a few modules, their tests, 
 
 Status: Phases 1 and 2 are built. The specs for Phases 3 to 10 were written before the small-phase rules and before the agent redesign. Each is re-issued as lettered sub-phases, with a verification guide, before the coder receives it. Phases 11 and later are outlines.
 
-**Build order:** 2 → 3 → 4 → 17a → 8 → 17b → 17c → 21 → 16a → 16b → 9 → 16c → 16d → 10 → 22 → 23 → 11 → 12 → 13 → 16e → 16f → 16g → 16h → 14 → 19 → 16 → 20. Phases 5 and 6 (more statement parsers) can be built any time after 4, when audit coverage for those banks is wanted.
+**Build order:** 2 → 3 → 4 → 17a → 8 → 17b → 17c → 21 → 16a → 16b → 9 → 16c → 16d → 10 → 22 → 23 → 11 → 12 → 13 → 16e → 24 → 16f → 16g → 25 → 16h → 16i → 13d → 26 → 27 → 14 → 19 → 28 → 29 → 30 → 16 → 20. Phases 5 and 6 (more statement parsers) can be built any time after 4, when audit coverage for those banks is wanted.
 
 | # | Phase | Outcome | Spec |
 |---|---|---|---|
@@ -33,6 +33,13 @@ Status: Phases 1 and 2 are built. The specs for Phases 3 to 10 were written befo
 | 21 | People and ownership | The household's people; each account owned by one person or joint; statement cardholder names mapped to people; every view filterable by person, bank, and card | [phase-21](phases/phase-21-people-and-ownership.md) |
 | 22 | Shared view rows | A clean-up with no behaviour change: `finances.views` builds each view's rows once for the command line and the web; `fin sync run` uses `run_links`; setup offers move out of the web page | [phase-22](phases/phase-22-shared-view-rows.md) |
 | 23 | Shared rules | A clean-up with no behaviour change: one home for text cutting and column limits (`domain/text.py`, used by the ORM), typed-input checks moved into the repositories, small shared helpers | [phase-23](phases/phase-23-shared-rules.md) |
+| 24 | Backups | `fin backup`: a consistent copy of the database, the last N kept, each one test-restored; a scheduled run | outline below |
+| 25 | Data health | Warnings for stale accounts, SimpleFIN links that need relinking, months without a statement, and balance drift; shown on the dashboard | outline below |
+| 26 | Budgets | A monthly target per category or group, progress, and an over-budget finding | outline below |
+| 27 | Looking ahead | Upcoming bills from recurring charges, recurring income, a 30-day cash-flow forecast per account, and net worth over time | outline below |
+| 28 | Categorizing extras | Split transactions, tags and notes, merging merchants, and a preview before saving a rule | outline below |
+| 29 | Shared expenses | Mark a joint expense paid by one person as shared, and keep a running balance of who owes whom | outline below |
+| 30 | Year-end and export | Yearly totals by category with tax-relevant groups pulled out, and CSV export | outline below |
 
 Phase numbers are stable. A removed phase keeps its number, and a phase that is too large for one coding session is split into lettered sub-phases (`2a`, `2b`, ...), never renumbered.
 
@@ -151,6 +158,8 @@ The app no longer calls an LLM. The finance subagent of the overarching agent pr
   - **16f, editing and bulk:** rename or delete categories, edit rules, rename or deactivate accounts, categorize several transactions at once.
   - **16g, statement upload:** upload a PDF statement through the same import as `fin import statement`, and a page of the statements held and the gaps between them.
   - **16h, dashboard:** the home page: net worth, this month against last, top findings, and what needs attention (uncategorized, transfers to review, accounts without recent data), each linking to its page.
+  - **16i, account pages** (asked for 2026-10-15): clicking an account name (Accounts, the balances on Reports, the Account column of Transactions, From and To on Transfers) opens that account's page; clicking card digits opens it filtered to that card. The page has the account's transactions with 16e's search and filters, and three charts: this month's (or a chosen month's) spending by category group as a pie with a legend whose rows link to the transactions, spent and income per month as bars, and the balance over time as a line.
+  - **Charts use a JavaScript chart library** (the owner's choice, 2026-10-15). To keep the no-network and strict-policy rules: the library is a pinned version served from the app's own static folder (no CDN), its file hash is checked by a test, the policy becomes `script-src 'self'` (no inline scripts, no `eval`), and chart data reaches the page as JSON in a data attribute or a same-origin JSON route. Every chart keeps a table of its numbers beside it, so the page still reads without scripts. The 16i spec names the library and how the file is added; `docs/architecture.md` changes with it.
 - Later sub-phases: the review queue of agent suggestions (with Phase 19). When the system moves to the Mac Studio, the site sits behind the private VPN with a login (Phase 20).
 - FastAPI + Jinja2, bound to 127.0.0.1. HTMX only if a later page needs it, served from the app itself.
 - Dashboard, transactions with category editing, insights; statement upload page that calls the same import service; sync status and a re-link prompt when a bank connection breaks; the `fin review` queue of agent writes.
@@ -183,3 +192,42 @@ No cloud deployment. If the app ever moves off the household's machine, the priv
 - Web UI login for a single household: password hash from configuration, signed session cookie with `Secure`, `HttpOnly`, `SameSite=Strict`, idle timeout, lockout after repeated failures.
 - CSRF tokens on every state-changing request; allowed-host check so only the configured VPN hostname and localhost are served.
 - `fin doctor` fails if the web UI is configured to bind to anything other than loopback.
+
+### Proposed 2026-10-15 (accepted by the owner)
+
+The order in the build line above is the architect's recommendation: protect the data first, show its health on the dashboard, then plan ahead, then the agent, then the extras.
+
+- **13d, unusual charges:** two more findings in the Phase 13b engine: a duplicate (the same merchant and amount twice on one day) and a first charge from a merchant that is large for its category.
+
+### Phase 24: Backups
+- `fin backup` writes a consistent copy of the SQLite database (SQLite's online backup, not a file copy while it is open) into a folder from configuration, outside `data/`'s working files; keeps the newest N; opens each new copy and checks its schema revision and row counts before reporting success.
+- `fin backup --restore FILE` asks for confirmation, checks the copy first, and keeps the replaced database aside.
+- A `launchd` example for a daily run, like the sync one. No network: copying off the machine is left to the owner's own tools.
+
+### Phase 25: Data health
+- One list of problems, each with a kind, the account, and what to do: no new data for N days; a SimpleFIN link that needs relinking; a calendar month with no statement for a statement-only account (from statement periods); balance drift from the latest pull.
+- `fin health`, and a block on the 16h dashboard. Phase 14's `data_coverage` reuses it.
+
+### Phase 26: Budgets
+- A target per category or group per month (one amount repeated monthly; no rollover at first), stored with a migration.
+- Progress for the month: spent (Phase 12a's rules), target, left, and the share of the month gone; on the dashboard and `fin budget`.
+- A finding `over_budget` in the Phase 13b engine; a web page to set targets.
+
+### Phase 27: Looking ahead
+- Upcoming bills: the next charge of every active recurring charge (Phase 13a) in the next 30 days.
+- Recurring income found the same way as charges (paychecks every week, two weeks, or half-month), which needs a two-week band.
+- A 30-day forecast per account: the newest balance plus expected income minus expected bills, with the lowest point and its day.
+- Net worth over time from balance snapshots, as a line (16i's chart library).
+
+### Phase 28: Categorizing extras
+- Split a transaction into parts with their own categories and amounts that add up to it exactly; reports count the parts.
+- Tags (many per transaction) and a note; filter by tag on the Transactions page.
+- Merge merchants: a stored alias from one cleaned name to another, used by stats, recurring charges, and rules.
+- A rule preview: before saving, how many transactions it would change, with examples.
+
+### Phase 29: Shared expenses
+- Mark a transaction as shared between people (half each by default), and see who owes whom, with a way to record a settlement.
+
+### Phase 30: Year-end and export
+- A year's totals by category and group, with tax-relevant groups (medical, gifts and donations, taxes) pulled out.
+- CSV export of transactions and of any report, written to a chosen folder; no network.
