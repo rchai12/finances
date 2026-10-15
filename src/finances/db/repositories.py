@@ -291,6 +291,17 @@ def list_transactions(
     return [to_transaction(row) for row in session.scalars(stmt).all()]
 
 
+def list_transactions_between(session: Session, start: date, end: date) -> list[Transaction]:
+    """Posted transactions whose day (bought, else posted) is from start to end, in id order."""
+    day = func.coalesce(TransactionRow.transaction_date, TransactionRow.posted_date)
+    stmt = (
+        select(TransactionRow)
+        .where(TransactionRow.is_pending.is_(False), day >= start, day <= end)
+        .order_by(TransactionRow.id)
+    )
+    return [to_transaction(row) for row in session.scalars(stmt).all()]
+
+
 def add_balance_snapshot(
     session: Session, account_id: int, as_of_date: date, balance_cents: int, source: DataSource
 ) -> BalanceSnapshot:

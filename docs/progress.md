@@ -231,3 +231,14 @@ Template:
   - The `in` form field is read through `Form(alias="in")`, since `in` cannot be a parameter name; `_transfer_sides` turns `out` and `in` into ids or refuses with `transaction not found`.
 - Follow-ups:
   - None
+
+## Phase 12a: spending (2026-10-14)
+- Tests: 2342 -> 2403 (given 43)
+- New public names: `domain.spending`: `SPENDING`, `INCOME`, `TRANSFER`, `UNSORTED_IN`, `UNCATEGORIZED`, `UNASSIGNED`, `NO_CARD`, `BY`, `Flow`, `SpendingLine`, `SpendingSummary`, `flow_kind`, `check_by`, `spending_lines`, `summarize`, `month_range`, `month_bounds`; `db.repositories`: `list_transactions_between`; `analysis.spending`: `SpendingReport`, `load_flows`, `spending_report`; `views.spending`: `SpendingRow`, `spending_rows`, `spending_heading`, `spending_summary`; `cli.reports`: `spending_command`
+- Changed files: 10
+- Deviations:
+  - `domain.spending.check_by` (not in the design) raises the `by must be one of: ...` message; `spending_lines` and `spending_report` both call it, so the report checks `--by` before the dates without repeating the message.
+  - `month_range` turns a year of `0000` into the month message too, since `date` refuses year 0 with its own text.
+  - `cli/reports.py` builds its Rich table inline instead of copying `_print_rows` a third time.
+- Follow-ups:
+  - None
