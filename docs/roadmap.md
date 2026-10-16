@@ -42,7 +42,7 @@ Status (2026-10-16): built and verified, in the build order below, up to and inc
 | 29 | Shared expenses | Mark a joint expense paid by one person as shared, and keep a running balance of who owes whom | outline below |
 | 30 | Year-end and export | Yearly totals by category with tax-relevant groups pulled out, and CSV export | outline below |
 | 31 | Tidy | No behaviour change except the date: one local `today()` for every page and command; the remaining duplication (`fin statements list` cells, `_print_rows`, the budget amount message, the backup list) shared | [phase-31](phases/phase-31-tidy.md) |
-| 32 | Split the web app | No behaviour change: `web/app.py` split into one router module per area, with the shared checks and rendering in one place | outline below |
+| 32 | Split the web app | No behaviour change: `web/app.py` split into one router module per area, with the shared checks and rendering in one place | [phase-32](phases/phase-32-split-the-web-app.md) |
 
 Phase numbers are stable. A removed phase keeps its number, and a phase that is too large for one coding session is split into lettered sub-phases (`2a`, `2b`, ...), never renumbered.
 
