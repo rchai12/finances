@@ -6,7 +6,7 @@ Each phase is sized for one focused coding session: a few modules, their tests, 
 
 Status: Phases 1 and 2 are built. The specs for Phases 3 to 10 were written before the small-phase rules and before the agent redesign. Each is re-issued as lettered sub-phases, with a verification guide, before the coder receives it. Phases 11 and later are outlines.
 
-**Build order:** 2 → 3 → 4 → 17a → 8 → 17b → 17c → 21 → 16a → 16b → 9 → 16c → 16d → 10 → 22 → 23 → 11 → 12 → 13 → 16e → 24 → 24b → 16f → 16j → 16g → 25 → 16h → 16i → 16k → 13d → 26 → 27 → 14 → 19 → 28 → 29 → 30 → 16 → 20. Phases 5 and 6 (more statement parsers) can be built any time after 4, when audit coverage for those banks is wanted.
+**Build order:** 2 → 3 → 4 → 17a → 8 → 17b → 17c → 21 → 16a → 16b → 9 → 16c → 16d → 10 → 22 → 23 → 11 → 12 → 13 → 16e → 24 → 24b → 16f → 16j → 16g → 25 → 16h → 16i → 16k → 13d → 26a → 26b → 27 → 14 → 19 → 28 → 29 → 30 → 16 → 20. Phases 5 and 6 (more statement parsers) can be built any time after 4, when audit coverage for those banks is wanted.
 
 | # | Phase | Outcome | Spec |
 |---|---|---|---|
@@ -36,7 +36,7 @@ Status: Phases 1 and 2 are built. The specs for Phases 3 to 10 were written befo
 | 24 | Backups | `fin backup`: a consistent copy of the database, the last N kept, each one checked; restore; a scheduled run | [phase-24](phases/phase-24-backups.md) |
 | 24b | Backups on the web | A Backups page: back up now, the list, delete, and restore, with confirmation and the current database always set aside | [phase-24b](phases/phase-24b-backups-on-the-web.md) |
 | 25 | Data health | Warnings for stale accounts, SimpleFIN links that need relinking, months without a statement, balance drift, and an old or missing backup; shown on the dashboard | [phase-25](phases/phase-25-data-health.md) (terminal; shown on the 16h dashboard) |
-| 26 | Budgets | A monthly target per category or group, progress, and an over-budget finding | outline below |
+| 26 | Budgets | A monthly target per category or group, progress, and an over-budget finding | [phase-26a](phases/phase-26a-budgets.md) (storage, rules, `fin budgets`, the finding); 26b (the Budgets page and the dashboard block) follows |
 | 27 | Looking ahead | Upcoming bills from recurring charges, recurring income, a 30-day cash-flow forecast per account, and net worth over time | outline below |
 | 28 | Categorizing extras | Split transactions, tags and notes, merging merchants, and a preview before saving a rule | outline below |
 | 29 | Shared expenses | Mark a joint expense paid by one person as shared, and keep a running balance of who owes whom | outline below |
@@ -221,6 +221,7 @@ The order in the build line above is the architect's recommendation: protect the
 - A warning when the newest backup (Phase 24) is older than a set number of days (default 2) or there is none; it also shows on the dashboard. Managing backups on the web is Phase 24b.
 
 ### Phase 26: Budgets
+- **Split (2026-10-16):** 26a is storage, the rules, `fin budgets`, and the `over_budget` finding; 26b is the Budgets web page (set and remove targets, progress) and a budget block on the dashboard.
 - A target per category or group per month (one amount repeated monthly; no rollover at first), stored with a migration.
 - Progress for the month: spent (Phase 12a's rules), target, left, and the share of the month gone; on the dashboard and `fin budget`.
 - A finding `over_budget` in the Phase 13b engine; a web page to set targets.
