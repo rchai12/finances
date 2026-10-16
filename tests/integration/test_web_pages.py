@@ -126,11 +126,6 @@ def household(tmp_settings: Settings, client: TestClient) -> TestClient:
     return client
 
 
-def test_home_goes_to_accounts(client: TestClient) -> None:
-    response = client.get("/", follow_redirects=False)
-    assert (response.status_code, response.headers["location"]) == (303, "/accounts")
-
-
 @pytest.mark.parametrize("path", ["/accounts", "/people", "/transactions", "/sync"])
 def test_every_page_needs_a_migrated_database(client: TestClient, path: str) -> None:
     response = client.get(path)

@@ -1213,6 +1213,18 @@ def list_uncategorized(session: Session, limit: int) -> list[Transaction]:
     return [to_transaction(row) for row in session.scalars(stmt).all()]
 
 
+def count_uncategorized(session: Session) -> int:
+    """How many transactions have no category and are in no transfer pair."""
+    categorized = exists().where(TransactionCategoryRow.transaction_id == TransactionRow.id)
+    paired = exists().where(_names(TransferPairRow, TransactionRow.id))
+    return (
+        session.scalar(
+            select(func.count()).select_from(TransactionRow).where(~categorized, ~paired)
+        )
+        or 0
+    )
+
+
 def _names(
     table: type[TransferPairRow] | type[TransferRejectionRow], transaction_id: object
 ) -> ColumnElement[bool]:

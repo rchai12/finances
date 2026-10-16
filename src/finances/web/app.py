@@ -22,6 +22,7 @@ from starlette.datastructures import UploadFile
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 from finances.analysis.balances import balance_report
+from finances.analysis.dashboard import dashboard
 from finances.analysis.insights import insights_report
 from finances.analysis.months import month_report
 from finances.analysis.people import (
@@ -111,6 +112,7 @@ from finances.views.categories import (
     transaction_detail,
     uncategorized_lines,
 )
+from finances.views.health import health_rows
 from finances.views.insights import (
     finding_rows,
     findings_summary,
@@ -135,6 +137,13 @@ from finances.views.transfers import suggestion_lines, transfer_lines, transfer_
 
 HOST = "127.0.0.1"
 UPLOAD_LIMIT = 20 * 1024 * 1024
+_PROBLEM_LINKS = {
+    "backup": "/backups",
+    "sync": "/sync",
+    "drift": "/sync",
+    "statements": "/statements",
+    "gap": "/statements",
+}
 SECURITY_HEADERS = {
     "content-security-policy": (
         "default-src 'self'; script-src 'none'; style-src 'self'; img-src 'self'; "
@@ -708,8 +717,27 @@ def create_app(port: int) -> ASGIApp:
         return forged(request, csrf) or _not_migrated(request)
 
     @api.get("/")
-    def home() -> Response:
-        return _done("/accounts")
+    def home(request: Request) -> Response:
+        stopped = _not_migrated(request)
+        if stopped is not None:
+            return stopped
+        folder = get_settings().effective_backup_dir
+        with _reading() as session:
+            found = dashboard(session, _today(), folder)
+            context = {
+                "today": found.today.isoformat(),
+                "month_label": found.today.isoformat()[:7],
+                "uncategorized": found.uncategorized,
+                "transfers_waiting": found.transfers_waiting,
+                "problems": health_rows(found.problems),
+                "problem_links": _PROBLEM_LINKS,
+                "has_accounts": bool(found.balance.lines),
+                "balance_summary": balance_summary(found.balance),
+                "months": month_rows(found.months),
+                "findings": finding_rows(found.insights)[:3],
+                "findings_summary": findings_summary(found.insights),
+            }
+        return _render(request, "dashboard", context)
 
     @api.get("/accounts")
     def accounts(request: Request) -> Response:

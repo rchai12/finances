@@ -1,0 +1,51 @@
+{% extends "layout.html" %}
+{% block title %}Finances{% endblock %}
+{% block content %}
+<h1>Home</h1>
+<p class="summary">Today is {{ today }}.</p>
+<h2>Needs attention</h2>
+{% if uncategorized %}<p class="attention"><a href="/categories">{{ uncategorized }} transactions without a category.</a></p>
+{% else %}<p class="empty">Every transaction has a category.</p>
+{% endif %}
+{% if transfers_waiting %}<p class="attention"><a href="/transfers">{{ transfers_waiting }} transfers waiting for review.</a></p>
+{% else %}<p class="empty">No transfers wait for review.</p>
+{% endif %}
+{% if problems %}
+<table>
+<thead><tr><th>Kind</th><th>Account</th><th>Problem</th><th>What to do</th></tr></thead>
+<tbody>
+{% for row in problems %}<tr><td>{{ row.kind }}</td><td>{{ row.account }}</td><td><a href="{{ problem_links[row.kind] }}">{{ row.problem }}</a></td><td>{{ row.action }}</td></tr>
+{% endfor %}</tbody>
+</table>
+{% else %}
+<p class="empty">No data problems found.</p>
+{% endif %}
+<h2>Money</h2>
+{% if has_accounts %}
+{% for line in balance_summary %}<p class="summary">{{ line }}</p>
+{% endfor %}
+{% else %}
+<p class="empty">No accounts.</p>
+{% endif %}
+<p><a href="/reports">Balances, months, and spending</a></p>
+<h2>This month and last</h2>
+<table>
+<thead><tr><th>Month</th><th class="amount">Spent</th><th class="amount">Income</th><th class="amount">Change</th><th>Covered</th></tr></thead>
+<tbody>
+{% for row in months %}<tr><td><a href="/reports?month={{ row.month }}">{{ row.month }}</a></td><td class="amount">{{ row.spent }}</td><td class="amount">{{ row.income }}</td><td class="amount">{{ row.change }}</td><td>{{ row.covered }}</td></tr>
+{% endfor %}</tbody>
+</table>
+<h2>Top findings</h2>
+{% if findings %}
+<table>
+<thead><tr><th>Severity</th><th>Type</th><th>About</th><th class="amount">Saves a month</th><th>Detail</th></tr></thead>
+<tbody>
+{% for row in findings %}<tr><td>{{ row.severity }}</td><td>{{ row.type }}</td><td>{{ row.about }}</td><td class="amount">{{ row.saves }}</td><td>{{ row.detail }}</td></tr>
+{% endfor %}</tbody>
+</table>
+<p class="summary">{{ findings_summary }}</p>
+{% else %}
+<p class="empty">No findings this month.</p>
+{% endif %}
+<p><a href="/insights?month={{ month_label }}">All insights for {{ month_label }}</a></p>
+{% endblock %}

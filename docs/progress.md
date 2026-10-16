@@ -370,3 +370,11 @@ Template:
   - Action texts are module constants in `domain/health.py`.
 - Follow-ups:
   - The given "no statements needed" case for a mapped account uses a fresh statement end or none with `has_data` true, so it does not fail when statements checks also run for mapped accounts; pin a mapped account with a stale statement end for that spot check.
+
+## Phase 16h: dashboard (2026-10-16)
+- Tests: 2791 -> 2798 (given 5; removed 1 earlier home-redirect test)
+- New public names: `db.repositories.count_uncategorized`; `analysis.dashboard`: `Dashboard`, `dashboard`; `web.app`: `GET /` is the Home page
+- Changed files: 9
+- Deviations:
+  - `_PROBLEM_LINKS` in `web/app.py` maps each health kind to its page.
+- Follow-ups: none
