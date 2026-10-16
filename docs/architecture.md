@@ -42,7 +42,7 @@ It also works on its own through the `fin` CLI and, later, a local web UI.
 | PDF text | `pypdf` (layout extraction mode) | Pure Python; keeps statement columns aligned where `pdftotext` scrambles them |
 | Daily feed | SimpleFIN Bridge, through the standard library's `urllib` | Built for individuals, read-only, about $15 a year; the app's only outbound connection |
 | Agent interface (later) | MCP server, official `mcp` Python SDK, stdio transport | Typed tools any agent framework can call; stdio opens no port |
-| Web UI (later) | FastAPI + Jinja2 + HTMX, bound to 127.0.0.1 | Little JavaScript |
+| Web UI | FastAPI + Jinja2, bound to 127.0.0.1; Chart.js 4.4.6 for charts | Pages work without scripts; the only scripts are the site's own files (policy `script-src 'self'`): a pinned, hash-checked Chart.js in `static/vendor/` and `static/charts.js`, loaded only where a page draws charts (Phase 16k). No CDN, no inline script, no `eval` |
 | Tests / lint | pytest, ruff | Standard |
 
 ## Package layout
