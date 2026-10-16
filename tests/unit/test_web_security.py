@@ -19,7 +19,7 @@ def test_the_host_is_this_machine_only() -> None:
 def test_the_security_headers() -> None:
     assert SECURITY_HEADERS == {
         "content-security-policy": (
-            "default-src 'self'; script-src 'none'; style-src 'self'; img-src 'self'; "
+            "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self'; "
             "form-action 'self'; frame-ancestors 'none'; base-uri 'none'"
         ),
         "x-content-type-options": "nosniff",

@@ -1,6 +1,7 @@
 """The web application: pages and setup forms behind a host check, a form token, and headers."""
 
 import hmac
+import json
 import re
 import secrets
 import threading
@@ -119,6 +120,7 @@ from finances.views.categories import (
     transaction_detail,
     uncategorized_lines,
 )
+from finances.views.charts import balance_chart, months_chart, pie_chart
 from finances.views.health import health_rows
 from finances.views.insights import (
     finding_rows,
@@ -153,7 +155,7 @@ _PROBLEM_LINKS = {
 }
 SECURITY_HEADERS = {
     "content-security-policy": (
-        "default-src 'self'; script-src 'none'; style-src 'self'; img-src 'self'; "
+        "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self'; "
         "form-action 'self'; frame-ancestors 'none'; base-uri 'none'"
     ),
     "x-content-type-options": "nosniff",
@@ -783,6 +785,9 @@ def create_app(port: int) -> ASGIApp:
                 return _missing_account(request, str(error))
             names = account_names(session)
             spending = [] if month_error is not None else group_rows(page)
+            pie = pie_chart(page.spending) if spending else None
+            months_data = months_chart(page.months)
+            balance_data = balance_chart(page.balances)
             context = {
                 "section": "accounts",
                 "name": found.name,
@@ -797,6 +802,9 @@ def create_app(port: int) -> ASGIApp:
                 "months": account_month_rows(page),
                 "balances": balance_history_rows(page),
                 "transactions": found_rows(page.latest, names),
+                "pie_chart": None if pie is None else json.dumps(pie),
+                "months_chart": json.dumps(months_data),
+                "balance_chart": None if balance_data is None else json.dumps(balance_data),
                 "error": month_error,
             }
         return _render(

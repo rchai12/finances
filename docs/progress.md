@@ -387,3 +387,10 @@ Template:
   - `_missing_account` in `web/app.py` renders `error.html` with a link back to `/accounts`.
   - A bad `month` still loads today's month for details and months, clears spending, and answers `400` with the message as `error`.
 - Follow-ups: none
+
+## Phase 16k: charts (2026-10-16)
+- Tests: 2813 -> 2829 (given 13; coder 3)
+- New public names: `views.charts`: `pie_chart`, `months_chart`, `balance_chart`; `web.app`: CSP `script-src 'self'`; account page chart JSON; `static/charts.js`; vendored Chart.js 4.4.6
+- Changed files: 12
+- Deviations: none
+- Follow-ups: none

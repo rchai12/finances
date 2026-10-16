@@ -24,3 +24,4 @@ section.map { border-top: 1px solid var(--line); margin-top: 1rem; }
 h3 { font-size: 1rem; margin-bottom: .4rem; }
 table.detail { width: auto; }
 table.detail th { color: var(--muted); font-weight: normal; padding-right: 1.5rem; }
+.chart { max-width: 32rem; margin: 0.5rem 0 1rem; }
