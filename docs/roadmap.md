@@ -36,7 +36,7 @@ Status: Phases 1 and 2 are built. The specs for Phases 3 to 10 were written befo
 | 24 | Backups | `fin backup`: a consistent copy of the database, the last N kept, each one checked; restore; a scheduled run | [phase-24](phases/phase-24-backups.md) |
 | 24b | Backups on the web | A Backups page: back up now, the list, delete, and restore, with confirmation and the current database always set aside | [phase-24b](phases/phase-24b-backups-on-the-web.md) |
 | 25 | Data health | Warnings for stale accounts, SimpleFIN links that need relinking, months without a statement, balance drift, and an old or missing backup; shown on the dashboard | [phase-25](phases/phase-25-data-health.md) (terminal; shown on the 16h dashboard) |
-| 26 | Budgets | A monthly target per category or group, progress, and an over-budget finding | [phase-26a](phases/phase-26a-budgets.md) (storage, rules, `fin budgets`, the finding); 26b (the Budgets page and the dashboard block) follows |
+| 26 | Budgets | A monthly target per category or group, progress, and an over-budget finding | [phase-26a](phases/phase-26a-budgets.md) (storage, rules, `fin budgets`, the finding), [phase-26b](phases/phase-26b-budgets-on-the-web.md) (the Budgets page and the dashboard block) |
 | 27 | Looking ahead | Upcoming bills from recurring charges, recurring income, a 30-day cash-flow forecast per account, and net worth over time | outline below |
 | 28 | Categorizing extras | Split transactions, tags and notes, merging merchants, and a preview before saving a rule | outline below |
 | 29 | Shared expenses | Mark a joint expense paid by one person as shared, and keep a running balance of who owes whom | outline below |
