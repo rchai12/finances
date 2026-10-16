@@ -6,7 +6,7 @@ month, totalled and divided by 3. Every division of cents rounds half up.
 
 import re
 from collections import defaultdict
-from collections.abc import Iterable, Mapping
+from collections.abc import Collection, Iterable, Mapping
 from dataclasses import dataclass
 from datetime import date
 
@@ -14,7 +14,16 @@ from finances.domain.money import format_cents
 from finances.domain.recurring import Recurring, monthly_cost
 from finances.domain.spending import SPENDING, UNCATEGORIZED, Flow, month_bounds
 
-TYPES = ("spike", "frequent_small", "subscription_overlap", "price_increase", "interest", "fees")
+TYPES = (
+    "spike",
+    "frequent_small",
+    "subscription_overlap",
+    "price_increase",
+    "interest",
+    "fees",
+    "duplicate",
+    "large_first_charge",
+)
 SEVERITIES = ("high", "medium", "low")
 
 _BASELINE_MONTHS = 3
@@ -23,6 +32,9 @@ _SPIKE_HIGH_CENTS = 20000
 _SMALL_MIN_VISITS = 8
 _SMALL_MAX_AVERAGE_CENTS = 1500
 _SMALL_MEDIUM_CENTS = 10000
+_DUPLICATE_MEDIUM_CENTS = 2000
+_FIRST_CHARGE_MIN_CENTS = 25000
+_FIRST_CHARGE_TIMES = 3
 _WEEKEND = (5, 6)
 _WORD = re.compile(r"[^\W_]+")
 _INTEREST_WORDS = {"INTEREST"}
@@ -231,6 +243,85 @@ def overlaps(
                 subject=category,
                 savings_cents=min(item.monthly_cents for item in items),
                 detail=f"{category}: {named}.",
+            )
+        )
+    return _by_subject(found)
+
+
+def duplicates(month: date, month_flows: Iterable[Flow]) -> list[Finding]:
+    """Same merchant, account, day, and amount more than once."""
+    groups: defaultdict[tuple[str, str, date, int], int] = defaultdict(int)
+    for flow in _charges(month_flows):
+        groups[(flow.account, flow.merchant, flow.day, -flow.amount_cents)] += 1
+    by_merchant: defaultdict[str, list[tuple[date, int, int]]] = defaultdict(list)
+    for (_account, merchant, day, amount), count in groups.items():
+        if count >= 2:
+            by_merchant[merchant].append((day, amount, count))
+    found = []
+    for merchant, items in by_merchant.items():
+        items.sort(key=lambda item: (item[0], item[1]))
+        savings = sum((count - 1) * amount for _day, amount, count in items)
+        parts = [
+            f"{count} charges of {format_cents(amount)} on {day.isoformat()}"
+            for day, amount, count in items
+        ]
+        detail = f"{merchant}: {parts[0]}"
+        if len(parts) > 1:
+            detail += "".join(f"; {part}" for part in parts[1:])
+        detail += "."
+        found.append(
+            Finding(
+                type="duplicate",
+                severity="medium" if savings >= _DUPLICATE_MEDIUM_CENTS else "low",
+                month=month,
+                subject=merchant,
+                savings_cents=savings,
+                detail=detail,
+            )
+        )
+    return _by_subject(found)
+
+
+def large_first_charges(
+    month: date,
+    month_flows: Iterable[Flow],
+    earlier_flows: Iterable[Flow],
+    seen: Collection[str],
+) -> list[Finding]:
+    """A new merchant with a large first charge for its category."""
+    by_merchant: defaultdict[str, list[Flow]] = defaultdict(list)
+    for flow in _charges(month_flows):
+        if flow.merchant not in seen:
+            by_merchant[flow.merchant].append(flow)
+    by_category: defaultdict[str, list[int]] = defaultdict(list)
+    for flow in _charges(earlier_flows):
+        by_category[flow.category].append(-flow.amount_cents)
+    found = []
+    for merchant, items in by_merchant.items():
+        amount = max(-flow.amount_cents for flow in items)
+        chosen = min(
+            (flow for flow in items if -flow.amount_cents == amount),
+            key=lambda flow: flow.day,
+        )
+        if amount < _FIRST_CHARGE_MIN_CENTS:
+            continue
+        category = chosen.category
+        prior = by_category.get(category)
+        if category != UNCATEGORIZED and prior:
+            average = _divide(sum(prior), len(prior))
+            if amount < _FIRST_CHARGE_TIMES * average:
+                continue
+        found.append(
+            Finding(
+                type="large_first_charge",
+                severity="medium",
+                month=month,
+                subject=merchant,
+                savings_cents=0,
+                detail=(
+                    f"{merchant}: first seen this month, with a charge of "
+                    f"{format_cents(amount)} on {chosen.day.isoformat()}."
+                ),
             )
         )
     return _by_subject(found)

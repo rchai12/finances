@@ -69,6 +69,8 @@ def test_the_types() -> None:
         "price_increase",
         "interest",
         "fees",
+        "duplicate",
+        "large_first_charge",
     )
 
 

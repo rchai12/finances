@@ -14,7 +14,7 @@
 <table>
 <thead><tr><th>Severity</th><th>Type</th><th>About</th><th class="amount">Saves a month</th><th>Detail</th></tr></thead>
 <tbody>
-{% for row in report.findings %}<tr><td>{{ row.severity }}</td><td>{{ row.type }}</td><td>{% if row.type in ("spike", "subscription_overlap") %}<a href="/transactions?from={{ report.start }}&amp;to={{ report.end }}&amp;category={{ row.about|urlencode }}&amp;kind=spending&amp;limit=1000">{{ row.about }}</a>{% elif row.type in ("frequent_small", "price_increase") %}<a href="/transactions?from={{ report.start }}&amp;to={{ report.end }}&amp;merchant={{ row.about|urlencode }}&amp;kind=spending&amp;limit=1000">{{ row.about }}</a>{% else %}{{ row.about }}{% endif %}</td><td class="amount">{{ row.saves }}</td><td>{{ row.detail }}</td></tr>
+{% for row in report.findings %}<tr><td>{{ row.severity }}</td><td>{{ row.type }}</td><td>{% if row.type in ("spike", "subscription_overlap") %}<a href="/transactions?from={{ report.start }}&amp;to={{ report.end }}&amp;category={{ row.about|urlencode }}&amp;kind=spending&amp;limit=1000">{{ row.about }}</a>{% elif row.type in ("frequent_small", "price_increase", "duplicate", "large_first_charge") %}<a href="/transactions?from={{ report.start }}&amp;to={{ report.end }}&amp;merchant={{ row.about|urlencode }}&amp;kind=spending&amp;limit=1000">{{ row.about }}</a>{% else %}{{ row.about }}{% endif %}</td><td class="amount">{{ row.saves }}</td><td>{{ row.detail }}</td></tr>
 {% endfor %}</tbody>
 </table>
 <p class="summary">{{ report.findings_summary }}</p>

@@ -394,3 +394,11 @@ Template:
 - Changed files: 12
 - Deviations: none
 - Follow-ups: none
+
+## Phase 13d: unusual charges (2026-10-16)
+- Tests: 2829 -> 2838 (given 6; coder 3)
+- New public names: `domain.insights`: `duplicates`, `large_first_charges`; TYPES gains `duplicate`, `large_first_charge`; `analysis.insights` includes both
+- Changed files: 8
+- Deviations:
+  - `insights_report` loads all flows once through M's end for categories, `seen`, and the four-month window.
+- Follow-ups: none
