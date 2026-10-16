@@ -201,7 +201,7 @@ No cloud deployment. If the app ever moves off the household's machine, the priv
 
 The order in the build line above is the architect's recommendation: protect the data first, show its health on the dashboard, then plan ahead, then the agent, then the extras.
 
-- **13d, unusual charges:** two more findings in the Phase 13b engine: a duplicate (the same merchant and amount twice on one day) and a first charge from a merchant that is large for its category.
+- **13d, unusual charges** ([phase-13d](phases/phase-13d-unusual-charges.md); specified 2026-10-16 with a $250 floor for a first charge, so earlier tests' data does not trigger it): two more findings in the Phase 13b engine: a duplicate (the same merchant and amount twice on one day) and a first charge from a merchant that is large for its category.
 
 ### Phase 24: Backups
 - `fin backup` writes a consistent copy of the SQLite database (SQLite's online backup, not a file copy while it is open) into a folder from configuration, outside `data/`'s working files; keeps the newest N; opens each new copy and checks its schema revision and row counts before reporting success.
