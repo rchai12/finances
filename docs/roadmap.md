@@ -4,9 +4,9 @@ Each phase is sized for one focused coding session: a few modules, their tests, 
 
 **Input decision:** a third-party **aggregator** is the daily feed. Its rows are provisional. Monthly **PDF statements** are the audit and the record (see `docs/statement-formats.md`): each is reconciled against its own opening and closing balances, then upgrades the matching provisional rows in place. Statements also supply what the feed lacks, such as the cardholder on shared cards.
 
-Status: Phases 1 and 2 are built. The specs for Phases 3 to 10 were written before the small-phase rules and before the agent redesign. Each is re-issued as lettered sub-phases, with a verification guide, before the coder receives it. Phases 11 and later are outlines.
+Status (2026-10-16): built and verified, in the build order below, up to and including Phase 26b. Each phase's spec is in `docs/phases/`, its verification guide in `docs/verification/`, its review in `docs/reviews/`, and its result in `docs/progress.md`. Phases after 26b are outlines until specified.
 
-**Build order:** 2 → 3 → 4 → 17a → 8 → 17b → 17c → 21 → 16a → 16b → 9 → 16c → 16d → 10 → 22 → 23 → 11 → 12 → 13 → 16e → 24 → 24b → 16f → 16j → 16g → 25 → 16h → 16i → 16k → 13d → 26a → 26b → 27 → 14 → 19 → 28 → 29 → 30 → 16 → 20. Phases 5 and 6 (more statement parsers) can be built any time after 4, when audit coverage for those banks is wanted.
+**Build order:** 2 → 3 → 4 → 17a → 8 → 17b → 17c → 21 → 16a → 16b → 9 → 16c → 16d → 10 → 22 → 23 → 11 → 12 → 13 → 16e → 24 → 24b → 16f → 16j → 16g → 25 → 16h → 16i → 16k → 13d → 26a → 26b → 31 → 32 → 27 → 14 → 19 → 28 → 29 → 30 → 16 → 20. Phases 5 and 6 (more statement parsers) can be built any time after 4, when audit coverage for those banks is wanted.
 
 | # | Phase | Outcome | Spec |
 |---|---|---|---|
@@ -41,6 +41,8 @@ Status: Phases 1 and 2 are built. The specs for Phases 3 to 10 were written befo
 | 28 | Categorizing extras | Split transactions, tags and notes, merging merchants, and a preview before saving a rule | outline below |
 | 29 | Shared expenses | Mark a joint expense paid by one person as shared, and keep a running balance of who owes whom | outline below |
 | 30 | Year-end and export | Yearly totals by category with tax-relevant groups pulled out, and CSV export | outline below |
+| 31 | Tidy | No behaviour change except the date: one local `today()` for every page and command; the remaining duplication (`fin statements list` cells, `_print_rows`, the budget amount message, the backup list) shared | outline below |
+| 32 | Split the web app | No behaviour change: `web/app.py` split into one router module per area, with the shared checks and rendering in one place | outline below |
 
 Phase numbers are stable. A removed phase keeps its number, and a phase that is too large for one coding session is split into lettered sub-phases (`2a`, `2b`, ...), never renumbered.
 
@@ -244,3 +246,12 @@ The order in the build line above is the architect's recommendation: protect the
 ### Phase 30: Year-end and export
 - A year's totals by category and group, with tax-relevant groups (medical, gifts and donations, taxes) pulled out.
 - CSV export of transactions and of any report, written to a chosen folder; no network.
+
+### Phase 31: Tidy (planned 2026-10-16, after an audit at 2887 tests)
+- One `today()` (local date of the machine) used by every command and page; the web's `_today` calls it, so tests that replace `_today` keep working. Stored timestamps stay UTC. Near a month's end in the evening, the web and the terminal then agree on the month.
+- `fin statements list` uses `views.statement_rows`; one `print_rows` helper in `cli/common.py` replaces the three copies; the budget amount message is one constant; `fin backup list` uses the web's backup rows (gaining the size column).
+- Docs were brought up to date by the architect with the plan (architecture: package roles, the pure `domain` rules, `views` not used by MCP, the full data model, the date rule).
+
+### Phase 32: Split the web app
+- `web/app.py` (about 1700 lines, 50 routes) becomes a package of routers, one per area (accounts, people, transactions, categories and rules, transfers, reports and insights, budgets, statements, backups, sync, home), with the security middleware, the form checks, rendering, and notices in shared modules.
+- No route, template, message, or status changes; every earlier web test passes unchanged. It comes before Phase 20 (login touches every route) and before Phase 27 and 19 add pages.

@@ -17,7 +17,7 @@ It also works on its own through the `fin` CLI and, later, a local web UI.
 - Raw financial data stays on the household's machine. The app's only outbound connection is to the aggregator.
 - The agent gets typed tools that return real merchants and amounts, so its advice can be specific ("$118/mo at one bakery, up 2x since summer").
 - Arithmetic is done here, in tested code, not by the model: balances, totals, trends, and findings come back from tools already computed.
-- Every report is a pure function with one implementation, shared by the CLI, the web UI, and the MCP server.
+- Every report has one implementation, shared by the CLI, the web UI, and the MCP server: its rules are pure functions in `domain`, and `analysis` loads the data and applies them.
 - Small, readable codebase that the owner can audit.
 
 ## Non-goals (for now)
@@ -41,7 +41,7 @@ It also works on its own through the `fin` CLI and, later, a local web UI.
 | Local DB | SQLite file in `data/` | Zero setup |
 | PDF text | `pypdf` (layout extraction mode) | Pure Python; keeps statement columns aligned where `pdftotext` scrambles them |
 | Daily feed | SimpleFIN Bridge, through the standard library's `urllib` | Built for individuals, read-only, about $15 a year; the app's only outbound connection |
-| Agent interface (later) | MCP server, official `mcp` Python SDK, stdio transport | Typed tools any agent framework can call; stdio opens no port |
+| Agent interface (Phase 14, not built yet) | MCP server, official `mcp` Python SDK, stdio transport | Typed tools any agent framework can call; stdio opens no port |
 | Web UI | FastAPI + Jinja2, bound to 127.0.0.1; Chart.js 4.4.6 for charts | Pages work without scripts; the only scripts are the site's own files (policy `script-src 'self'`): a pinned, hash-checked Chart.js in `static/vendor/` and `static/charts.js`, loaded only where a page draws charts (Phase 16k). No CDN, no inline script, no `eval` |
 | Tests / lint | pytest, ruff | Standard |
 
@@ -56,16 +56,17 @@ finances/
   src/finances/
     config.py                   Settings, get_settings()
     log.py                      logging setup + redaction filter
-    domain/                     pure dataclasses, enums, money helpers (no project imports)
-    db/                         engine/session, ORM models, repositories
+    domain/                     pure dataclasses, enums, money helpers, and every report's rules (no project imports)
+    db/                         engine/session, ORM models, repositories, backups
     ingest/                     PDF text, statement model, reconciliation, dedup, import service
       parsers/                  one module per statement format (Capital One, BoA, Citi, Truist, Marcus)
-    sync/                       aggregator client and daily sync (ONLY place with network; later)
-    categorize/                 categories, rules engine, merchant normalization
-    analysis/                   reports and insights (pure functions over domain objects)
+    sync/                       SimpleFIN client and daily sync (the ONLY place with network)
+    categorize/                 the categorize run and transfer pairing
+    analysis/                   reports, insights, health, budgets: load through db, apply domain rules
+    views/                      display rows (text) built once for cli and web
     cli/                        Typer commands (thin)
-    mcp_server/                 MCP tools for the agent (thin, later)
-    web/                        FastAPI app (thin, later)
+    mcp_server/                 MCP tools for the agent (thin; Phase 14)
+    web/                        FastAPI app (thin; templates, static files, vendored Chart.js)
   tests/
     fixtures/                   synthetic statement text and aggregator responses only
   data/                         gitignored: SQLite DB, real statement samples
@@ -78,9 +79,11 @@ cli, mcp_server, web  ──►  ingest, sync, categorize, analysis  ──►  
                                      └───────────────────────────────────►  domain
 ```
 
-- `domain` depends on nothing in the project.
-- `analysis` operates on domain objects, not ORM rows, so it is testable without a database.
+- `domain` depends on nothing in the project. The rules (what counts as spending, a transfer candidate, a recurring series, a finding, a budget's progress, a data-health problem) live here as pure functions and are tested without a database.
+- `analysis` takes a `Session`, loads through `db`, applies the `domain` rules, and returns domain objects and plain data (integer cents, dates). It never formats text. It is tested on a temporary migrated database.
+- `views` turns analysis results into display text for `cli` and `web` (Phase 22). `mcp_server` does **not** use `views`: the agent's tools return plain data, so they wrap `analysis` and `db` directly.
 - `cli`, `mcp_server`, and `web` are three thin front ends over the same functions. None of them imports another.
+- **Today's date** for anything a person reads (the current month, "today", days since) is the machine's local date, read through one function (Phase 31). Stored timestamps (feed pulls, imports) are UTC.
 
 ## Data flow
 
@@ -143,7 +146,13 @@ Details are in the phase specs. Core tables:
 - `feed_items`: which aggregator transaction a stored transaction came from, so the same feed row is never stored twice and a pending row can be replaced in place (Phase 17a).
 - `feed_pulls`: one row per applied aggregator feed, with counts, the reported balance, and the balance drift (Phase 17a).
 - `feed_seen_accounts`: every aggregator account a sync has received under a link, mapped or not, with the days first and last seen and whether the household chose not to track it, so new accounts can be offered for setup (Phase 16d).
-- `categories`, `category_rules`, `merchants` (Phase 11).
+- `categories` (groups and categories in one table, with transfer, income, and sensitive flags), `category_rules`, `transaction_categories` (each transaction's category and whether a rule or a person set it) (Phase 11a).
+- `transfer_pairs` and `transfer_rejections`: an outflow and an inflow that are one transfer, and pairs the household said are not (Phase 11c).
+- `people`, `account_owners`, `cardholder_aliases`: who owns each account and who each statement cardholder name is (Phase 21).
+- `feed_accounts`: which SimpleFIN account, under which named link, feeds which of ours (Phase 17c).
+- `budgets`: a monthly target per category or group (Phase 26a).
+
+Backups are files, not tables: checked SQLite copies in `FIN_BACKUP_DIR` (Phase 24).
 
 `transactions.source` records where a row came from: `aggregator` rows are provisional, and a reconciled statement upgrades them in place to `statement`, keeping their ids so categories and notes survive. A posted feed row inside a statement's period that the statement does not print is dropped, and a feed row that arrives after its statement is linked to the statement's row instead of being stored again (Phase 8). Rows are paired by exact amount and by posted dates at most five days apart. A whole statement, or a whole pull, is paired at once: the most pairs possible, then the most pairs on the same side of a statement period's first and last day, then the fewest days apart, so the order rows arrive or are listed in changes nothing (Phase 9). Two limits are accepted: a feed row dated inside an imported statement's period that the statement does not print is not stored, even when it belongs to a neighbouring statement not yet imported; and a feed row and a statement line of the same amount at most five days apart, with nothing else to pair with, count as one purchase even across a period's edge.
 
@@ -156,7 +165,7 @@ The command line and the web show the same views. `finances.views` builds each v
 - Statement dates often omit the year; a shared helper infers it from the statement period (handles December to January).
 - Real statements in `data/samples/` are used only by opt-in tests that report pass/fail, never content.
 
-Transfers between the household's own accounts (card payments from checking, moves between checking and savings) must be excluded from spending, or spending is double-counted. Phase 11 handles this.
+Transfers between the household's own accounts (card payments from checking, moves between checking and savings) must be excluded from spending, or spending is double-counted. Phase 11c pairs them, and every report leaves pairs and transfer categories out (Phase 12a).
 
 ## People
 
