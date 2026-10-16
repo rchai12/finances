@@ -24,6 +24,7 @@ from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 from finances.analysis.account_page import account_page
 from finances.analysis.balances import balance_report
+from finances.analysis.budgets import budget_report
 from finances.analysis.dashboard import dashboard
 from finances.analysis.insights import insights_report
 from finances.analysis.months import month_report
@@ -78,11 +79,13 @@ from finances.db.repositories import (
     list_statements,
     map_feed_account,
     reject_transfer,
+    remove_budget,
     rename_account,
     rename_category,
     resolve_owner,
     set_account_active,
     set_account_owner,
+    set_budget,
     set_cardholder_alias,
     set_categories_by_hand,
     set_category_by_hand,
@@ -91,6 +94,7 @@ from finances.db.repositories import (
 )
 from finances.domain.feed_setup import new_accounts
 from finances.domain.models import CONFIRMED, Account, AccountType
+from finances.domain.money import parse_money
 from finances.domain.rules import MATCHES
 from finances.domain.spending import BY, month_bounds, month_range
 from finances.domain.transfers import TRANSFER_MAX_DAYS
@@ -113,6 +117,7 @@ from finances.views.account_page import (
 from finances.views.accounts import account_rows
 from finances.views.backups import backup_rows, taken_text
 from finances.views.balances import balance_rows, balance_summary
+from finances.views.budgets import budget_rows, budgets_summary
 from finances.views.categories import (
     category_choices,
     category_lines,
@@ -203,7 +208,10 @@ NOTICES = {
         "Backup restored. It comes from an older version of the app: run fin db upgrade in the"
         " terminal before using the other pages."
     ),
+    "budget-set": "Budget saved.",
+    "budget-removed": "Budget removed.",
 }
+_BUDGET_AMOUNT = "a budget must be an amount from $0.01 to $1,000,000.00"
 ACCOUNT_TYPES = tuple(item.value for item in AccountType)
 
 _HERE = Path(__file__).parent
@@ -659,6 +667,46 @@ def _missing_account(request: Request, message: str) -> Response:
     return _render(request, "error", context, status_code=404)
 
 
+def _budgets_page(
+    request: Request,
+    *,
+    month_text: str = "",
+    form: dict[str, str] | None = None,
+    error: str | None = None,
+    status_code: int = 200,
+) -> Response:
+    today = _today()
+    month_label: str | None = None
+    start: date | None = None
+    end: date | None = None
+    rows: list = []
+    summary = ""
+    try:
+        start, end = month_range(month_text) if month_text else month_bounds(today)
+        month_label = start.isoformat()[:7]
+    except ValueError as month_error:
+        error = str(month_error)
+        status_code = 400
+    with _reading() as session:
+        choices = category_choices(session)
+        if month_label is not None and start is not None:
+            lines = budget_report(session, start, today)
+            rows = budget_rows(lines)
+            summary = budgets_summary(lines)
+    context = {
+        "month_text": month_text,
+        "month_label": month_label,
+        "start": start.isoformat() if start is not None else "",
+        "end": end.isoformat() if end is not None else "",
+        "rows": rows,
+        "summary": summary,
+        "choices": choices,
+        "form": form if form is not None else {"name": "", "amount": ""},
+        "error": error,
+    }
+    return _render(request, "budgets", context, status_code)
+
+
 def _transaction_page(
     request: Request, text: str, *, error: str | None = None, status_code: int = 200
 ) -> Response:
@@ -750,8 +798,47 @@ def create_app(port: int) -> ASGIApp:
                 "months": month_rows(found.months),
                 "findings": finding_rows(found.insights)[:3],
                 "findings_summary": findings_summary(found.insights),
+                "budgets": budget_rows(list(found.budgets)),
             }
         return _render(request, "dashboard", context)
+
+    @api.get("/budgets")
+    def budgets(request: Request) -> Response:
+        stopped = _not_migrated(request)
+        if stopped is not None:
+            return stopped
+        return _budgets_page(request, month_text=request.query_params.get("month", ""))
+
+    @api.post("/budgets/set")
+    def set_budget_route(
+        request: Request, csrf: _Field = "", name: _Field = "", amount: _Field = ""
+    ) -> Response:
+        stopped = refused(request, csrf)
+        if stopped is not None:
+            return stopped
+        form = {"name": name, "amount": amount}
+        try:
+            cents = parse_money(amount)
+        except ValueError:
+            return _budgets_page(request, form=form, error=_BUDGET_AMOUNT, status_code=400)
+        try:
+            with _reading() as session:
+                set_budget(session, name, cents)
+        except _REFUSALS as error:
+            return _budgets_page(request, form=form, error=str(error), status_code=400)
+        return _done("/budgets?notice=budget-set")
+
+    @api.post("/budgets/remove")
+    def remove_budget_route(request: Request, csrf: _Field = "", name: _Field = "") -> Response:
+        stopped = refused(request, csrf)
+        if stopped is not None:
+            return stopped
+        try:
+            with _reading() as session:
+                remove_budget(session, name)
+        except _REFUSALS as error:
+            return _budgets_page(request, error=str(error), status_code=400)
+        return _done("/budgets?notice=budget-removed")
 
     @api.get("/accounts")
     def accounts(request: Request) -> Response:

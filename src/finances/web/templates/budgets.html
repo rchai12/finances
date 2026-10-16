@@ -1,0 +1,41 @@
+{% extends "layout.html" %}
+{% block title %}Budgets · Finances{% endblock %}
+{% block content %}
+<h1>Budgets</h1>
+{% include "messages.html" %}
+<form method="get" action="/budgets" class="fields">
+  <label>Month <input type="month" name="month" value="{{ month_text }}"></label>
+  <button type="submit">Show</button>
+</form>
+{% if month_label %}
+<p class="summary">Budgets for {{ month_label }}.</p>
+{% if rows %}
+<table>
+<thead><tr><th>Budget</th><th>Kind</th><th class="amount">Target</th><th class="amount">Spent</th><th class="amount">Left</th><th class="amount">Used</th><th class="amount">Month gone</th><th></th></tr></thead>
+<tbody>
+{% for row in rows %}<tr><td><a href="/transactions?from={{ start }}&amp;to={{ end }}&amp;{{ row.kind if row.kind == 'group' else 'category' }}={{ row.budget|urlencode }}&amp;kind=spending&amp;limit=1000">{{ row.budget }}</a></td><td>{{ row.kind }}</td><td class="amount">{{ row.target }}</td><td class="amount">{{ row.spent }}</td><td class="amount">{{ row.left }}</td><td class="amount">{{ row.used }}</td><td class="amount">{{ row.month_gone }}</td><td><form method="post" action="/budgets/remove" class="inline"><input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="name" value="{{ row.budget }}"><button type="submit">Remove</button></form></td></tr>
+{% endfor %}</tbody>
+</table>
+<p class="summary">{{ summary }}</p>
+{% else %}
+<p class="empty">No budgets.</p>
+{% endif %}
+{% endif %}
+<h2>Set a budget</h2>
+<p class="hint">One amount for every month; spending counts as in the reports (refunds reduce it, transfers and income do not count). A group's budget covers all of its categories.</p>
+<form method="post" action="/budgets/set" class="fields">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <label>Category or group
+    <select name="name" required>
+      <option value=""{% if not form.name %} selected{% endif %}>Choose</option>
+      {% for group, names in choices %}<optgroup label="{{ group }}">
+        <option value="{{ group }}"{% if group == form.name %} selected{% endif %}>{{ group }} (the group)</option>
+        {% for name in names %}<option value="{{ name }}"{% if name == form.name %} selected{% endif %}>{{ name }}</option>
+        {% endfor %}</optgroup>
+      {% endfor %}
+    </select>
+  </label>
+  <label>Amount a month <input name="amount" required inputmode="decimal" value="{{ form.amount }}"></label>
+  <button type="submit">Save budget</button>
+</form>
+{% endblock %}

@@ -410,3 +410,11 @@ Template:
 - Deviations:
   - `delete_category` calls private `_delete_budget_for` before deleting the category or group row.
 - Follow-ups: none
+
+## Phase 26b: budgets on the web (2026-10-16)
+- Tests: 2868 -> 2887 (given 16; coder 3)
+- New public names: `analysis.dashboard.Dashboard.budgets`; `web.app`: `GET /budgets`, `POST /budgets/set`, `POST /budgets/remove`, notices `budget-set` / `budget-removed`
+- Changed files: 9
+- Deviations:
+  - `_budgets_page` in `web/app.py` gathers the Budgets page context; a bad month clears `month_label` so the table is omitted.
+- Follow-ups: none

@@ -7,11 +7,13 @@ from pathlib import Path
 from sqlalchemy.orm import Session
 
 from finances.analysis.balances import BalanceReport, balance_report
+from finances.analysis.budgets import budget_report
 from finances.analysis.health import gather_health
 from finances.analysis.insights import InsightsReport, insights_report
 from finances.analysis.months import MonthLine, month_report
 from finances.categorize.transfers import transfer_suggestions
 from finances.db.repositories import count_uncategorized
+from finances.domain.budgets import BudgetLine
 from finances.domain.health import Problem
 
 
@@ -24,6 +26,7 @@ class Dashboard:
     problems: list[Problem]
     uncategorized: int
     transfers_waiting: int
+    budgets: tuple[BudgetLine, ...] = ()
 
 
 def dashboard(session: Session, today: date, backup_folder: Path) -> Dashboard:
@@ -37,4 +40,5 @@ def dashboard(session: Session, today: date, backup_folder: Path) -> Dashboard:
         problems=gather_health(session, backup_folder, today),
         uncategorized=count_uncategorized(session),
         transfers_waiting=len(transfer_suggestions(session)),
+        budgets=tuple(budget_report(session, first, today)),
     )

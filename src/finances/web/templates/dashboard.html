@@ -35,6 +35,18 @@
 {% for row in months %}<tr><td><a href="/reports?month={{ row.month }}">{{ row.month }}</a></td><td class="amount">{{ row.spent }}</td><td class="amount">{{ row.income }}</td><td class="amount">{{ row.change }}</td><td>{{ row.covered }}</td></tr>
 {% endfor %}</tbody>
 </table>
+<h2>Budgets this month</h2>
+{% if budgets %}
+<table>
+<thead><tr><th>Budget</th><th class="amount">Spent</th><th class="amount">Target</th><th class="amount">Used</th><th class="amount">Month gone</th></tr></thead>
+<tbody>
+{% for row in budgets %}<tr><td>{{ row.budget }}</td><td class="amount">{{ row.spent }}</td><td class="amount">{{ row.target }}</td><td class="amount">{{ row.used }}</td><td class="amount">{{ row.month_gone }}</td></tr>
+{% endfor %}</tbody>
+</table>
+{% else %}
+<p class="hint">No budgets yet.</p>
+{% endif %}
+<p><a href="/budgets">Budgets</a></p>
 <h2>Top findings</h2>
 {% if findings %}
 <table>
