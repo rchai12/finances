@@ -5,6 +5,7 @@ from datetime import date
 
 from sqlalchemy.orm import Session
 
+from finances.analysis.budgets import budget_report
 from finances.analysis.recurring import recurring_charges
 from finances.analysis.spending import load_flows
 from finances.domain.insights import (
@@ -16,6 +17,7 @@ from finances.domain.insights import (
     large_first_charges,
     merchant_stats,
     order_findings,
+    over_budget,
     overlaps,
     price_increases,
     spikes,
@@ -61,6 +63,7 @@ def insights_report(session: Session, month: date) -> InsightsReport:
         *overlaps(first, series, _categories(history)),
         *price_increases(first, series),
         *charges_found(first, month_flows),
+        *over_budget(first, budget_report(session, first, last)),
         *duplicates(first, month_flows),
         *large_first_charges(first, month_flows, earlier_flows, _seen_before(history, first)),
     ]

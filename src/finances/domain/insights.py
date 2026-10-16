@@ -10,6 +10,7 @@ from collections.abc import Collection, Iterable, Mapping
 from dataclasses import dataclass
 from datetime import date
 
+from finances.domain.budgets import BudgetLine
 from finances.domain.money import format_cents
 from finances.domain.recurring import Recurring, monthly_cost
 from finances.domain.spending import SPENDING, UNCATEGORIZED, Flow, month_bounds
@@ -21,6 +22,7 @@ TYPES = (
     "price_increase",
     "interest",
     "fees",
+    "over_budget",
     "duplicate",
     "large_first_charge",
 )
@@ -243,6 +245,29 @@ def overlaps(
                 subject=category,
                 savings_cents=min(item.monthly_cents for item in items),
                 detail=f"{category}: {named}.",
+            )
+        )
+    return _by_subject(found)
+
+
+def over_budget(month: date, lines: Iterable[BudgetLine]) -> list[Finding]:
+    """Each budget whose spent is more than its target."""
+    found = []
+    for line in lines:
+        if line.spent_cents <= line.target_cents:
+            continue
+        excess = line.spent_cents - line.target_cents
+        found.append(
+            Finding(
+                type="over_budget",
+                severity="high" if line.spent_cents * 2 >= line.target_cents * 3 else "medium",
+                month=month,
+                subject=line.name,
+                savings_cents=excess,
+                detail=(
+                    f"{line.name}: {format_cents(line.spent_cents)} spent against a budget of "
+                    f"{format_cents(line.target_cents)}."
+                ),
             )
         )
     return _by_subject(found)

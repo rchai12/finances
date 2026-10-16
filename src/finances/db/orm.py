@@ -20,6 +20,7 @@ from finances.domain.models import (
     Account,
     AccountType,
     BalanceSnapshot,
+    Budget,
     Category,
     CategoryAssignment,
     CategoryRule,
@@ -493,3 +494,19 @@ def to_transfer_pair(row: TransferPairRow) -> TransferPair:
         in_transaction_id=row.in_transaction_id,
         status=row.status,
     )
+
+
+class BudgetRow(Base):
+    """One row of the budgets table: a monthly target for a category or a group."""
+
+    __tablename__ = "budgets"
+    __table_args__ = (UniqueConstraint("category_id", name="uq_budgets_category_id"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    category_id: Mapped[int] = mapped_column(ForeignKey("categories.id"), nullable=False)
+    amount_cents: Mapped[int] = mapped_column(BigInteger, nullable=False)
+
+
+def to_budget(row: BudgetRow) -> Budget:
+    """Return the domain Budget for a row of the budgets table."""
+    return Budget(id=row.id, category_id=row.category_id, amount_cents=row.amount_cents)

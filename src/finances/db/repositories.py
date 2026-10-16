@@ -11,6 +11,7 @@ from finances.db.orm import (
     AccountOwnerRow,
     AccountRow,
     BalanceSnapshotRow,
+    BudgetRow,
     CardholderAliasRow,
     CategoryRow,
     CategoryRuleRow,
@@ -26,6 +27,7 @@ from finances.db.orm import (
     TransferRejectionRow,
     to_account,
     to_balance_snapshot,
+    to_budget,
     to_category,
     to_category_assignment,
     to_category_rule,
@@ -46,6 +48,7 @@ from finances.domain.models import (
     Account,
     AccountType,
     BalanceSnapshot,
+    Budget,
     Category,
     CategoryAssignment,
     CategoryRule,
@@ -969,6 +972,13 @@ def rename_category(session: Session, name: str, new_name: str) -> tuple[str, Ca
     return old, to_category(row)
 
 
+def _delete_budget_for(session: Session, category_id: int) -> None:
+    row = session.scalars(select(BudgetRow).where(BudgetRow.category_id == category_id)).first()
+    if row is not None:
+        session.delete(row)
+        session.flush()
+
+
 def delete_category(session: Session, name: str, move_to: str = "") -> CategoryDeletion:
     """Delete a category or empty group, moving a category's uses first. The caller commits."""
     row = _category_row(session, name)
@@ -981,6 +991,7 @@ def delete_category(session: Session, name: str, move_to: str = "") -> CategoryD
         if children is not None:
             raise ValueError("a group can be deleted only when it has no categories")
         deleted = CategoryDeletion(row.name, True, None, 0, 0)
+        _delete_budget_for(session, row.id)
         session.delete(row)
         session.flush()
         return deleted
@@ -1028,9 +1039,51 @@ def delete_category(session: Session, name: str, move_to: str = "") -> CategoryD
         moved_to = target.name if transactions > 0 or rules > 0 else None
 
     deleted = CategoryDeletion(row.name, False, moved_to, transactions, rules)
+    _delete_budget_for(session, row.id)
     session.delete(row)
     session.flush()
     return deleted
+
+
+_BUDGET_AMOUNT = "a budget must be an amount from $0.01 to $1,000,000.00"
+_BUDGET_MIN = 1
+_BUDGET_MAX = 100_000_000
+
+
+def set_budget(session: Session, name: str, amount_cents: int) -> tuple[str, Budget]:
+    """Set or replace the monthly target for a group or category. The caller commits."""
+    row = _category_row(session, name)
+    if row is None:
+        raise ValueError("category not found")
+    if not _BUDGET_MIN <= amount_cents <= _BUDGET_MAX:
+        raise ValueError(_BUDGET_AMOUNT)
+    found = session.scalars(select(BudgetRow).where(BudgetRow.category_id == row.id)).first()
+    if found is None:
+        found = BudgetRow(category_id=row.id, amount_cents=amount_cents)
+        session.add(found)
+    else:
+        found.amount_cents = amount_cents
+    session.flush()
+    return row.name, to_budget(found)
+
+
+def remove_budget(session: Session, name: str) -> str:
+    """Remove the budget for a group or category and return its stored name. The caller commits."""
+    row = _category_row(session, name)
+    if row is None:
+        raise ValueError("category not found")
+    found = session.scalars(select(BudgetRow).where(BudgetRow.category_id == row.id)).first()
+    if found is None:
+        raise ValueError(f"there is no budget for {row.name}")
+    session.delete(found)
+    session.flush()
+    return row.name
+
+
+def list_budgets(session: Session) -> list[Budget]:
+    """Return every budget, in id order."""
+    stmt = select(BudgetRow).order_by(BudgetRow.id)
+    return [to_budget(row) for row in session.scalars(stmt).all()]
 
 
 def edit_rule(

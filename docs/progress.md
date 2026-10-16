@@ -402,3 +402,11 @@ Template:
 - Deviations:
   - `insights_report` loads all flows once through M's end for categories, `seen`, and the four-month window.
 - Follow-ups: none
+
+## Phase 26a: budgets (2026-10-16)
+- Tests: 2838 -> 2868 (given 26; coder 4)
+- New public names: migration `0010`; `Budget` / `BudgetRow`; `set_budget`, `remove_budget`, `list_budgets`; `domain.budgets`; `over_budget` finding; `budget_report`; `views.budgets`; `fin budgets`
+- Changed files: 17
+- Deviations:
+  - `delete_category` calls private `_delete_budget_for` before deleting the category or group row.
+- Follow-ups: none

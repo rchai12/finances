@@ -234,3 +234,12 @@ class TransferPair:
     out_transaction_id: int
     in_transaction_id: int
     status: str
+
+
+@dataclass(frozen=True)
+class Budget:
+    """A monthly target for a category or a group."""
+
+    id: int
+    category_id: int
+    amount_cents: int
