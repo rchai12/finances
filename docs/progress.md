@@ -361,3 +361,12 @@ Template:
   - Private `_upload_name` and `_statements_page` hold the file-name cut and the page context.
 - Follow-ups:
   - The TestClient's multipart layer already strips a Windows-style file path, and `import_statement` uses `Path.name`, so a given test that only uploads through the client does not prove the route's own folder strip; call `_upload_name` directly for that.
+
+## Phase 25: data health (2026-10-16)
+- Tests: 2763 -> 2791 (given 22)
+- New public names: `domain.health`: `BACKUP_STALE_DAYS`, `SYNC_STALE_DAYS`, `STATEMENT_STALE_DAYS`, `KINDS`, `AccountFacts`, `Problem`, `health_problems`; `analysis.health`: `account_facts`, `gather_health`; `views.health`: `HealthRow`, `health_rows`, `health_summary`; `cli.health`: `health_command` (`fin health`)
+- Changed files: 9
+- Deviations:
+  - Action texts are module constants in `domain/health.py`.
+- Follow-ups:
+  - The given "no statements needed" case for a mapped account uses a fresh statement end or none with `has_data` true, so it does not fail when statements checks also run for mapped accounts; pin a mapped account with a stale statement end for that spot check.

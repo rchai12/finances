@@ -15,6 +15,7 @@ from finances.cli.categories import (
 )
 from finances.cli.common import print_table
 from finances.cli.db import app as db_app
+from finances.cli.health import health_command
 from finances.cli.importing import app as import_app
 from finances.cli.listing import statements_app, transactions_app
 from finances.cli.people import app as people_app
@@ -54,6 +55,7 @@ app.command("months")(months_command)
 app.command("recurring")(recurring_command)
 app.command("insights")(insights_command)
 app.command("merchants")(merchants_command)
+app.command("health")(health_command)
 
 
 @app.callback(invoke_without_command=True)
