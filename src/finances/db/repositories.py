@@ -378,6 +378,16 @@ def latest_balance(session: Session, account_id: int) -> BalanceSnapshot | None:
     return to_balance_snapshot(row) if row is not None else None
 
 
+def list_balance_snapshots(session: Session, account_id: int) -> list[BalanceSnapshot]:
+    """Return the account's snapshots, latest as_of_date first, then highest id."""
+    stmt = (
+        select(BalanceSnapshotRow)
+        .where(BalanceSnapshotRow.account_id == account_id)
+        .order_by(BalanceSnapshotRow.as_of_date.desc(), BalanceSnapshotRow.id.desc())
+    )
+    return [to_balance_snapshot(row) for row in session.scalars(stmt).all()]
+
+
 def get_account(session: Session, account_id: int) -> Account | None:
     """Return the account with this id, or None."""
     row = session.get(AccountRow, account_id)

@@ -378,3 +378,12 @@ Template:
 - Deviations:
   - `_PROBLEM_LINKS` in `web/app.py` maps each health kind to its page.
 - Follow-ups: none
+
+## Phase 16i: account pages (2026-10-16)
+- Tests: 2798 -> 2813 (given 11; coder 4)
+- New public names: `db.repositories.list_balance_snapshots`; `analysis.account_page`: `AccountMonth`, `AccountPage`, `account_page`; `views.account_page`: `AccountMonthRow`, `BalanceHistoryRow`, `account_detail_rows`, `group_rows`, `account_month_rows`, `balance_history_rows`; `web.app`: `GET /account`
+- Changed files: 11
+- Deviations:
+  - `_missing_account` in `web/app.py` renders `error.html` with a link back to `/accounts`.
+  - A bad `month` still loads today's month for details and months, clears spending, and answers `400` with the message as `error`.
+- Follow-ups: none

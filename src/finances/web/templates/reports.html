@@ -8,7 +8,7 @@
 <table>
 <thead><tr><th>Account</th><th>Type</th><th class="amount">Balance</th><th>As of</th><th>From</th></tr></thead>
 <tbody>
-{% for row in balances %}<tr><td>{{ row.account }}</td><td>{{ row.type }}</td><td class="amount">{{ row.balance }}</td><td>{{ row.as_of }}</td><td>{{ row.source }}</td></tr>
+{% for row in balances %}<tr><td><a href="/account?name={{ row.account|urlencode }}">{{ row.account }}</a></td><td>{{ row.type }}</td><td class="amount">{{ row.balance }}</td><td>{{ row.as_of }}</td><td>{{ row.source }}</td></tr>
 {% endfor %}</tbody>
 </table>
 {% for line in balance_summary %}<p class="summary">{{ line }}</p>

@@ -21,6 +21,7 @@ from starlette.concurrency import run_in_threadpool
 from starlette.datastructures import UploadFile
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
+from finances.analysis.account_page import account_page
 from finances.analysis.balances import balance_report
 from finances.analysis.dashboard import dashboard
 from finances.analysis.insights import insights_report
@@ -102,6 +103,12 @@ from finances.sync.links import (
 )
 from finances.sync.runner import run_links
 from finances.sync.simplefin import SyncError, claim_access_url, fetch_accounts
+from finances.views.account_page import (
+    account_detail_rows,
+    account_month_rows,
+    balance_history_rows,
+    group_rows,
+)
 from finances.views.accounts import account_rows
 from finances.views.backups import backup_rows, taken_text
 from finances.views.balances import balance_rows, balance_summary
@@ -645,6 +652,11 @@ def _missing_transaction(request: Request) -> Response:
     return _render(request, "error", context, status_code=404)
 
 
+def _missing_account(request: Request, message: str) -> Response:
+    context = {"message": message, "back": "/accounts"}
+    return _render(request, "error", context, status_code=404)
+
+
 def _transaction_page(
     request: Request, text: str, *, error: str | None = None, status_code: int = 200
 ) -> Response:
@@ -745,6 +757,51 @@ def create_app(port: int) -> ASGIApp:
         if stopped is not None:
             return stopped
         return _accounts_page(request, closed=request.query_params.get("closed") == "true")
+
+    @api.get("/account")
+    def one_account(request: Request) -> Response:
+        stopped = _not_migrated(request)
+        if stopped is not None:
+            return stopped
+        name = request.query_params.get("name", "")
+        card = request.query_params.get("card", "")
+        month_text = request.query_params.get("month", "")
+        today = _today()
+        month_error: str | None = None
+        try:
+            start, end = month_range(month_text) if month_text else month_bounds(today)
+        except ValueError as error:
+            month_error = str(error)
+            start, end = month_bounds(today)
+        with _reading() as session:
+            found = get_account_by_name(session, name) if name.strip() else None
+            if found is None:
+                return _missing_account(request, "account not found")
+            try:
+                page = account_page(session, found, card, start, end, today)
+            except ValueError as error:
+                return _missing_account(request, str(error))
+            names = account_names(session)
+            spending = [] if month_error is not None else group_rows(page)
+            context = {
+                "section": "accounts",
+                "name": found.name,
+                "card": card,
+                "cards": page.cards,
+                "detail": account_detail_rows(page),
+                "month_label": start.isoformat()[:7],
+                "month_text": month_text,
+                "start": start.isoformat(),
+                "end": end.isoformat(),
+                "spending": spending,
+                "months": account_month_rows(page),
+                "balances": balance_history_rows(page),
+                "transactions": found_rows(page.latest, names),
+                "error": month_error,
+            }
+        return _render(
+            request, "account", context, status_code=400 if month_error is not None else 200
+        )
 
     @api.post("/accounts/add")
     def add_account(
