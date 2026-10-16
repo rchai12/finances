@@ -1,12 +1,13 @@
 """The `fin health` command."""
 
 from dataclasses import astuple
-from datetime import date, datetime
+from datetime import datetime
 from typing import Annotated
 
 import typer
 from rich.table import Table
 
+from finances import clock
 from finances.analysis.health import gather_health
 from finances.cli.common import print_table, require_current_schema
 from finances.config import get_settings
@@ -24,7 +25,7 @@ def health_command(
 ) -> None:
     """List when the household's data is out of date or incomplete."""
     require_current_schema()
-    day = date.today() if as_of is None else as_of.date()
+    day = clock.today() if as_of is None else as_of.date()
     settings = get_settings()
     with session_scope(get_engine()) as session:
         problems = gather_health(session, settings.effective_backup_dir, day)

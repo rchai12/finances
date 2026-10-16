@@ -1,5 +1,7 @@
 """Checks shared by every command that reads the database."""
 
+from collections.abc import Iterable, Sequence
+from dataclasses import astuple
 from typing import NoReturn
 
 import typer
@@ -22,6 +24,16 @@ def require_current_schema() -> None:
     if current_revision() != head_revision():
         typer.echo("Error: database is not up to date (run: fin db upgrade)", err=True)
         raise typer.Exit(code=1) from None
+
+
+def print_rows(headings: Sequence[str], rows: Iterable[object]) -> None:
+    """Print a table of dataclass rows under the given headings."""
+    table = Table()
+    for heading in headings:
+        table.add_column(heading)
+    for row in rows:
+        table.add_row(*astuple(row))
+    print_table(table)
 
 
 def print_table(table: Table, console: Console | None = None) -> None:

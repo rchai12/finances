@@ -418,3 +418,12 @@ Template:
 - Deviations:
   - `_budgets_page` in `web/app.py` gathers the Budgets page context; a bad month clears `month_label` so the table is omitted.
 - Follow-ups: none
+
+## Phase 31: tidy (2026-10-16)
+- Tests: 2887 -> 2895 (given 8)
+- New public names: `finances.clock.today`; `cli.common.print_rows`; `domain.budgets.AMOUNT_MESSAGE`
+- Changed files: 16
+- Deviations:
+  - `tests/integration/test_budgets_more.py` patches `finances.clock.today` instead of `finances.cli.budgets.date`, which the tidy removed.
+  - `web.app._utc_today` keeps the Sync routes on the UTC date.
+- Follow-ups: none

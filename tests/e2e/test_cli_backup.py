@@ -78,9 +78,9 @@ def test_list_backups(money: Settings) -> None:
     for name in ("finances-20261015-143005.db", "finances-20261016-020000.db", "notes.txt"):
         (folder / name).write_bytes(b"")
     assert table_rows(run("backup", "list").stdout) == [
-        ["File", "Taken (UTC)"],
-        ["finances-20261016-020000.db", "2026-10-16 02:00:00"],
-        ["finances-20261015-143005.db", "2026-10-15 14:30:05"],
+        ["File", "Taken (UTC)", "Size"],
+        ["finances-20261016-020000.db", "2026-10-16 02:00:00", "0 B"],
+        ["finances-20261015-143005.db", "2026-10-15 14:30:05", "0 B"],
     ]
 
 

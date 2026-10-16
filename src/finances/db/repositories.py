@@ -39,6 +39,7 @@ from finances.db.orm import (
     to_transaction,
     to_transfer_pair,
 )
+from finances.domain.budgets import AMOUNT_MESSAGE
 from finances.domain.models import (
     AUTO,
     BY_RULE,
@@ -1045,7 +1046,6 @@ def delete_category(session: Session, name: str, move_to: str = "") -> CategoryD
     return deleted
 
 
-_BUDGET_AMOUNT = "a budget must be an amount from $0.01 to $1,000,000.00"
 _BUDGET_MIN = 1
 _BUDGET_MAX = 100_000_000
 
@@ -1056,7 +1056,7 @@ def set_budget(session: Session, name: str, amount_cents: int) -> tuple[str, Bud
     if row is None:
         raise ValueError("category not found")
     if not _BUDGET_MIN <= amount_cents <= _BUDGET_MAX:
-        raise ValueError(_BUDGET_AMOUNT)
+        raise ValueError(AMOUNT_MESSAGE)
     found = session.scalars(select(BudgetRow).where(BudgetRow.category_id == row.id)).first()
     if found is None:
         found = BudgetRow(category_id=row.id, amount_cents=amount_cents)

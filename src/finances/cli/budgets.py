@@ -1,23 +1,22 @@
 """The `fin budgets` commands."""
 
 from dataclasses import astuple
-from datetime import date
 from typing import Annotated
 
 import typer
 from rich.table import Table
 
+from finances import clock
 from finances.analysis.budgets import budget_report
 from finances.cli.common import fail, print_table, require_current_schema
 from finances.db.engine import get_engine, session_scope
 from finances.db.repositories import list_budgets, remove_budget, set_budget
+from finances.domain.budgets import AMOUNT_MESSAGE
 from finances.domain.money import format_cents, parse_money
 from finances.domain.spending import month_bounds, month_range
 from finances.views.budgets import budget_rows, budgets_summary
 
 app = typer.Typer(help="Monthly spending targets for categories and groups.", no_args_is_help=True)
-
-_AMOUNT = "a budget must be an amount from $0.01 to $1,000,000.00"
 
 
 @app.command("set")
@@ -30,7 +29,7 @@ def set_command(
     try:
         cents = parse_money(amount)
     except ValueError:
-        fail(_AMOUNT)
+        fail(AMOUNT_MESSAGE)
     with session_scope(get_engine()) as session:
         try:
             stored, budget = set_budget(session, name, cents)
@@ -61,7 +60,7 @@ def list_command(
 ) -> None:
     """Show each budget for a month: target, spent, left, and how far through the month."""
     require_current_schema()
-    today = date.today()
+    today = clock.today()
     try:
         start, _end = month_range(month) if month else month_bounds(today)
     except ValueError as error:

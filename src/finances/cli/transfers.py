@@ -1,13 +1,11 @@
 """The `fin transfers` commands: money moved between the household's own accounts."""
 
-from dataclasses import astuple
 from typing import Annotated
 
 import typer
-from rich.table import Table
 
 from finances.categorize.transfers import pair_transfers
-from finances.cli.common import fail, print_table, require_current_schema
+from finances.cli.common import fail, print_rows, require_current_schema
 from finances.db.engine import get_engine, session_scope
 from finances.db.repositories import create_transfer_pair, reject_transfer, unpair_transfer
 from finances.domain.models import CONFIRMED
@@ -19,15 +17,6 @@ _OUT = typer.Option("--out", help="The outflow's transaction id.")
 _IN = typer.Option("--in", help="The inflow's transaction id.")
 
 
-def _print_rows(headings: tuple[str, ...], rows: list) -> None:
-    table = Table()
-    for heading in headings:
-        table.add_column(heading)
-    for row in rows:
-        table.add_row(*astuple(row))
-    print_table(table)
-
-
 @transfers_app.command("list")
 def list_command() -> None:
     """List the transfers, latest first."""
@@ -37,7 +26,7 @@ def list_command() -> None:
     if not lines:
         typer.echo("No transfers.")
         return
-    _print_rows(("Pair", "Date", "From", "To", "Amount", "Out", "In", "How"), lines)
+    print_rows(("Pair", "Date", "From", "To", "Amount", "Out", "In", "How"), lines)
 
 
 @transfers_app.command("review")
@@ -49,7 +38,7 @@ def review_command() -> None:
     if not lines:
         typer.echo("No transfers wait for review.")
         return
-    _print_rows(("Out", "Out date", "From", "In", "In date", "To", "Amount"), lines)
+    print_rows(("Out", "Out date", "From", "In", "In date", "To", "Amount"), lines)
 
 
 @transfers_app.command("find")

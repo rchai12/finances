@@ -22,6 +22,7 @@ from starlette.concurrency import run_in_threadpool
 from starlette.datastructures import UploadFile
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
+from finances import clock
 from finances.analysis.account_page import account_page
 from finances.analysis.balances import balance_report
 from finances.analysis.budgets import budget_report
@@ -92,6 +93,7 @@ from finances.db.repositories import (
     set_feed_account_ignored,
     unpair_transfer,
 )
+from finances.domain.budgets import AMOUNT_MESSAGE
 from finances.domain.feed_setup import new_accounts
 from finances.domain.models import CONFIRMED, Account, AccountType
 from finances.domain.money import parse_money
@@ -211,7 +213,6 @@ NOTICES = {
     "budget-set": "Budget saved.",
     "budget-removed": "Budget removed.",
 }
-_BUDGET_AMOUNT = "a budget must be an amount from $0.01 to $1,000,000.00"
 ACCOUNT_TYPES = tuple(item.value for item in AccountType)
 
 _HERE = Path(__file__).parent
@@ -281,6 +282,10 @@ def _reading() -> Iterator[Session]:
 
 
 def _today() -> date:
+    return clock.today()
+
+
+def _utc_today() -> date:
     return datetime.now(UTC).date()
 
 
@@ -820,7 +825,7 @@ def create_app(port: int) -> ASGIApp:
         try:
             cents = parse_money(amount)
         except ValueError:
-            return _budgets_page(request, form=form, error=_BUDGET_AMOUNT, status_code=400)
+            return _budgets_page(request, form=form, error=AMOUNT_MESSAGE, status_code=400)
         try:
             with _reading() as session:
                 set_budget(session, name, cents)
@@ -1493,7 +1498,7 @@ def create_app(port: int) -> ASGIApp:
             found = load_access_url(link)
             if found is None:
                 raise ValueError(f"link {link} is not set up")
-            answer = fetch_accounts(found, _today(), _today(), transport.urllib_transport)
+            answer = fetch_accounts(found, _utc_today(), _utc_today(), transport.urllib_transport)
         except ValueError as error:
             return _render(request, "sync_accounts", {**context, "error": str(error)}, 400)
         except SyncError as error:
@@ -1602,7 +1607,9 @@ def create_app(port: int) -> ASGIApp:
         with _engine() as engine:
             with session_scope(engine) as session:
                 links = list_feed_links(session)
-            runs = run_links(engine, links, today=_today(), transport=transport.urllib_transport)
+            runs = run_links(
+                engine, links, today=_utc_today(), transport=transport.urllib_transport
+            )
             if any(item.report is not None for item in runs):
                 with session_scope(engine) as session:
                     categorize(session)

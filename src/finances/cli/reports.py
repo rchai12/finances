@@ -1,19 +1,17 @@
 """Report commands: spending, balances, months, recurring charges, insights, and merchants."""
 
-from collections.abc import Iterable, Sequence
-from dataclasses import astuple
 from datetime import date, datetime
 from typing import Annotated
 
 import typer
-from rich.table import Table
 
+from finances import clock
 from finances.analysis.balances import balance_report
 from finances.analysis.insights import insights_report
 from finances.analysis.months import month_report
 from finances.analysis.recurring import recurring_charges
 from finances.analysis.spending import spending_report
-from finances.cli.common import fail, print_table, require_current_schema
+from finances.cli.common import fail, print_rows, require_current_schema
 from finances.db.engine import get_engine, session_scope
 from finances.domain.periods import MONTHS_MAX
 from finances.domain.spending import month_bounds, month_range
@@ -29,15 +27,6 @@ from finances.views.recurring import recurring_rows, recurring_summary
 from finances.views.spending import spending_heading, spending_rows, spending_summary
 
 
-def _print_rows(headings: Sequence[str], rows: Iterable[object]) -> None:
-    table = Table()
-    for heading in headings:
-        table.add_column(heading)
-    for row in rows:
-        table.add_row(*astuple(row))
-    print_table(table)
-
-
 def _range(month: str | None, start: datetime | None, end: datetime | None) -> tuple[date, date]:
     if month is not None and (start is not None or end is not None):
         fail("give --month, or --from and --to, not both")
@@ -50,7 +39,7 @@ def _range(month: str | None, start: datetime | None, end: datetime | None) -> t
             fail(str(error))
     if start is not None and end is not None:
         return start.date(), end.date()
-    return month_bounds(date.today())
+    return month_bounds(clock.today())
 
 
 def spending_command(
@@ -79,7 +68,7 @@ def spending_command(
     typer.echo(spending_heading(report))
     rows = spending_rows(report)
     if rows:
-        _print_rows((by.capitalize(), "Spent", "Count"), rows)
+        print_rows((by.capitalize(), "Spent", "Count"), rows)
     else:
         typer.echo("No spending.")
     for line in spending_summary(report):
@@ -94,7 +83,7 @@ def balances_command() -> None:
     if not report.lines:
         typer.echo("No accounts.")
         return
-    _print_rows(("Account", "Type", "Balance", "As of", "From"), balance_rows(report))
+    print_rows(("Account", "Type", "Balance", "As of", "From"), balance_rows(report))
     for line in balance_summary(report):
         typer.echo(line)
 
@@ -107,7 +96,7 @@ def months_command(
 ) -> None:
     """Compare the spending and income of recent months, and say which data covers them."""
     require_current_schema()
-    day = date.today()
+    day = clock.today()
     if to is not None:
         try:
             day = month_range(to)[0]
@@ -119,7 +108,7 @@ def months_command(
         except ValueError as error:
             fail(str(error))
     typer.echo(month_heading(lines))
-    _print_rows(("Month", "Spent", "Income", "Change", "Covered"), month_rows(lines))
+    print_rows(("Month", "Spent", "Income", "Change", "Covered"), month_rows(lines))
     for note in month_notes(lines):
         typer.echo(note)
 
@@ -137,13 +126,13 @@ def recurring_command(
 ) -> None:
     """List subscriptions and other charges that come at a regular rhythm."""
     require_current_schema()
-    day = date.today() if as_of is None else as_of.date()
+    day = clock.today() if as_of is None else as_of.date()
     with session_scope(get_engine()) as session:
         items = recurring_charges(session, day)
     rows = recurring_rows(items, include_inactive=show_all)
     if rows:
         headings = ("Merchant", "Every", "Amount", "Monthly", "Count", "Last", "Next", "Active")
-        _print_rows(headings, rows)
+        print_rows(headings, rows)
     else:
         typer.echo("No recurring charges.")
     typer.echo(recurring_summary(items))
@@ -154,7 +143,7 @@ _MONTH_OPTION = typer.Option("--month", help="A month, YYYY-MM (this month by de
 
 def _first_day(month: str | None) -> date:
     if month is None:
-        return month_bounds(date.today())[0]
+        return month_bounds(clock.today())[0]
     try:
         return month_range(month)[0]
     except ValueError as error:
@@ -172,7 +161,7 @@ def insights_command(month: Annotated[str | None, _MONTH_OPTION] = None) -> None
     if not rows:
         typer.echo("No findings.")
         return
-    _print_rows(("Severity", "Type", "About", "Saves a month", "Detail"), rows)
+    print_rows(("Severity", "Type", "About", "Saves a month", "Detail"), rows)
     typer.echo(findings_summary(report))
 
 
@@ -188,4 +177,4 @@ def merchants_command(month: Annotated[str | None, _MONTH_OPTION] = None) -> Non
         typer.echo("No spending.")
         return
     headings = ("Merchant", "Visits", "Spent", "Average", "Baseline", "Change", "Weekend")
-    _print_rows(headings, rows)
+    print_rows(headings, rows)

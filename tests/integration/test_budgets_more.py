@@ -95,12 +95,7 @@ def test_budget_report_leaves_out_transfers_and_income(session: Session) -> None
 def test_list_without_month_uses_the_current_month(
     tmp_settings: Settings, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    class _Today:
-        @staticmethod
-        def today() -> date:
-            return date(2026, 5, 16)
-
-    monkeypatch.setattr("finances.cli.budgets.date", _Today)
+    monkeypatch.setattr("finances.clock.today", lambda: date(2026, 5, 16))
     upgrade_to_head()
     assert run("budgets", "set", "--name", "Dining", "--amount", "100").exit_code == 0
     result = run("budgets", "list")

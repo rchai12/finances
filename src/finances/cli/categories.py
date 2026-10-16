@@ -1,14 +1,12 @@
 """The `fin categories`, `fin rules`, `fin categorize`, and `fin uncategorized` commands."""
 
-from dataclasses import astuple
 from typing import Annotated
 
 import typer
-from rich.table import Table
 
 from finances.categorize.service import CategorizeResult, categorize
 from finances.categorize.transfers import pair_transfers
-from finances.cli.common import fail, print_table, require_current_schema
+from finances.cli.common import fail, print_rows, require_current_schema
 from finances.cli.listing import transactions_app
 from finances.db.engine import get_engine, session_scope
 from finances.db.repositories import (
@@ -43,22 +41,13 @@ def categorize_all() -> CategorizeResult:
     return result
 
 
-def _print_rows(headings: tuple[str, ...], rows: list) -> None:
-    table = Table()
-    for heading in headings:
-        table.add_column(heading)
-    for row in rows:
-        table.add_row(*astuple(row))
-    print_table(table)
-
-
 @categories_app.command("list")
 def list_categories_command() -> None:
     """List the categories in each group."""
     require_current_schema()
     with session_scope(get_engine()) as session:
         lines = category_lines(session)
-    _print_rows(("Group", "Category", "Kind"), lines)
+    print_rows(("Group", "Category", "Kind"), lines)
 
 
 @categories_app.command("add")
@@ -130,7 +119,7 @@ def list_rules_command() -> None:
     if not lines:
         typer.echo("No rules.")
         return
-    _print_rows(("ID", "Priority", "Match", "Pattern", "Category"), lines)
+    print_rows(("ID", "Priority", "Match", "Pattern", "Category"), lines)
 
 
 @rules_app.command("add")
@@ -225,7 +214,7 @@ def uncategorized_command(
     if not lines:
         typer.echo("No uncategorized transactions.")
         return
-    _print_rows(("ID", "Date", "Account", "Merchant", "Amount"), lines)
+    print_rows(("ID", "Date", "Account", "Merchant", "Amount"), lines)
 
 
 @transactions_app.command("set-category")

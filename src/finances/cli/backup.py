@@ -5,17 +5,13 @@ from pathlib import Path
 from typing import Annotated
 
 import typer
-from rich.table import Table
 
-from finances.cli.common import fail, print_table, require_current_schema
+from finances.cli.common import fail, print_rows, require_current_schema
 from finances.config import get_settings
 from finances.db.backup import check_backup, list_backups, make_backup, restore_backup
+from finances.views.backups import backup_rows
 
 app = typer.Typer(add_completion=False, help="Back up the database and restore a backup.")
-
-
-def _taken(name: str) -> str:
-    return datetime.strptime(name, "finances-%Y%m%d-%H%M%S.db").strftime("%Y-%m-%d %H:%M:%S")
 
 
 @app.command("run")
@@ -46,12 +42,7 @@ def list_command() -> None:
     if not backups:
         typer.echo("No backups.")
         return
-    table = Table()
-    table.add_column("File")
-    table.add_column("Taken (UTC)")
-    for path in backups:
-        table.add_row(path.name, _taken(path.name))
-    print_table(table)
+    print_rows(("File", "Taken (UTC)", "Size"), backup_rows(backups))
 
 
 @app.command("restore")

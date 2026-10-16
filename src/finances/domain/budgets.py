@@ -4,6 +4,8 @@ from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from datetime import date
 
+AMOUNT_MESSAGE = "a budget must be an amount from $0.01 to $1,000,000.00"
+
 
 @dataclass(frozen=True)
 class BudgetTarget:
