@@ -13,7 +13,7 @@ from finances.db.repositories import (
     list_people,
 )
 from finances.domain.feed_setup import AccountGuess, guess_account, guess_owner, suggest_existing
-from finances.domain.models import Account
+from finances.domain.models import Account, SyncFailure
 from finances.sync.links import load_access_url
 from finances.sync.runner import LinkRun
 from finances.sync.simplefin import SyncError
@@ -53,6 +53,17 @@ class SetupOffer:
     guess: AccountGuess
     owner: str | None
     suggestion: str | None
+
+
+def failure_lines(failures: list[SyncFailure]) -> list[str]:
+    """One line per stored failure, with the time in UTC to the minute."""
+    return [
+        (
+            f"Last failure of link {item.link}: "
+            f"{item.failed_at.strftime('%Y-%m-%d %H:%M UTC')}: {item.message}."
+        )
+        for item in failures
+    ]
 
 
 def keychain_state(link: str) -> str:

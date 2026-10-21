@@ -15,6 +15,7 @@ from finances.db.repositories import (
     get_account_by_name,
     list_feed_accounts,
     list_feed_links,
+    list_sync_failures,
     map_feed_account,
 )
 from finances.domain.feed_setup import new_accounts
@@ -26,9 +27,15 @@ from finances.sync.links import (
     save_access_url,
     validate_link_name,
 )
-from finances.sync.runner import KEYCHAIN_FAILED, NOT_SET_UP, LinkRun, run_links
+from finances.sync.runner import KEYCHAIN_FAILED, NOT_SET_UP, RETRY_WAITS, LinkRun, run_links
 from finances.sync.simplefin import SyncError, claim_access_url, fetch_accounts
-from finances.views.sync import run_rows, simplefin_messages, status_rows, waiting_counts
+from finances.views.sync import (
+    failure_lines,
+    run_rows,
+    simplefin_messages,
+    status_rows,
+    waiting_counts,
+)
 
 app = typer.Typer(help="Pull transactions from SimpleFIN.", no_args_is_help=True)
 
@@ -175,7 +182,13 @@ def run_command(
         typer.echo("No mapped accounts.")
         return
     runs = run_links(
-        get_engine(), links, today=_today().date(), transport=transport.urllib_transport, days=days
+        get_engine(),
+        links,
+        today=_today().date(),
+        transport=transport.urllib_transport,
+        days=days,
+        retry_waits=RETRY_WAITS,
+        on_retry=_on_retry,
     )
     if any(item.report is not None for item in runs):
         categorize_all()
@@ -213,6 +226,13 @@ def run_command(
         raise typer.Exit(code=1)
 
 
+def _on_retry(link: str, seconds: int) -> None:
+    typer.echo(
+        f"link {link}: could not reach the aggregator; trying again in {seconds} seconds.",
+        err=True,
+    )
+
+
 def _failure_text(item: LinkRun) -> str:
     if item.failure == KEYCHAIN_FAILED:
         return str(item.cause)
@@ -227,6 +247,7 @@ def status_command() -> None:
     require_current_schema()
     with session_scope(get_engine()) as session:
         rows = status_rows(session)
+        lines = failure_lines(list_sync_failures(session))
     if not rows:
         typer.echo("No mapped accounts.")
         return
@@ -244,3 +265,5 @@ def status_command() -> None:
     for row in rows:
         table.add_row(*astuple(row))
     print_table(table)
+    for line in lines:
+        typer.echo(line)

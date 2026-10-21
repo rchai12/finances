@@ -6,7 +6,7 @@ Each phase is sized for one focused coding session: a few modules, their tests, 
 
 Status (2026-10-16): built and verified, in the build order below, up to and including Phase 26b. Each phase's spec is in `docs/phases/`, its verification guide in `docs/verification/`, its review in `docs/reviews/`, and its result in `docs/progress.md`. Phases after 26b are outlines until specified.
 
-**Build order:** 2 → 3 → 4 → 17a → 8 → 17b → 17c → 21 → 16a → 16b → 9 → 16c → 16d → 10 → 22 → 23 → 11 → 12 → 13 → 16e → 24 → 24b → 16f → 16j → 16g → 25 → 16h → 16i → 16k → 13d → 26a → 26b → 31 → 32 → 33 → 27 → 14 → 19 → 28 → 29 → 30 → 16 → 20. Phases 5 and 6 (more statement parsers) can be built any time after 4, when audit coverage for those banks is wanted.
+**Build order:** 2 → 3 → 4 → 17a → 8 → 17b → 17c → 21 → 16a → 16b → 9 → 16c → 16d → 10 → 22 → 23 → 11 → 12 → 13 → 16e → 24 → 24b → 16f → 16j → 16g → 25 → 16h → 16i → 16k → 13d → 26a → 26b → 31 → 32 → 33 → 27 → 14 → 34 → 19 → 28 → 29 → 30 → 16 → 20. Phases 5 and 6 (more statement parsers) can be built any time after 4, when audit coverage for those banks is wanted.
 
 | # | Phase | Outcome | Spec |
 |---|---|---|---|
@@ -44,6 +44,7 @@ Status (2026-10-16): built and verified, in the build order below, up to and inc
 | 31 | Tidy | No behaviour change except the date: one local `today()` for every page and command; the remaining duplication (`fin statements list` cells, `_print_rows`, the budget amount message, the backup list) shared | [phase-31](phases/phase-31-tidy.md) |
 | 32 | Split the web app | No behaviour change: `web/app.py` split into one router module per area, with the shared checks and rendering in one place | [phase-32](phases/phase-32-split-the-web-app.md) |
 | 33 | Sync resilience | The daily sync retries when SimpleFIN cannot be reached, scheduled runs leave timestamped log lines, and the last failed sync is stored so `fin health` and the dashboard can say why | [phase-33](phases/phase-33-sync-resilience.md) |
+| 34 | Audit trail | An append-only record of every change to the household's data (who, when, what, before and after), shown by `fin audit` and a History page; Phase 19's accepted proposals are recorded through it | outline below |
 
 Phase numbers are stable. A removed phase keeps its number, and a phase that is too large for one coding session is split into lettered sub-phases (`2a`, `2b`, ...), never renumbered.
 
@@ -141,11 +142,14 @@ Testing rules for every phase are in [testing.md](testing.md). Each later phase 
   - `spending_by_category`, `spending_by_merchant`, `spending_by_person`, `month_over_month`
   - `list_findings` (the Phase 13 insights), `merchant_stats`
   - `list_uncategorized`, `list_categories`, `list_rules`, `list_transfers`, `transfer_suggestions` (the transfers waiting for review): the work queues, so the agent knows what to recommend on. Each wraps a function Phases 11a and 11c already built.
+  - `find_merchants` (added 2026-10-21): fuzzy matching of a phrase against the cleaned merchant names (and category names), returning the closest few with a score, so the agent can turn "that coffee place" or a misspelling into a merchant and then ask for its numbers with the other tools. Standard-library matching (for example `difflib`) over the few hundred distinct names; no new dependency, no index.
   - `data_coverage`: per account, the periods covered, the date of the newest data, which periods are statement-audited, and any sync drift, so the agent can say when its answer rests on stale or partial months
 - Results: integer cents, ISO dates, holder-perspective signs, raw merchant and cardholder names. Tool descriptions state the sign convention and units, since the agent reads them.
 - The server opens the database read-only where the dialect allows it, and no tool calls a write repository function.
 - Tool arguments and results are never logged at INFO or above.
 - Tests drive the server through the SDK's in-memory client against a migrated temp database. No subprocess, no socket.
+- **The agent never reads the database directly.** Every answer comes through these tools, already computed by the app, with fixed caps; that boundary keeps arithmetic in tested code and lets the app decide what the agent sees.
+- **Vector search: not now (decided 2026-10-21).** The owner asked about adding vector capabilities so the agent could search by meaning. Most questions are exact and numeric (filter, group, sum), which the analysis functions answer and embeddings cannot; a local embedding model, a SQLite vector extension, and re-indexing on every import would add cost and another derived copy of the data. Revisit only if real use shows the agent failing because the household's words do not match merchant names (for example "gym" against "ACME FITNESS LLC"): then embed merchant and category names only, never transactions, locally, behind one tool that returns matches, never raw rows. The agent's own memory (advice, preferences) may use a vector store on the agent's side, outside this app.
 - Depends on Phases 12 and 13. Will be specified as several sub-phases (server skeleton plus one tool, then tool groups).
 
 ### Phase 15: removed
@@ -263,3 +267,12 @@ The order in the build line above is the architect's recommendation: protect the
 - **Timestamped logs:** each scheduled run of `fin sync run` and `fin backup run` writes a start line with the local date and time to its log, so failures can be placed in time. The schedule scripts stay as they are unless the spec finds that the simplest place for the line.
 - **The last failure, stored:** a migration adds a small record per SimpleFIN link of the last failed sync (when, and the kind: unreachable, error answer, access revoked), cleared by the next good sync. `fin sync status`, `fin health` (a `sync` problem that names the reason), and the dashboard show it. Phase 25's "no pull for N days" stays.
 - Out of scope: syncing more than once a day, notifications, and changing what a successful sync does.
+
+### Phase 34: Audit trail (planned 2026-10-21)
+- **Why:** the owner asked about MLflow for logging and auditing. MLflow tracks machine-learning experiments, models, and LLM traces; this app has no models, and MLflow would add a large dependency, a second web server, and a second store of financial detail. What the app needs is a record of changes to its own data, kept in its own database. (MLflow tracing may suit the finance subagent later, outside this app, kept local.)
+- **A table, append-only:** one row per change: when (UTC), who (`person`, `rule`, `agent` once Phase 19 accepts a proposal, or `system` for imports, syncs, and restores), what (a fixed list of actions such as `category_set`, `category_cleared`, `rule_added`, `rule_edited`, `rule_deleted`, `category_renamed`, `category_deleted`, `transfer_confirmed`, `transfer_rejected`, `transfer_unpaired`, `account_renamed`, `account_closed`, `account_reopened`, `owner_set`, `budget_set`, `budget_removed`, `statement_imported`, `backup_restored`, `backup_deleted`), the record it touched (kind and id), and the value before and after as short text. Rows are never updated or deleted by the app.
+- **Written by the repositories** in the same transaction as the change, so a change and its record commit together or not at all. Front ends write nothing themselves.
+- **Privacy:** rows hold names, ids, and short values (a category's name, a budget's amount), never a transaction's description or a statement's contents; nothing is logged outside the database. Backups include it; a restore brings back the restored database's own history and adds one `backup_restored` row.
+- **Reading it:** `fin audit [--since DATE] [--limit N] [--action ACTION]`, and a read-only History page on the web, newest first, each row linking to the thing it changed.
+- **Phase 19** records each accepted proposal through it with `agent` as the source and the person who accepted it.
+- Out of scope: undoing from the audit trail, exporting it, recording page views or reads.

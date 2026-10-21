@@ -7,7 +7,9 @@
 #
 # Backups go to FIN_BACKUP_DIR (data/backups unless set; see docs/backups.md). Paths are worked
 # out from where this repository is, so the same command works on any Mac. Output goes to
-# data/logs/backup.log (data/ is never committed). Installing again replaces the earlier job.
+# data/logs/backup.log (data/ is never committed). Each run starts with a line giving the
+# local date and time.
+# Installing again replaces the earlier job.
 # Remove it with scripts/uninstall-backup-schedule.sh.
 set -euo pipefail
 
@@ -51,9 +53,9 @@ cat >"$PLIST" <<PLIST
   <string>$LABEL</string>
   <key>ProgramArguments</key>
   <array>
-    <string>$FIN</string>
-    <string>backup</string>
-    <string>run</string>
+    <string>/bin/bash</string>
+    <string>-c</string>
+    <string>printf '== %s\\n' "\$(date '+%Y-%m-%d %H:%M:%S %Z')"; exec "$FIN" backup run</string>
   </array>
   <key>WorkingDirectory</key>
   <string>$REPO</string>

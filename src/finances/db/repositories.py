@@ -2,7 +2,7 @@
 
 from collections.abc import Iterable
 from dataclasses import dataclass
-from datetime import date
+from datetime import date, datetime
 
 from sqlalchemy import ColumnElement, delete, exists, func, or_, select, update
 from sqlalchemy.orm import Session
@@ -21,6 +21,7 @@ from finances.db.orm import (
     FeedSeenAccountRow,
     PersonRow,
     StatementRow,
+    SyncFailureRow,
     TransactionCategoryRow,
     TransactionRow,
     TransferPairRow,
@@ -36,6 +37,7 @@ from finances.db.orm import (
     to_person,
     to_seen_feed_account,
     to_statement,
+    to_sync_failure,
     to_transaction,
     to_transfer_pair,
 )
@@ -60,6 +62,7 @@ from finances.domain.models import (
     Person,
     SeenFeedAccount,
     Statement,
+    SyncFailure,
     Transaction,
     TransferPair,
     validate_currency,
@@ -68,7 +71,13 @@ from finances.domain.models import (
 )
 from finances.domain.people import JOINT, normalize_cardholder, validate_person_name
 from finances.domain.rules import MATCHES, normalize_pattern
-from finances.domain.text import CATEGORY_NAME_LIMIT, NAME_LIMIT, RULE_PATTERN_LIMIT, fit
+from finances.domain.text import (
+    CATEGORY_NAME_LIMIT,
+    NAME_LIMIT,
+    PROVIDER_ACCOUNT_ID_LIMIT,
+    RULE_PATTERN_LIMIT,
+    fit,
+)
 from finances.domain.transfers import Movement
 
 _FINGERPRINT_CHUNK = 500
@@ -1396,3 +1405,29 @@ def unpair_transfer(session: Session, pair_id: int) -> TransferPair:
     session.flush()
     _store_rejection(session, pair.out_transaction_id, pair.in_transaction_id)
     return pair
+
+
+def record_sync_failure(session: Session, link: str, failed_at: datetime, message: str) -> None:
+    """Store or replace this link's last failure. The caller commits."""
+    found = session.scalars(select(SyncFailureRow).where(SyncFailureRow.link == link)).first()
+    cut = fit(message, PROVIDER_ACCOUNT_ID_LIMIT)
+    if found is None:
+        session.add(SyncFailureRow(link=link, failed_at=failed_at, message=cut))
+    else:
+        found.failed_at = failed_at
+        found.message = cut
+    session.flush()
+
+
+def clear_sync_failure(session: Session, link: str) -> None:
+    """Delete this link's last failure, if any. The caller commits."""
+    found = session.scalars(select(SyncFailureRow).where(SyncFailureRow.link == link)).first()
+    if found is not None:
+        session.delete(found)
+        session.flush()
+
+
+def list_sync_failures(session: Session) -> list[SyncFailure]:
+    """Return every stored sync failure, ordered by link."""
+    stmt = select(SyncFailureRow).order_by(SyncFailureRow.link)
+    return [to_sync_failure(row) for row in session.scalars(stmt).all()]

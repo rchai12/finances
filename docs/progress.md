@@ -436,3 +436,14 @@ Template:
   - Shared helpers live in `web/access.py`, `web/forms.py`, `web/helpers.py`, and `web/render.py`; routers read clock and restore hooks through `finances.web.app` at call time; `create_app` imports routers inside the function.
 - Follow-ups:
   - Spot checks 1 and 2 as written do not fail under that allowed design (lazy router import; `_RESTORE_GATE` used from `access._reading` for page requests).
+
+## Phase 33: sync resilience (2026-10-21)
+- Tests: 2911 -> 2932 (given 15)
+- New public names: `sync.simplefin`: `AggregatorUnreachable`; `domain.models`: `SyncFailure`; `db.orm`: `SyncFailureRow`; `db.repositories`: `record_sync_failure`, `clear_sync_failure`, `list_sync_failures`; `sync.runner`: `RETRY_WAITS`; `views.sync`: `failure_lines`
+- Changed files: 21
+- Deviations:
+  - The failure-message column uses `PROVIDER_ACCOUNT_ID_LIMIT` (200) so `test_the_orm_names_its_widths_by_constant` still passes.
+  - `test_retries_without_an_on_retry` covers the retry loop when `on_retry` is omitted.
+- Follow-ups:
+  - Reinstall both schedule jobs after commit: `scripts/install-sync-schedule.sh 7 0` and `scripts/install-backup-schedule.sh 2 0`.
+  - `docs/roadmap.md` also holds uncommitted Phase 34 outline notes, not part of this phase.

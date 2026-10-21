@@ -7,8 +7,9 @@
 #
 # The job runs inside the user's login session, so it can read the SimpleFIN access in the
 # Keychain. Paths are worked out from where this repository is, so the same command works on
-# any Mac. Output goes to data/logs/sync.log (data/ is never committed). Installing again
-# replaces the earlier job. Remove it with scripts/uninstall-sync-schedule.sh.
+# any Mac. Output goes to data/logs/sync.log (data/ is never committed). Each run starts
+# with a line giving the local date and time. Installing again replaces the earlier job.
+# Remove it with scripts/uninstall-sync-schedule.sh.
 set -euo pipefail
 
 LABEL="local.finances.sync"
@@ -51,9 +52,9 @@ cat >"$PLIST" <<PLIST
   <string>$LABEL</string>
   <key>ProgramArguments</key>
   <array>
-    <string>$FIN</string>
-    <string>sync</string>
-    <string>run</string>
+    <string>/bin/bash</string>
+    <string>-c</string>
+    <string>printf '== %s\\n' "\$(date '+%Y-%m-%d %H:%M:%S %Z')"; exec "$FIN" sync run</string>
   </array>
   <key>WorkingDirectory</key>
   <string>$REPO</string>

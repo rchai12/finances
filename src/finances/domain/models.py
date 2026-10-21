@@ -243,3 +243,12 @@ class Budget:
     id: int
     category_id: int
     amount_cents: int
+
+
+@dataclass(frozen=True)
+class SyncFailure:
+    """The last failed sync of one SimpleFIN link, cleared by a good one."""
+
+    link: str
+    failed_at: datetime
+    message: str

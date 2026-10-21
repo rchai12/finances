@@ -4,7 +4,7 @@ import urllib.error
 import urllib.request
 
 from finances import __version__
-from finances.sync.simplefin import SyncError
+from finances.sync.simplefin import AggregatorUnreachable
 
 TIMEOUT_SECONDS = 60
 USER_AGENT = f"finances/{__version__}"
@@ -47,4 +47,4 @@ def urllib_transport(method: str, url: str, headers: dict[str, str]) -> tuple[in
         error.close()
         return error.code, b""
     except OSError:
-        raise SyncError("could not reach the aggregator") from None
+        raise AggregatorUnreachable("could not reach the aggregator") from None

@@ -30,6 +30,7 @@ from finances.domain.models import (
     Person,
     SeenFeedAccount,
     Statement,
+    SyncFailure,
     Transaction,
     TransferPair,
 )
@@ -510,3 +511,20 @@ class BudgetRow(Base):
 def to_budget(row: BudgetRow) -> Budget:
     """Return the domain Budget for a row of the budgets table."""
     return Budget(id=row.id, category_id=row.category_id, amount_cents=row.amount_cents)
+
+
+class SyncFailureRow(Base):
+    """One row of the sync_failures table: the last failed sync of a SimpleFIN link."""
+
+    __tablename__ = "sync_failures"
+    __table_args__ = (UniqueConstraint("link", name="uq_sync_failures_link"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    link: Mapped[str] = mapped_column(String(30), nullable=False)
+    failed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    message: Mapped[str] = mapped_column(String(PROVIDER_ACCOUNT_ID_LIMIT), nullable=False)
+
+
+def to_sync_failure(row: SyncFailureRow) -> SyncFailure:
+    """Return the domain SyncFailure for a row of the sync_failures table."""
+    return SyncFailure(link=row.link, failed_at=_as_utc(row.failed_at), message=row.message)

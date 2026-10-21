@@ -12,6 +12,7 @@ from finances.db.repositories import (
     list_accounts,
     list_feed_accounts,
     list_statements,
+    list_sync_failures,
     statement_periods,
 )
 from finances.domain.health import AccountFacts, Problem, health_problems
@@ -49,4 +50,6 @@ def gather_health(session: Session, backup_folder: Path, as_of: date) -> list[Pr
     """Problems for the active accounts and the newest backup in the folder."""
     backups = list_backups(backup_folder)
     newest = None if not backups else taken_at(backups[0]).astimezone(UTC).date()
-    return health_problems(account_facts(session), newest, as_of)
+    return health_problems(
+        account_facts(session), newest, as_of, failures=list_sync_failures(session)
+    )

@@ -4,6 +4,7 @@ from collections.abc import Iterable
 from dataclasses import dataclass
 from datetime import date
 
+from finances.domain.models import SyncFailure
 from finances.domain.money import format_cents
 
 BACKUP_STALE_DAYS = 2
@@ -41,7 +42,11 @@ class Problem:
 
 
 def health_problems(
-    accounts: Iterable[AccountFacts], newest_backup: date | None, as_of: date
+    accounts: Iterable[AccountFacts],
+    newest_backup: date | None,
+    as_of: date,
+    *,
+    failures: Iterable[SyncFailure] = (),
 ) -> list[Problem]:
     """Every problem for the accounts and backup, ordered by kind then account then detail."""
     found: list[Problem] = []
@@ -123,6 +128,18 @@ def health_problems(
                     _GAP_ACTION,
                 )
             )
+    for item in failures:
+        found.append(
+            Problem(
+                "sync",
+                "",
+                (
+                    f"The last sync of link {item.link} failed on "
+                    f"{item.failed_at.date().isoformat()}: {item.message}."
+                ),
+                _SYNC_ACTION,
+            )
+        )
     order = {kind: index for index, kind in enumerate(KINDS)}
 
     def sort_key(problem: Problem) -> tuple[int, str, str, str]:

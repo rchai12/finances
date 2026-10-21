@@ -27,6 +27,10 @@ class SyncError(Exception):
     """Raised when the aggregator cannot be reached or its answer cannot be used."""
 
 
+class AggregatorUnreachable(SyncError):
+    """SimpleFIN could not be reached at all: no answer came back."""
+
+
 @dataclass(frozen=True)
 class ProviderAccount:
     """One account in the aggregator's answer. Amounts are from the account holder's side."""
