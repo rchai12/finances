@@ -427,3 +427,12 @@ Template:
   - `tests/integration/test_budgets_more.py` patches `finances.clock.today` instead of `finances.cli.budgets.date`, which the tidy removed.
   - `web.app._utc_today` keeps the Sync routes on the UTC date.
 - Follow-ups: none
+
+## Phase 32: split the web app (2026-10-16)
+- Tests: 2895 -> 2911 (given 16)
+- New public names: None
+- Changed files: 10
+- Deviations:
+  - Shared helpers live in `web/access.py`, `web/forms.py`, `web/helpers.py`, and `web/render.py`; routers read clock and restore hooks through `finances.web.app` at call time; `create_app` imports routers inside the function.
+- Follow-ups:
+  - Spot checks 1 and 2 as written do not fail under that allowed design (lazy router import; `_RESTORE_GATE` used from `access._reading` for page requests).

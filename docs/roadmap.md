@@ -6,7 +6,7 @@ Each phase is sized for one focused coding session: a few modules, their tests, 
 
 Status (2026-10-16): built and verified, in the build order below, up to and including Phase 26b. Each phase's spec is in `docs/phases/`, its verification guide in `docs/verification/`, its review in `docs/reviews/`, and its result in `docs/progress.md`. Phases after 26b are outlines until specified.
 
-**Build order:** 2 → 3 → 4 → 17a → 8 → 17b → 17c → 21 → 16a → 16b → 9 → 16c → 16d → 10 → 22 → 23 → 11 → 12 → 13 → 16e → 24 → 24b → 16f → 16j → 16g → 25 → 16h → 16i → 16k → 13d → 26a → 26b → 31 → 32 → 27 → 14 → 19 → 28 → 29 → 30 → 16 → 20. Phases 5 and 6 (more statement parsers) can be built any time after 4, when audit coverage for those banks is wanted.
+**Build order:** 2 → 3 → 4 → 17a → 8 → 17b → 17c → 21 → 16a → 16b → 9 → 16c → 16d → 10 → 22 → 23 → 11 → 12 → 13 → 16e → 24 → 24b → 16f → 16j → 16g → 25 → 16h → 16i → 16k → 13d → 26a → 26b → 31 → 32 → 33 → 27 → 14 → 19 → 28 → 29 → 30 → 16 → 20. Phases 5 and 6 (more statement parsers) can be built any time after 4, when audit coverage for those banks is wanted.
 
 | # | Phase | Outcome | Spec |
 |---|---|---|---|
@@ -43,6 +43,7 @@ Status (2026-10-16): built and verified, in the build order below, up to and inc
 | 30 | Year-end and export | Yearly totals by category with tax-relevant groups pulled out, and CSV export | outline below |
 | 31 | Tidy | No behaviour change except the date: one local `today()` for every page and command; the remaining duplication (`fin statements list` cells, `_print_rows`, the budget amount message, the backup list) shared | [phase-31](phases/phase-31-tidy.md) |
 | 32 | Split the web app | No behaviour change: `web/app.py` split into one router module per area, with the shared checks and rendering in one place | [phase-32](phases/phase-32-split-the-web-app.md) |
+| 33 | Sync resilience | The daily sync retries when SimpleFIN cannot be reached, scheduled runs leave timestamped log lines, and the last failed sync is stored so `fin health` and the dashboard can say why | outline below |
 
 Phase numbers are stable. A removed phase keeps its number, and a phase that is too large for one coding session is split into lettered sub-phases (`2a`, `2b`, ...), never renumbered.
 
@@ -255,3 +256,10 @@ The order in the build line above is the architect's recommendation: protect the
 ### Phase 32: Split the web app
 - `web/app.py` (about 1700 lines, 50 routes) becomes a package of routers, one per area (accounts, people, transactions, categories and rules, transfers, reports and insights, budgets, statements, backups, sync, home), with the security middleware, the form checks, rendering, and notices in shared modules.
 - No route, template, message, or status changes; every earlier web test passes unchanged. It comes before Phase 20 (login touches every route) and before Phase 27 and 19 add pages.
+
+### Phase 33: Sync resilience (planned 2026-10-17)
+- **Why:** the daily `launchd` sync ran at 07:00 and failed four days running after the last good pull (14 October): once "aggregator answered with an error", three times "could not reach the aggregator", most likely the Mac waking before its network was back. One attempt per day means one network blip loses the day, and the log does not say when each run happened.
+- **Retry:** when SimpleFIN cannot be reached (no answer at all), `fin sync run` tries again a few times with a growing wait, over a few minutes, before giving up; an answer with an error status is not retried (it would not change within minutes), and "access revoked" never is. The waits are constants, and tests replace the sleep so they never wait.
+- **Timestamped logs:** each scheduled run of `fin sync run` and `fin backup run` writes a start line with the local date and time to its log, so failures can be placed in time. The schedule scripts stay as they are unless the spec finds that the simplest place for the line.
+- **The last failure, stored:** a migration adds a small record per SimpleFIN link of the last failed sync (when, and the kind: unreachable, error answer, access revoked), cleared by the next good sync. `fin sync status`, `fin health` (a `sync` problem that names the reason), and the dashboard show it. Phase 25's "no pull for N days" stays.
+- Out of scope: syncing more than once a day, notifications, and changing what a successful sync does.

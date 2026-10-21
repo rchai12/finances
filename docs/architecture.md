@@ -66,7 +66,7 @@ finances/
     views/                      display rows (text) built once for cli and web
     cli/                        Typer commands (thin)
     mcp_server/                 MCP tools for the agent (thin; Phase 14)
-    web/                        FastAPI app (thin; templates, static files, vendored Chart.js)
+    web/                        FastAPI app (thin): app.py (application, security, clock hooks), routes/ (one router per area), shared page and form helpers, templates, static files, vendored Chart.js
   tests/
     fixtures/                   synthetic statement text and aggregator responses only
   data/                         gitignored: SQLite DB, real statement samples
