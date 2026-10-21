@@ -43,7 +43,7 @@ Status (2026-10-16): built and verified, in the build order below, up to and inc
 | 30 | Year-end and export | Yearly totals by category with tax-relevant groups pulled out, and CSV export | outline below |
 | 31 | Tidy | No behaviour change except the date: one local `today()` for every page and command; the remaining duplication (`fin statements list` cells, `_print_rows`, the budget amount message, the backup list) shared | [phase-31](phases/phase-31-tidy.md) |
 | 32 | Split the web app | No behaviour change: `web/app.py` split into one router module per area, with the shared checks and rendering in one place | [phase-32](phases/phase-32-split-the-web-app.md) |
-| 33 | Sync resilience | The daily sync retries when SimpleFIN cannot be reached, scheduled runs leave timestamped log lines, and the last failed sync is stored so `fin health` and the dashboard can say why | outline below |
+| 33 | Sync resilience | The daily sync retries when SimpleFIN cannot be reached, scheduled runs leave timestamped log lines, and the last failed sync is stored so `fin health` and the dashboard can say why | [phase-33](phases/phase-33-sync-resilience.md) |
 
 Phase numbers are stable. A removed phase keeps its number, and a phase that is too large for one coding session is split into lettered sub-phases (`2a`, `2b`, ...), never renumbered.
 
