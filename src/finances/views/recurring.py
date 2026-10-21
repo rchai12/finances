@@ -39,3 +39,9 @@ def recurring_summary(items: list[Recurring]) -> str:
     active = [item for item in items if item.active]
     monthly = sum(item.monthly_cents for item in active)
     return f"Recurring: {len(active)} active, {format_cents(monthly)} a month."
+
+
+def recurring_income_summary(items: list[Recurring]) -> str:
+    active = [item for item in items if item.active]
+    monthly = sum(item.monthly_cents for item in active)
+    return f"Recurring income: {len(active)} active, {format_cents(monthly)} a month."

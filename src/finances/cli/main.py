@@ -27,6 +27,7 @@ from finances.cli.reports import (
     months_command,
     recurring_command,
     spending_command,
+    upcoming_command,
 )
 from finances.cli.sync import app as sync_app
 from finances.cli.transfers import transfers_app
@@ -55,6 +56,7 @@ app.command("spending")(spending_command)
 app.command("balances")(balances_command)
 app.command("months")(months_command)
 app.command("recurring")(recurring_command)
+app.command("upcoming")(upcoming_command)
 app.command("insights")(insights_command)
 app.command("merchants")(merchants_command)
 app.command("health")(health_command)

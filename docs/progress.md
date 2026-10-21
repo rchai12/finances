@@ -447,3 +447,11 @@ Template:
 - Follow-ups:
   - Reinstall both schedule jobs after commit: `scripts/install-sync-schedule.sh 7 0` and `scripts/install-backup-schedule.sh 2 0`.
   - `docs/roadmap.md` also holds uncommitted Phase 34 outline notes, not part of this phase.
+
+## Phase 27a: upcoming bills and recurring income (2026-10-21)
+- Tests: 2932 -> 2954 (given 17)
+- New public names: `domain.recurring`: `INCOME_CADENCES`, `find_recurring_income`; `domain.upcoming`: `BILL`, `INCOME`, `Upcoming`, `expected`; `analysis.recurring`: `recurring_income`; `analysis.upcoming`: `UpcomingReport`, `upcoming_report`; `views.upcoming`: `UpcomingRow`, `upcoming_rows`, `upcoming_heading`, `upcoming_summary`; `views.recurring`: `recurring_income_summary`; `cli.reports`: `upcoming_command`
+- Changed files: 12
+- Deviations:
+  - Charges and income share `_find` and `_series`; `two_weeks` is in the shared band tables, and `find_recurring` still passes `CADENCES`.
+- Follow-ups: none

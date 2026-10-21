@@ -9,8 +9,9 @@ from finances import clock
 from finances.analysis.balances import balance_report
 from finances.analysis.insights import insights_report
 from finances.analysis.months import month_report
-from finances.analysis.recurring import recurring_charges
+from finances.analysis.recurring import recurring_charges, recurring_income
 from finances.analysis.spending import spending_report
+from finances.analysis.upcoming import upcoming_report
 from finances.cli.common import fail, print_rows, require_current_schema
 from finances.db.engine import get_engine, session_scope
 from finances.domain.periods import MONTHS_MAX
@@ -23,8 +24,9 @@ from finances.views.insights import (
     merchant_rows,
 )
 from finances.views.months import month_heading, month_notes, month_rows
-from finances.views.recurring import recurring_rows, recurring_summary
+from finances.views.recurring import recurring_income_summary, recurring_rows, recurring_summary
 from finances.views.spending import spending_heading, spending_rows, spending_summary
+from finances.views.upcoming import upcoming_heading, upcoming_rows, upcoming_summary
 
 
 def _range(month: str | None, start: datetime | None, end: datetime | None) -> tuple[date, date]:
@@ -123,19 +125,47 @@ def recurring_command(
     show_all: Annotated[
         bool, typer.Option("--all", help="Also list charges that have stopped.")
     ] = False,
+    income: Annotated[
+        bool, typer.Option("--income", help="List recurring income instead of charges.")
+    ] = False,
 ) -> None:
     """List subscriptions and other charges that come at a regular rhythm."""
     require_current_schema()
     day = clock.today() if as_of is None else as_of.date()
     with session_scope(get_engine()) as session:
-        items = recurring_charges(session, day)
+        items = recurring_income(session, day) if income else recurring_charges(session, day)
     rows = recurring_rows(items, include_inactive=show_all)
     if rows:
         headings = ("Merchant", "Every", "Amount", "Monthly", "Count", "Last", "Next", "Active")
         print_rows(headings, rows)
     else:
-        typer.echo("No recurring charges.")
-    typer.echo(recurring_summary(items))
+        typer.echo("No recurring income." if income else "No recurring charges.")
+    typer.echo(recurring_income_summary(items) if income else recurring_summary(items))
+
+
+def upcoming_command(
+    as_of: Annotated[
+        datetime | None,
+        typer.Option(
+            "--as-of", formats=["%Y-%m-%d"], help="The day to look from (today by default)."
+        ),
+    ] = None,
+    days: Annotated[
+        int, typer.Option("--days", min=1, max=90, help="How many days to look ahead, 1 to 90.")
+    ] = 30,
+) -> None:
+    """List bills and income expected in the next days (today counted as the first)."""
+    require_current_schema()
+    day = clock.today() if as_of is None else as_of.date()
+    with session_scope(get_engine()) as session:
+        report = upcoming_report(session, day, days)
+    typer.echo(upcoming_heading(report))
+    rows = upcoming_rows(report)
+    if rows:
+        print_rows(("Date", "What", "Merchant", "Every", "Amount"), rows)
+    else:
+        typer.echo("Nothing expected.")
+    typer.echo(upcoming_summary(report))
 
 
 _MONTH_OPTION = typer.Option("--month", help="A month, YYYY-MM (this month by default).")
