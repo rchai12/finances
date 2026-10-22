@@ -6,7 +6,7 @@ Each phase is sized for one focused coding session: a few modules, their tests, 
 
 Status (2026-10-16): built and verified, in the build order below, up to and including Phase 26b. Each phase's spec is in `docs/phases/`, its verification guide in `docs/verification/`, its review in `docs/reviews/`, and its result in `docs/progress.md`. Phases after 26b are outlines until specified.
 
-**Build order:** 2 → 3 → 4 → 17a → 8 → 17b → 17c → 21 → 16a → 16b → 9 → 16c → 16d → 10 → 22 → 23 → 11 → 12 → 13 → 16e → 24 → 24b → 16f → 16j → 16g → 25 → 16h → 16i → 16k → 13d → 26a → 26b → 31 → 32 → 33 → 27a → 27b → 27c → 14 → 34 → 19 → 28 → 29 → 30 → 16 → 20. Phases 5 and 6 (more statement parsers) can be built any time after 4, when audit coverage for those banks is wanted.
+**Build order:** 2 → 3 → 4 → 17a → 8 → 17b → 17c → 21 → 16a → 16b → 9 → 16c → 16d → 10 → 22 → 23 → 11 → 12 → 13 → 16e → 24 → 24b → 16f → 16j → 16g → 25 → 16h → 16i → 16k → 13d → 26a → 26b → 31 → 32 → 33 → 27a → 27b → 27c → 27d → 14 → 34 → 19 → 28 → 29 → 30 → 16 → 20. Phases 5 and 6 (more statement parsers) can be built any time after 4, when audit coverage for those banks is wanted.
 
 | # | Phase | Outcome | Spec |
 |---|---|---|---|
@@ -37,7 +37,7 @@ Status (2026-10-16): built and verified, in the build order below, up to and inc
 | 24b | Backups on the web | A Backups page: back up now, the list, delete, and restore, with confirmation and the current database always set aside | [phase-24b](phases/phase-24b-backups-on-the-web.md) |
 | 25 | Data health | Warnings for stale accounts, SimpleFIN links that need relinking, months without a statement, balance drift, and an old or missing backup; shown on the dashboard | [phase-25](phases/phase-25-data-health.md) (terminal; shown on the 16h dashboard) |
 | 26 | Budgets | A monthly target per category or group, progress, and an over-budget finding | [phase-26a](phases/phase-26a-budgets.md) (storage, rules, `fin budgets`, the finding), [phase-26b](phases/phase-26b-budgets-on-the-web.md) (the Budgets page and the dashboard block) |
-| 27 | Looking ahead | Upcoming bills from recurring charges, recurring income, a 30-day cash-flow forecast per account, and net worth over time | [phase-27a](phases/phase-27a-upcoming-bills-and-income.md) (upcoming bills and recurring income; terminal); [phase-27b](phases/phase-27b-forecast-per-account.md) (a 30-day forecast per account; terminal); 27c (the web) follows |
+| 27 | Looking ahead | Upcoming bills from recurring charges, recurring income, a 30-day cash-flow forecast per account, and net worth over time | [phase-27a](phases/phase-27a-upcoming-bills-and-income.md) (upcoming bills and recurring income; terminal); [phase-27b](phases/phase-27b-forecast-per-account.md) (a 30-day forecast per account; terminal); [phase-27c](phases/phase-27c-looking-ahead-on-the-web.md) (the Ahead page and a dashboard block); 27d (net worth over time as a chart) follows |
 | 28 | Categorizing extras | Split transactions, tags and notes, merging merchants, and a preview before saving a rule | outline below |
 | 29 | Shared expenses | Mark a joint expense paid by one person as shared, and keep a running balance of who owes whom | outline below |
 | 30 | Year-end and export | Yearly totals by category with tax-relevant groups pulled out, and CSV export | outline below |
@@ -234,7 +234,7 @@ The order in the build line above is the architect's recommendation: protect the
 - A finding `over_budget` in the Phase 13b engine; a web page to set targets.
 
 ### Phase 27: Looking ahead
-- **Split (2026-10-21):** 27a upcoming bills and recurring income (a two-week band for income only, so earlier charge findings do not change), terminal; 27b the 30-day forecast per account, terminal; 27c the pages, the dashboard block, and net worth over time as a chart.
+- **Split (2026-10-21):** 27a upcoming bills and recurring income (a two-week band for income only, so earlier charge findings do not change), terminal; 27b the 30-day forecast per account, terminal; 27c the Ahead page and the dashboard block; 27d net worth over time as a chart (split again by the size rule, 2026-10-22).
 - Upcoming bills: the next charge of every active recurring charge (Phase 13a) in the next 30 days.
 - Recurring income found the same way as charges (paychecks every week, two weeks, or half-month), which needs a two-week band.
 - A 30-day forecast per account: the newest balance plus expected income minus expected bills, with the lowest point and its day.

@@ -12,7 +12,8 @@ new context values the template expects (the coder's routes will supply them lat
 Anything after the options goes to pytest (test paths, -k, -x).
 
 It runs pytest in the scratch copy against the copy's own source (PYTHONPATH), with a small
-plugin that wraps `finances.web.app._render` so each page's context starts from the defaults.
+plugin that wraps `finances.web.render._render` (route modules
+import it by name when `create_app` first runs, after the plugin has replaced it) so each page's context starts from the defaults.
 Nothing in the copy is changed. Failures left are real: a template that breaks an earlier
 test, or a template bug.
 """
@@ -29,17 +30,17 @@ PLUGIN = """
 import json
 import os
 
-import finances.web.app as app
+import finances.web.render as render
 
 _DEFAULTS = json.loads(os.environ["FIN_TEMPLATE_DEFAULTS"])
-_original = app._render
+_original = render._render
 
 
 def _render(request, name, context, status_code=200):
     return _original(request, name, {**_DEFAULTS, **context}, status_code)
 
 
-app._render = _render
+render._render = _render
 """
 
 
