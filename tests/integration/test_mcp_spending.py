@@ -15,8 +15,13 @@ from finances.mcp_server.server import build_server
 
 TOOLS = [
     "get_balances",
+    "get_budgets",
+    "get_forecast",
+    "get_insights",
     "get_net_worth",
+    "get_recurring",
     "get_spending",
+    "get_upcoming",
     "list_accounts",
     "list_transactions",
     "month_over_month",
@@ -96,7 +101,7 @@ def money(tmp_settings: Settings, monkeypatch: pytest.MonkeyPatch) -> Settings:
     return tmp_settings
 
 
-def test_six_read_only_tools(tmp_settings: Settings) -> None:
+def test_the_read_only_tools(tmp_settings: Settings) -> None:
     async def go():
         async with Client(build_server()) as client:
             return (await client.list_tools()).tools

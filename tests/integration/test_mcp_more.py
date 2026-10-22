@@ -14,8 +14,13 @@ from finances.domain.models import DataSource
 from finances.mcp_server.access import reading
 from finances.mcp_server.server import (
     GET_BALANCES_DESCRIPTION,
+    GET_BUDGETS_DESCRIPTION,
+    GET_FORECAST_DESCRIPTION,
+    GET_INSIGHTS_DESCRIPTION,
     GET_NET_WORTH_DESCRIPTION,
+    GET_RECURRING_DESCRIPTION,
     GET_SPENDING_DESCRIPTION,
+    GET_UPCOMING_DESCRIPTION,
     LIST_ACCOUNTS_DESCRIPTION,
     LIST_TRANSACTIONS_DESCRIPTION,
     MONTH_OVER_MONTH_DESCRIPTION,
@@ -126,6 +131,11 @@ def test_each_tool_description_matches_the_table(tmp_settings: Settings) -> None
         "list_transactions": LIST_TRANSACTIONS_DESCRIPTION,
         "get_spending": GET_SPENDING_DESCRIPTION,
         "month_over_month": MONTH_OVER_MONTH_DESCRIPTION,
+        "get_insights": GET_INSIGHTS_DESCRIPTION,
+        "get_recurring": GET_RECURRING_DESCRIPTION,
+        "get_upcoming": GET_UPCOMING_DESCRIPTION,
+        "get_forecast": GET_FORECAST_DESCRIPTION,
+        "get_budgets": GET_BUDGETS_DESCRIPTION,
     }
 
 

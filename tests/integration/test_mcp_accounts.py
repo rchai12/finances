@@ -73,8 +73,13 @@ def test_the_server_and_its_tools(tmp_settings: Settings) -> None:
     assert (name, instructions) == ("finances", INSTRUCTIONS)
     assert sorted(tool.name for tool in tools) == [
         "get_balances",
+        "get_budgets",
+        "get_forecast",
+        "get_insights",
         "get_net_worth",
+        "get_recurring",
         "get_spending",
+        "get_upcoming",
         "list_accounts",
         "list_transactions",
         "month_over_month",

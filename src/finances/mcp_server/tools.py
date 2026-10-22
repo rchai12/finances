@@ -8,10 +8,15 @@ from pydantic import Field
 
 import finances.clock as clock
 from finances.analysis.balances import balance_report
+from finances.analysis.budgets import budget_report
+from finances.analysis.forecast import forecast_report
+from finances.analysis.insights import insights_report
 from finances.analysis.months import month_report
 from finances.analysis.networth import net_worth_over_time
+from finances.analysis.recurring import recurring_charges, recurring_income
 from finances.analysis.search import FoundTransaction, TransactionQuery, search_transactions
 from finances.analysis.spending import spending_report
+from finances.analysis.upcoming import upcoming_report
 from finances.db.repositories import account_names, list_account_owners, list_people
 from finances.db.repositories import list_accounts as load_accounts
 from finances.domain.spending import UNASSIGNED, UNCATEGORIZED, is_refund, month_bounds, month_range
@@ -210,4 +215,158 @@ def month_over_month(
             }
             for line in lines
         ]
+    }
+
+
+def _month_start(month: str) -> date:
+    if not month:
+        start, _ = month_bounds(clock.today())
+        return start
+    try:
+        start, _ = month_range(month)
+    except ValueError as error:
+        raise ToolError(str(error)) from error
+    return start
+
+
+def get_insights(month: str = "") -> dict[str, Any]:
+    start = _month_start(month)
+    with reading() as session:
+        report = insights_report(session, start)
+    return {
+        "month": report.month.isoformat()[:7],
+        "findings": [
+            {
+                "type": item.type,
+                "severity": item.severity,
+                "subject": item.subject or None,
+                "savings_cents": item.savings_cents,
+                "detail": item.detail,
+            }
+            for item in report.findings
+        ],
+        "merchants": [
+            {
+                "merchant": item.merchant,
+                "visits": item.visits,
+                "spent_cents": item.spent_cents,
+                "average_cents": item.average_cents,
+                "baseline_cents": item.baseline_cents,
+                "change_cents": item.change_cents,
+                "weekend_visits": item.weekend_visits,
+            }
+            for item in report.merchants
+        ],
+    }
+
+
+def get_recurring(income: bool = False, include_inactive: bool = False) -> dict[str, Any]:
+    today = clock.today()
+    with reading() as session:
+        series = recurring_income(session, today) if income else recurring_charges(session, today)
+    sign = 1 if income else -1
+    kept = [item for item in series if include_inactive or item.active]
+    return {
+        "as_of": today.isoformat(),
+        "income": income,
+        "series": [
+            {
+                "merchant": item.merchant,
+                "cadence": item.cadence,
+                "amount_cents": sign * item.amount_cents,
+                "monthly_cents": sign * item.monthly_cents,
+                "count": item.count,
+                "first_day": item.first_day.isoformat(),
+                "last_day": item.last_day.isoformat(),
+                "next_day": item.next_day.isoformat(),
+                "active": item.active,
+                "previous_cents": (
+                    None if item.previous_cents is None else sign * item.previous_cents
+                ),
+            }
+            for item in kept
+        ],
+    }
+
+
+def get_upcoming(days: Annotated[int, Field(ge=1, le=90)] = 30) -> dict[str, Any]:
+    today = clock.today()
+    with reading() as session:
+        report = upcoming_report(session, today, days)
+    return {
+        "start": report.start.isoformat(),
+        "end": report.end.isoformat(),
+        "items": [
+            {
+                "day": item.day.isoformat(),
+                "kind": item.kind,
+                "merchant": item.merchant,
+                "cadence": item.cadence,
+                "amount_cents": item.amount_cents,
+            }
+            for item in report.items
+        ],
+        "bills_cents": report.bills_cents,
+        "income_cents": report.income_cents,
+    }
+
+
+def get_forecast(
+    days: Annotated[int, Field(ge=1, le=90)] = 30, account: str = ""
+) -> dict[str, Any]:
+    today = clock.today()
+    wanted = account or None
+    with reading() as session:
+        try:
+            report = forecast_report(session, today, days, wanted)
+        except ValueError as error:
+            raise ToolError(str(error)) from error
+    return {
+        "start": report.start.isoformat(),
+        "end": report.end.isoformat(),
+        "accounts": [
+            {
+                "account": item.account,
+                "balance_cents": item.balance_cents,
+                "balance_day": item.balance_day.isoformat(),
+                "in_cents": item.walk.in_cents,
+                "out_cents": item.walk.out_cents,
+                "end_cents": item.walk.end_cents,
+                "lowest_cents": item.walk.lowest_cents,
+                "lowest_day": item.walk.lowest_day.isoformat(),
+                "steps": [
+                    {
+                        "day": step.item.day.isoformat(),
+                        "merchant": step.item.merchant,
+                        "amount_cents": step.item.amount_cents,
+                        "balance_cents": step.balance_cents,
+                    }
+                    for step in item.walk.steps
+                ],
+            }
+            for item in report.accounts
+        ],
+        "no_balance": report.no_balance,
+    }
+
+
+def get_budgets(month: str = "") -> dict[str, Any]:
+    start = _month_start(month)
+    today = clock.today()
+    with reading() as session:
+        lines = budget_report(session, start, today)
+    return {
+        "month": start.isoformat()[:7],
+        "budgets": [
+            {
+                "name": line.name,
+                "kind": "group" if line.is_group else "category",
+                "target_cents": line.target_cents,
+                "net_cents": line.spent_cents,
+                "left_cents": line.left_cents,
+                "used_percent": line.used_percent,
+                "month_gone_percent": line.month_gone_percent,
+            }
+            for line in lines
+        ],
     }

@@ -50,6 +50,35 @@ MONTH_OVER_MONTH_DESCRIPTION = (
     "months (1 to 24, default 6) ending with the given month (YYYY-MM, default this month), "
     "oldest first, with the accounts whose data does not cover that whole month."
 )
+GET_INSIGHTS_DESCRIPTION = (
+    "Findings for a month (YYYY-MM, default this month): each with its type, severity (high, "
+    "medium, low), subject (a category or merchant, or null), what acting on it could save a "
+    "month in integer cents, and a sentence; and each merchant's visits, spending, average, "
+    "baseline from earlier months, change, and weekend visits, in integer cents."
+)
+GET_RECURRING_DESCRIPTION = (
+    "Recurring charges, or recurring income when income is true, found up to today: merchant, "
+    "cadence (week, two_weeks, month, quarter, year), the last amount and its monthly cost in "
+    "integer cents (charges negative, income positive), how many were seen, the first, last, "
+    "and next day, and whether it is still active. Stopped series only when include_inactive "
+    "is true."
+)
+GET_UPCOMING_DESCRIPTION = (
+    "Bills and income expected in the next N days (1 to 90, default 30, today the first) from "
+    "the active recurring series: day, bill or income, merchant, cadence, and amount in integer "
+    "cents (bills negative), with the total of each."
+)
+GET_FORECAST_DESCRIPTION = (
+    "Each account's balance walked forward through its own expected bills and income for the "
+    "next N days (1 to 90, default 30): the starting balance and its date, expected in and out, "
+    "the end, and the lowest point with its day, in integer cents, with each step; or one "
+    "account when account is given. Accounts with no balance are listed by name."
+)
+GET_BUDGETS_DESCRIPTION = (
+    "Each budget for a month (YYYY-MM, default this month): category or group, monthly target, "
+    "net spending so far (purchases minus refunds), what is left, the share used, and the share "
+    "of the month gone, in integer cents and whole percents."
+)
 _TOOLS = (
     (tools.list_accounts, LIST_ACCOUNTS_DESCRIPTION),
     (tools.get_balances, GET_BALANCES_DESCRIPTION),
@@ -57,6 +86,11 @@ _TOOLS = (
     (tools.list_transactions, LIST_TRANSACTIONS_DESCRIPTION),
     (tools.get_spending, GET_SPENDING_DESCRIPTION),
     (tools.month_over_month, MONTH_OVER_MONTH_DESCRIPTION),
+    (tools.get_insights, GET_INSIGHTS_DESCRIPTION),
+    (tools.get_recurring, GET_RECURRING_DESCRIPTION),
+    (tools.get_upcoming, GET_UPCOMING_DESCRIPTION),
+    (tools.get_forecast, GET_FORECAST_DESCRIPTION),
+    (tools.get_budgets, GET_BUDGETS_DESCRIPTION),
 )
 
 

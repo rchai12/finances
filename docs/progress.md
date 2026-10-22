@@ -534,4 +534,11 @@ Template:
   - The summary's `spent_cents` is `spent_cents + refunds_cents` because `SpendingSummary` has no `purchases_cents`.
 - Follow-ups: none
 
+## Phase 14c: the agent's outlook tools (2026-10-22)
+- Tests: 3182 -> 3203 (given 16)
+- New public names: `mcp_server.tools`: `get_insights`, `get_recurring`, `get_upcoming`, `get_forecast`, `get_budgets`; `mcp_server.server`: `GET_INSIGHTS_DESCRIPTION`, `GET_RECURRING_DESCRIPTION`, `GET_UPCOMING_DESCRIPTION`, `GET_FORECAST_DESCRIPTION`, `GET_BUDGETS_DESCRIPTION`
+- Changed files: 8
+- Deviations: none
+- Follow-ups: none
+
 
