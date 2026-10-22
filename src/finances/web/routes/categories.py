@@ -18,6 +18,7 @@ from finances.db.repositories import (
 )
 from finances.domain.rules import MATCHES
 from finances.views.categories import (
+    card_credits_note,
     category_choices,
     category_lines,
     rule_lines,
@@ -55,6 +56,7 @@ def _categories_page(
         choices = category_choices(session)
         context = {
             "uncategorized": uncategorized_lines(session, _UNCATEGORIZED_LIMIT),
+            "card_note": card_credits_note(session, _UNCATEGORIZED_LIMIT),
             "limit": _UNCATEGORIZED_LIMIT,
             "rules": rule_lines(session),
             "matches": MATCHES,

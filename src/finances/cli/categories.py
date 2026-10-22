@@ -23,6 +23,7 @@ from finances.db.repositories import (
     set_categories_by_hand,
 )
 from finances.views.categories import (
+    card_credits_note,
     categorized_text,
     category_lines,
     rule_lines,
@@ -211,10 +212,13 @@ def uncategorized_command(
     require_current_schema()
     with session_scope(get_engine()) as session:
         lines = uncategorized_lines(session, limit)
+        note = card_credits_note(session, limit)
     if not lines:
         typer.echo("No uncategorized transactions.")
         return
     print_rows(("ID", "Date", "Account", "Merchant", "Amount"), lines)
+    if note is not None:
+        typer.echo(note)
 
 
 @transactions_app.command("set-category")

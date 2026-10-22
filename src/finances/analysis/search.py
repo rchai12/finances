@@ -13,7 +13,7 @@ from finances.db.repositories import (
     list_transactions_by_day,
 )
 from finances.domain.models import Transaction
-from finances.domain.spending import KINDS, Flow
+from finances.domain.spending import REFUND, SEARCH_KINDS, Flow, is_refund
 
 _LABELS = ("account", "category", "group", "merchant", "bank", "card", "person")
 
@@ -41,8 +41,8 @@ class FoundTransaction:
 
 
 def _check(session: Session, query: TransactionQuery) -> None:
-    if query.kind.strip() and query.kind not in KINDS:
-        raise ValueError(f"kind must be one of: {', '.join(KINDS)}")
+    if query.kind.strip() and query.kind not in SEARCH_KINDS:
+        raise ValueError(f"kind must be one of: {', '.join(SEARCH_KINDS)}")
     if query.account.strip() and get_account_by_name(session, query.account) is None:
         raise ValueError("account not found")
     person = query.person.strip().lower()
@@ -58,7 +58,10 @@ def _matches(item: FoundTransaction, wanted: dict[str, str]) -> bool:
             if value.lower() not in item.transaction.description.lower():
                 return False
         elif name == "kind":
-            if flow.kind != value:
+            if value == REFUND:
+                if not is_refund(flow):
+                    return False
+            elif flow.kind != value:
                 return False
         elif getattr(flow, name).lower() != value.lower():
             return False

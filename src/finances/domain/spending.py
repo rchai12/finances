@@ -19,6 +19,8 @@ UNASSIGNED = "Unassigned"
 NO_CARD = "No card"
 BY = ("category", "group", "merchant", "person", "account", "bank", "card")
 KINDS = (SPENDING, INCOME, TRANSFER, UNSORTED_IN, PENDING)
+REFUND = "refund"
+SEARCH_KINDS = (*KINDS, REFUND)
 
 _MONTH = re.compile(r"([0-9]{4})-([0-9]{2})")
 _BAD_MONTH = "month must be a year and month, like 2026-05"
@@ -68,6 +70,10 @@ def flow_kind(amount_cents: int, *, paired: bool, category: Category | None) -> 
     if category is None and amount_cents > 0:
         return UNSORTED_IN
     return SPENDING
+
+
+def is_refund(flow: Flow) -> bool:
+    return flow.kind == SPENDING and flow.amount_cents > 0
 
 
 def check_by(by: str) -> None:

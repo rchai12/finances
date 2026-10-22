@@ -38,6 +38,7 @@
   {% for key in kept %}<input type="hidden" name="{{ key }}" value="{{ chosen[key] }}">
   {% endfor %}<button type="submit">Show</button>
 </form>
+<p class="quick"><a href="/transactions?kind=refund">Only refunds</a></p>
 {% if kept %}<p class="hint">Also filtered by: {% for key in kept %}{{ key }} {{ chosen[key] }}{% if not loop.last %}, {% endif %}{% endfor %}. <a href="/transactions">Clear all filters</a></p>{% endif %}
 {% if rows %}
 <p class="selection"><a href="/transactions?{{ select_all_query }}">Select all shown</a> <a href="/transactions?{{ back }}">Clear the selection</a></p>
@@ -47,7 +48,7 @@
 <table>
 <thead><tr><th>Date</th><th>Account</th><th>Description</th><th>Category</th><th class="amount">Amount</th><th>Card</th><th>Section</th><th>Person</th></tr></thead>
 <tbody>
-{% for id, row, category in rows %}<tr><td><input type="checkbox" name="id" value="{{ id }}"{% if select_all %} checked{% endif %}> <a href="/transactions/{{ id }}">{{ row.date }}</a></td><td><a href="/account?name={{ row.account|urlencode }}">{{ row.account }}</a></td><td>{{ row.description }}</td><td>{{ category }}</td><td class="{{ row.amount|amount_class }}">{{ row.amount }}</td><td>{% if row.card %}<a href="/account?name={{ row.account|urlencode }}&amp;card={{ row.card[-4:] }}">{{ row.card }}</a>{% endif %}</td><td>{{ row.section }}</td><td>{{ row.person }}</td></tr>
+{% for id, row, category, refund in rows %}<tr><td><input type="checkbox" name="id" value="{{ id }}"{% if select_all %} checked{% endif %}> <a href="/transactions/{{ id }}">{{ row.date }}</a></td><td><a href="/account?name={{ row.account|urlencode }}">{{ row.account }}</a></td><td>{{ row.description }}</td><td>{{ category }}{% if refund %} <span class="badge">refund</span>{% endif %}</td><td class="{{ row.amount|amount_class }}">{{ row.amount }}</td><td>{% if row.card %}<a href="/account?name={{ row.account|urlencode }}&amp;card={{ row.card[-4:] }}">{{ row.card }}</a>{% endif %}</td><td>{{ row.section }}</td><td>{{ row.person }}</td></tr>
 {% endfor %}</tbody>
 </table>
 <p class="fields">

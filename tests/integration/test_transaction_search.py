@@ -30,7 +30,7 @@ from finances.domain.spending import (
 )
 
 CHECKING, CARD, SHARED = 1, 2, 3
-KIND_MESSAGE = "kind must be one of: spending, income, transfer, unsorted_in, pending"
+KIND_MESSAGE = "kind must be one of: spending, income, transfer, unsorted_in, pending, refund"
 
 
 @pytest.fixture

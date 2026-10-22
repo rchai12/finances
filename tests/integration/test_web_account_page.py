@@ -143,7 +143,7 @@ def test_the_account_page(home: TestClient) -> None:
         LATEST,
         ["2026-05-21", "PAYMENT THANK YOU", "", "$500.00", "", "Pat Example"],
         ["2026-05-20", "LATE FEE", "", "-$35.00", "", "Pat Example"],
-        ["2026-05-15", "FOOBAR GROCERY", "Groceries", "$5.99", "••1111", "Pat Example"],
+        ["2026-05-15", "FOOBAR GROCERY", "Groceries refund", "$5.99", "••1111", "Pat Example"],
         ["2026-05-12", "ACME COFFEE", "Coffee & Dessert", "-$5.00", "••2222", "Pat Example"],
         ["2026-05-10", "FOOBAR GROCERY", "Groceries", "-$200.00", "••1111", "Pat Example"],
         ["2026-05-03", "BAZ BOOKS", "", "-$15.00", "••2222", "Pat Example"],

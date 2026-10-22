@@ -7,6 +7,7 @@ from fastapi.responses import Response
 from starlette.concurrency import run_in_threadpool
 
 from finances.analysis.people import JOINT_FILTER, UNASSIGNED_FILTER
+from finances.analysis.refunds import refund_facts
 from finances.analysis.search import TransactionQuery, search_transactions
 from finances.categorize.service import categorize
 from finances.db.repositories import (
@@ -18,6 +19,7 @@ from finances.db.repositories import (
     set_categories_by_hand,
     set_category_by_hand,
 )
+from finances.domain.money import format_cents
 from finances.domain.rules import MATCHES
 from finances.views.categories import category_choices, transaction_detail
 from finances.views.transactions import found_rows
@@ -117,8 +119,28 @@ def _transaction_page(
         detail = None if transaction_id is None else transaction_detail(session, transaction_id)
         choices = category_choices(session)
         transfer = None if detail is None else transfer_of(session, detail.id)
-    if detail is None:
+        facts = None if detail is None else refund_facts(session, detail.id)
+    if detail is None or facts is None:
         return _missing_transaction(request)
+    refund = None
+    if facts.is_refund:
+        purchase = None
+        if facts.purchase is not None:
+            shown = facts.purchase.transaction_date or facts.purchase.posted_date
+            purchase = {
+                "id": facts.purchase.id,
+                "date": shown.isoformat(),
+                "amount": format_cents(facts.purchase.amount_cents),
+            }
+        refund = {"amount": detail.amount, "purchase": purchase}
+    refunded = [
+        {
+            "id": item.id,
+            "date": (item.transaction_date or item.posted_date).isoformat(),
+            "amount": format_cents(item.amount_cents),
+        }
+        for item in facts.refunds
+    ]
     context = {
         "detail": detail,
         "transfer": transfer,
@@ -126,6 +148,8 @@ def _transaction_page(
         "matches": MATCHES,
         "rule_form": _rule_form(pattern=detail.merchant, category=detail.category),
         "error": error,
+        "refund": refund,
+        "refunded": refunded,
     }
     return _render(request, "transactions_one", context, status_code)
 

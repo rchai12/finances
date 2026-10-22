@@ -12,6 +12,7 @@
 {% for row in uncategorized %}<tr><td><a href="/transactions/{{ row.id }}">{{ row.id }}</a></td><td>{{ row.date }}</td><td>{{ row.account }}</td><td>{{ row.merchant }}</td><td class="{{ row.amount|amount_class }}">{{ row.amount }}</td></tr>
 {% endfor %}</tbody>
 </table>
+{% if card_note %}<p class="hint">{{ card_note }}</p>{% endif %}
 {% if uncategorized|length >= limit %}<p class="hint">Showing the {{ limit }} latest. Open one to set its category, or add a rule below.</p>{% endif %}
 {% else %}
 <p class="empty">No uncategorized transactions.</p>

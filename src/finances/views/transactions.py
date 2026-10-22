@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from finances.analysis.search import FoundTransaction
 from finances.domain.models import Transaction
 from finances.domain.money import format_cents
-from finances.domain.spending import UNASSIGNED, UNCATEGORIZED
+from finances.domain.spending import UNASSIGNED, UNCATEGORIZED, is_refund
 from finances.views.format import mask_last4
 
 
@@ -34,8 +34,8 @@ def transaction_row(item: Transaction, person: str | None, names: dict[int, str]
 
 def found_rows(
     found: list[FoundTransaction], names: dict[int, str]
-) -> list[tuple[int, TransactionRow, str]]:
-    """Each found transaction as its id, its row, and its category ("" when uncategorized)."""
+) -> list[tuple[int, TransactionRow, str, bool]]:
+    """Each found transaction as its id, its row, its category, and whether it is a refund."""
     return [
         (
             item.transaction.id,
@@ -45,6 +45,7 @@ def found_rows(
                 names,
             ),
             "" if item.flow.category == UNCATEGORIZED else item.flow.category,
+            is_refund(item.flow),
         )
         for item in found
     ]

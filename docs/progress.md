@@ -519,4 +519,11 @@ Template:
 - Deviations: none
 - Follow-ups: none
 
+## Phase 35b: refunds on transactions (2026-10-22)
+- Tests: 3111 -> 3145 (given 27)
+- New public names: `domain.spending`: `REFUND`, `SEARCH_KINDS`, `is_refund`; `domain.refunds`: `REFUND_WINDOW_DAYS`, `Purchase`, `likely_purchase`; `analysis.refunds`: `RefundFacts`, `refund_facts`; `views.categories`: `CARD_CREDITS`, `card_credits_note`
+- Changed files: 22
+- Deviations: none
+- Follow-ups: none
+
 

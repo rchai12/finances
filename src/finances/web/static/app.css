@@ -74,3 +74,4 @@ section.card table { background: var(--bg); }
 section.card .notice, section.card .error, section.card .attention { background: var(--bg); }
 td.amount.neg { color: var(--bad); }
 td.amount.pos { color: var(--good); }
+.badge { display: inline-block; margin-left: .35rem; padding: 0 .45rem; border-radius: 999px; font-size: .72rem; font-weight: 600; background: var(--accent-tint); color: var(--accent); }

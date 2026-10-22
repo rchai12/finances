@@ -8,13 +8,14 @@ from finances.categorize.service import CategorizeResult
 from finances.db.repositories import (
     account_names,
     get_transaction,
+    list_accounts,
     list_categories,
     list_category_assignments,
     list_rules,
     list_uncategorized,
 )
 from finances.domain.merchants import clean_merchant
-from finances.domain.models import MANUAL, Category, CategoryAssignment
+from finances.domain.models import MANUAL, AccountType, Category, CategoryAssignment
 from finances.domain.money import format_cents
 from finances.views.format import mask_last4
 
@@ -96,6 +97,27 @@ def rule_lines(session: Session) -> list[RuleLine]:
         )
         for rule in list_rules(session)
     ]
+
+
+CARD_CREDITS = (
+    "Money in on a card: {count}, likely a refund or a card payment."
+    " Set a category, or pair it on the Transfers page."
+)
+
+
+def card_credits_note(session: Session, limit: int) -> str | None:
+    """How many of the uncategorized list are money in on a credit card, or None."""
+    accounts = {account.id: account for account in list_accounts(session, include_inactive=True)}
+    count = 0
+    for item in list_uncategorized(session, limit):
+        account = accounts.get(item.account_id)
+        if (
+            account is not None
+            and account.type == AccountType.CREDIT_CARD
+            and item.amount_cents > 0
+        ):
+            count += 1
+    return None if count == 0 else CARD_CREDITS.format(count=count)
 
 
 def uncategorized_lines(session: Session, limit: int) -> list[UncategorizedLine]:

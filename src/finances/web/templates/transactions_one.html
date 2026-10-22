@@ -16,6 +16,19 @@
 <tr><th>Set</th><td>{{ detail.set_by }}</td></tr>
 </tbody>
 </table>
+{% if refund %}
+<section class="card">
+<h2>Refund</h2>
+{% if refund.purchase %}<p class="summary">Likely returns the purchase of <a href="/transactions/{{ refund.purchase.id }}">{{ refund.purchase.date }}</a> for {{ refund.purchase.amount }}.</p>
+{% else %}<p class="empty">No purchase of at least {{ refund.amount }} from this merchant on this account in the 90 days before.</p>
+{% endif %}</section>
+{% endif %}
+{% if refunded %}
+<section class="card">
+<h2>Refunds</h2>
+{% for item in refunded %}<p class="summary">Refunded <a href="/transactions/{{ item.id }}">{{ item.amount }} on {{ item.date }}</a>.</p>
+{% endfor %}</section>
+{% endif %}
 {% if transfer %}
 <section class="card">
 <h2>Transfer</h2>

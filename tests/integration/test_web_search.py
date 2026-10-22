@@ -25,7 +25,7 @@ SNACK_DAYS = [
     "2026-05-02",
     "2026-05-01",
 ]
-KINDS = "kind must be one of: spending, income, transfer, unsorted_in, pending"
+KINDS = "kind must be one of: spending, income, transfer, unsorted_in, pending, refund"
 
 
 @pytest.fixture
