@@ -472,3 +472,12 @@ Template:
   - `_days` uses `str.isdigit`; wrapped a 130-character line in `template_check.py` left by the 27c spec commit so ruff could pass.
 - Follow-ups:
   - Wrap that `template_check.py` line in the spec tree so later phases do not have to touch it.
+
+## Phase 27d: net worth over time (2026-10-22)
+- Tests: 2997 -> 3014 (given 13)
+- New public names: `domain.networth`: `NetWorthPoint`, `point_days`, `net_worth_points`; `analysis.networth`: `net_worth_over_time`; `views.networth`: `NetWorthRow`, `net_worth_rows`; `views.charts`: `net_worth_chart`
+- Changed files: 12
+- Deviations:
+  - `point_days` uses `months_ending` then replaces this month with today; `_days` refuses non-ASCII with `str.isascii`.
+- Follow-ups:
+  - Known limit: a closed account leaves past months too, so closing an account changes the history shown.

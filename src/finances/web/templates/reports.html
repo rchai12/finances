@@ -1,5 +1,7 @@
 {% extends "layout.html" %}
 {% block title %}Reports · Finances{% endblock %}
+{% block scripts %}{% if net_worth_chart %}<script src="/static/vendor/chart.umd.js" defer></script>
+<script src="/static/charts.js" defer></script>{% endif %}{% endblock %}
 {% block content %}
 <h1>Reports</h1>
 {% include "messages.html" %}
@@ -15,6 +17,18 @@
 {% endfor %}
 {% else %}
 <p class="empty">No accounts.</p>
+{% endif %}
+<h2>Net worth over time</h2>
+{% if net_worth %}
+<div class="chart"><canvas data-chart="{{ net_worth_chart }}" role="img" aria-label="Net worth at the end of each month"></canvas></div>
+<table>
+<thead><tr><th>Date</th><th class="amount">Net worth</th><th class="amount">Accounts</th></tr></thead>
+<tbody>
+{% for row in net_worth %}<tr><td>{{ row.date }}</td><td class="amount">{{ row.net_worth }}</td><td class="amount">{{ row.accounts }}</td></tr>
+{% endfor %}</tbody>
+</table>
+{% else %}
+<p class="empty">No balances yet.</p>
 {% endif %}
 <h2>Months</h2>
 {% if months %}

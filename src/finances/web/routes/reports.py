@@ -1,5 +1,6 @@
 """The Reports and Insights pages."""
 
+import json
 from datetime import date
 
 from fastapi import APIRouter, Request
@@ -9,11 +10,13 @@ from finances.analysis.balances import balance_report
 from finances.analysis.forecast import forecast_report
 from finances.analysis.insights import insights_report
 from finances.analysis.months import month_report
+from finances.analysis.networth import net_worth_over_time
 from finances.analysis.recurring import recurring_charges
 from finances.analysis.spending import spending_report
 from finances.analysis.upcoming import upcoming_report
 from finances.domain.spending import BY, month_bounds, month_range
 from finances.views.balances import balance_rows, balance_summary
+from finances.views.charts import net_worth_chart
 from finances.views.forecast import (
     account_heading,
     forecast_heading,
@@ -30,6 +33,7 @@ from finances.views.insights import (
     merchant_rows,
 )
 from finances.views.months import month_notes, month_rows
+from finances.views.networth import net_worth_rows
 from finances.views.recurring import recurring_rows, recurring_summary
 from finances.views.spending import spending_heading, spending_rows, spending_summary
 from finances.views.upcoming import upcoming_heading, upcoming_rows, upcoming_summary
@@ -46,7 +50,7 @@ DAYS_REFUSED = "days must be a whole number from 1 to 90"
 def _days(text: str) -> int:
     if not text:
         return 30
-    if not text.isdigit():
+    if not text.isascii() or not text.isdigit():
         raise ValueError(DAYS_REFUSED)
     days = int(text)
     if days < 1 or days > 90:
@@ -106,6 +110,8 @@ def reports(request: Request) -> Response:
             }
             last = report.end
         lines = month_report(session, last, _REPORT_MONTHS)
+        points = net_worth_over_time(session, web_app._today())
+    chart = net_worth_chart(points)
     context = {
         "balances": balance_rows(balances),
         "balance_summary": balance_summary(balances),
@@ -115,6 +121,8 @@ def reports(request: Request) -> Response:
         "form": form,
         "bys": BY,
         "error": error,
+        "net_worth": net_worth_rows(points),
+        "net_worth_chart": None if chart is None else json.dumps(chart),
     }
     return _render(request, "reports", context, 200 if error is None else 400)
 

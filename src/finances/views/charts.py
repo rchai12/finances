@@ -2,6 +2,7 @@
 
 from finances.analysis.account_page import AccountMonth
 from finances.domain.models import BalanceSnapshot
+from finances.domain.networth import NetWorthPoint
 from finances.domain.spending import SpendingLine
 
 
@@ -38,4 +39,15 @@ def balance_chart(balances: list[BalanceSnapshot]) -> dict | None:
         "kind": "line",
         "labels": [item.as_of_date.isoformat() for item in oldest_first],
         "series": [{"name": "Balance", "cents": [item.balance_cents for item in oldest_first]}],
+    }
+
+
+def net_worth_chart(points: list[NetWorthPoint]) -> dict | None:
+    """Line of net worth oldest first; None when there are no points."""
+    if not points:
+        return None
+    return {
+        "kind": "line",
+        "labels": [point.day.isoformat() for point in points],
+        "series": [{"name": "Net worth", "cents": [point.net_worth_cents for point in points]}],
     }

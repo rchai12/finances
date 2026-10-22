@@ -213,7 +213,6 @@ def test_the_menu_has_reports(home: TestClient) -> None:
     assert 'href="/reports" aria-current="page">Reports</a>' in html
     assert html.count('aria-current="page"') == 1
     assert 'href="/reports">Reports</a>' in home.get("/transfers").text
-    assert "<script" not in html
 
 
 def test_a_database_that_is_not_migrated(client: TestClient) -> None:

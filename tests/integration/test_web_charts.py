@@ -106,7 +106,7 @@ def test_the_account_page_loads_two_scripts_and_no_inline_script(home: TestClien
         assert kind in response.headers["content-type"]
 
 
-@pytest.mark.parametrize("path", ["/", "/accounts", "/transactions", "/reports", "/insights"])
+@pytest.mark.parametrize("path", ["/", "/accounts", "/transactions", "/insights"])
 def test_other_pages_load_no_script(home: TestClient, path: str) -> None:
     assert "<script" not in home.get(path).text
 
