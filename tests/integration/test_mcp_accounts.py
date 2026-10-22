@@ -20,6 +20,7 @@ from finances.domain.models import DataSource
 from finances.mcp_server.access import reading
 from finances.mcp_server.server import INSTRUCTIONS, build_server
 
+NO_AMOUNTS = ("list_accounts", "list_categories", "list_rules")
 READ_ONLY = {
     "read_only_hint": True,
     "destructive_hint": False,
@@ -81,12 +82,17 @@ def test_the_server_and_its_tools(tmp_settings: Settings) -> None:
         "get_spending",
         "get_upcoming",
         "list_accounts",
+        "list_categories",
+        "list_rules",
         "list_transactions",
+        "list_transfer_suggestions",
+        "list_transfers",
+        "list_uncategorized",
         "month_over_month",
     ]
     for tool in tools:
         assert tool.annotations.model_dump(include=set(READ_ONLY)) == READ_ONLY, tool.name
-        assert "cents" in tool.description or tool.name == "list_accounts", tool.name
+        assert "cents" in tool.description or tool.name in NO_AMOUNTS, tool.name
 
 
 def test_list_accounts(money: Settings) -> None:

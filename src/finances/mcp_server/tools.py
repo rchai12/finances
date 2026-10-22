@@ -17,8 +17,21 @@ from finances.analysis.recurring import recurring_charges, recurring_income
 from finances.analysis.search import FoundTransaction, TransactionQuery, search_transactions
 from finances.analysis.spending import spending_report
 from finances.analysis.upcoming import upcoming_report
-from finances.db.repositories import account_names, list_account_owners, list_people
+from finances.categorize.transfers import transfer_suggestions
+from finances.db.repositories import (
+    account_names,
+    count_uncategorized,
+    get_transaction,
+    list_account_owners,
+    list_people,
+    list_transfer_pairs,
+)
 from finances.db.repositories import list_accounts as load_accounts
+from finances.db.repositories import list_categories as load_categories
+from finances.db.repositories import list_rules as load_rules
+from finances.db.repositories import list_uncategorized as load_uncategorized
+from finances.domain.merchants import clean_merchant
+from finances.domain.models import Transaction
 from finances.domain.spending import UNASSIGNED, UNCATEGORIZED, is_refund, month_bounds, month_range
 from finances.mcp_server.access import reading
 
@@ -370,3 +383,100 @@ def get_budgets(month: str = "") -> dict[str, Any]:
             for line in lines
         ],
     }
+
+
+def _brief(item: Transaction, names: dict[int, str]) -> dict[str, Any]:
+    return {
+        "id": item.id,
+        "posted": item.posted_date.isoformat(),
+        "account": names[item.account_id],
+        "description": item.description,
+        "amount_cents": item.amount_cents,
+    }
+
+
+def _named(session: Any, transaction_id: int, names: dict[int, str]) -> dict[str, Any]:
+    found = get_transaction(session, transaction_id)
+    assert found is not None
+    return _brief(found, names)
+
+
+def list_uncategorized(limit: Annotated[int, Field(ge=1, le=500)] = 50) -> dict[str, Any]:
+    with reading() as session:
+        names = account_names(session)
+        return {
+            "total": count_uncategorized(session),
+            "transactions": [
+                {**_brief(item, names), "merchant": clean_merchant(item.description)}
+                for item in load_uncategorized(session, limit)
+            ],
+        }
+
+
+def list_categories() -> dict[str, Any]:
+    with reading() as session:
+        found = load_categories(session)
+    groups = {item.id: item.name for item in found if item.group_id is None}
+    return {
+        "categories": [
+            {
+                "name": item.name,
+                "group": groups[item.group_id],
+                "transfer": item.is_transfer,
+                "income": item.is_income,
+                "sensitive": item.is_sensitive,
+            }
+            for item in found
+            if item.group_id is not None
+        ]
+    }
+
+
+def list_rules() -> dict[str, Any]:
+    with reading() as session:
+        names = {item.id: item.name for item in load_categories(session)}
+        return {
+            "rules": [
+                {
+                    "id": item.id,
+                    "priority": item.priority,
+                    "match": item.match,
+                    "pattern": item.pattern,
+                    "category": names[item.category_id],
+                }
+                for item in load_rules(session)
+            ]
+        }
+
+
+def list_transfers(limit: Annotated[int, Field(ge=1, le=500)] = 100) -> dict[str, Any]:
+    with reading() as session:
+        names = account_names(session)
+        pairs = list_transfer_pairs(session)
+        newest = sorted(pairs, key=lambda item: item.id, reverse=True)
+        return {
+            "total": len(pairs),
+            "pairs": [
+                {
+                    "pair": item.id,
+                    "status": item.status,
+                    "out": _named(session, item.out_transaction_id, names),
+                    "in": _named(session, item.in_transaction_id, names),
+                }
+                for item in newest[:limit]
+            ],
+        }
+
+
+def list_transfer_suggestions() -> dict[str, Any]:
+    with reading() as session:
+        names = account_names(session)
+        return {
+            "suggestions": [
+                {
+                    "out": _named(session, out_id, names),
+                    "in": _named(session, in_id, names),
+                }
+                for out_id, in_id in transfer_suggestions(session)
+            ]
+        }

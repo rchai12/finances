@@ -79,6 +79,32 @@ GET_BUDGETS_DESCRIPTION = (
     "net spending so far (purchases minus refunds), what is left, the share used, and the share "
     "of the month gone, in integer cents and whole percents."
 )
+LIST_UNCATEGORIZED_DESCRIPTION = (
+    "Transactions without a category and not part of a transfer, latest first, at most limit "
+    "(1 to 500, default 50), with the total count: id, posted day, account, description, the "
+    "cleaned merchant, and the amount in integer cents (money out negative)."
+)
+LIST_CATEGORIES_DESCRIPTION = (
+    "Every category with its group and whether it counts as a transfer, as income, or as "
+    "sensitive, in name order ignoring case. No amounts."
+)
+LIST_RULES_DESCRIPTION = (
+    "Every categorizing rule in the order rules are tried (highest priority first, then "
+    "oldest): id, priority, match (contains, starts_with, equals), the pattern as stored, and "
+    "the category it sets. No amounts."
+)
+LIST_TRANSFERS_DESCRIPTION = (
+    "Transfers already paired, newest pair first, at most limit (1 to 500, default 100), with "
+    "the total: each pair's id, status (auto when the app paired it, confirmed when a person "
+    "did), and its outflow and inflow (id, posted day, account, description, amount in "
+    "integer cents)."
+)
+LIST_TRANSFER_SUGGESTIONS_DESCRIPTION = (
+    "Possible transfers waiting for a person to decide, where more than one pairing was "
+    "possible: each an outflow and an inflow of the same amount on different accounts (id, "
+    "posted day, account, description, amount in integer cents). A person confirms or rejects "
+    "them; these tools never do."
+)
 _TOOLS = (
     (tools.list_accounts, LIST_ACCOUNTS_DESCRIPTION),
     (tools.get_balances, GET_BALANCES_DESCRIPTION),
@@ -91,6 +117,11 @@ _TOOLS = (
     (tools.get_upcoming, GET_UPCOMING_DESCRIPTION),
     (tools.get_forecast, GET_FORECAST_DESCRIPTION),
     (tools.get_budgets, GET_BUDGETS_DESCRIPTION),
+    (tools.list_uncategorized, LIST_UNCATEGORIZED_DESCRIPTION),
+    (tools.list_categories, LIST_CATEGORIES_DESCRIPTION),
+    (tools.list_rules, LIST_RULES_DESCRIPTION),
+    (tools.list_transfers, LIST_TRANSFERS_DESCRIPTION),
+    (tools.list_transfer_suggestions, LIST_TRANSFER_SUGGESTIONS_DESCRIPTION),
 )
 
 

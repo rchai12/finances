@@ -23,7 +23,12 @@ TOOLS = [
     "get_spending",
     "get_upcoming",
     "list_accounts",
+    "list_categories",
+    "list_rules",
     "list_transactions",
+    "list_transfer_suggestions",
+    "list_transfers",
+    "list_uncategorized",
     "month_over_month",
 ]
 REFUND = {

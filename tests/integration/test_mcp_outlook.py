@@ -30,7 +30,12 @@ TOOLS = [
     "get_spending",
     "get_upcoming",
     "list_accounts",
+    "list_categories",
+    "list_rules",
     "list_transactions",
+    "list_transfer_suggestions",
+    "list_transfers",
+    "list_uncategorized",
     "month_over_month",
 ]
 CHECKING = {
@@ -201,7 +206,7 @@ def month(today: Settings) -> Settings:
     return today
 
 
-def test_eleven_read_only_tools(tmp_settings: Settings) -> None:
+def test_the_read_only_tools(tmp_settings: Settings) -> None:
     async def go():
         async with Client(build_server()) as client:
             return (await client.list_tools()).tools

@@ -22,7 +22,12 @@ from finances.mcp_server.server import (
     GET_SPENDING_DESCRIPTION,
     GET_UPCOMING_DESCRIPTION,
     LIST_ACCOUNTS_DESCRIPTION,
+    LIST_CATEGORIES_DESCRIPTION,
+    LIST_RULES_DESCRIPTION,
     LIST_TRANSACTIONS_DESCRIPTION,
+    LIST_TRANSFER_SUGGESTIONS_DESCRIPTION,
+    LIST_TRANSFERS_DESCRIPTION,
+    LIST_UNCATEGORIZED_DESCRIPTION,
     MONTH_OVER_MONTH_DESCRIPTION,
     build_server,
 )
@@ -136,6 +141,11 @@ def test_each_tool_description_matches_the_table(tmp_settings: Settings) -> None
         "get_upcoming": GET_UPCOMING_DESCRIPTION,
         "get_forecast": GET_FORECAST_DESCRIPTION,
         "get_budgets": GET_BUDGETS_DESCRIPTION,
+        "list_uncategorized": LIST_UNCATEGORIZED_DESCRIPTION,
+        "list_categories": LIST_CATEGORIES_DESCRIPTION,
+        "list_rules": LIST_RULES_DESCRIPTION,
+        "list_transfers": LIST_TRANSFERS_DESCRIPTION,
+        "list_transfer_suggestions": LIST_TRANSFER_SUGGESTIONS_DESCRIPTION,
     }
 
 

@@ -541,4 +541,11 @@ Template:
 - Deviations: none
 - Follow-ups: none
 
+## Phase 14d: the agent's work queues (2026-10-22)
+- Tests: 3203 -> 3226 (given 14)
+- New public names: `mcp_server.tools`: `list_uncategorized`, `list_categories`, `list_rules`, `list_transfers`, `list_transfer_suggestions`; `mcp_server.server`: `LIST_UNCATEGORIZED_DESCRIPTION`, `LIST_CATEGORIES_DESCRIPTION`, `LIST_RULES_DESCRIPTION`, `LIST_TRANSFERS_DESCRIPTION`, `LIST_TRANSFER_SUGGESTIONS_DESCRIPTION`
+- Changed files: 9
+- Deviations: none
+- Follow-ups: none
+
 
