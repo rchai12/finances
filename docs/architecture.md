@@ -10,7 +10,7 @@ Everything runs on one machine the household owns (a Mac Studio): the overarchin
 
 The household reaches that machine remotely over a private, encrypted connection. The app itself is never published to the internet (see Privacy boundary).
 
-It also works on its own through the `fin` CLI and, later, a local web UI.
+It also works on its own through the `fin` CLI and a local web UI (from Phase 16a).
 
 ## Goals
 
@@ -62,10 +62,10 @@ finances/
       parsers/                  one module per statement format (Capital One, BoA, Citi, Truist, Marcus)
     sync/                       SimpleFIN client and daily sync (the ONLY place with network)
     categorize/                 the categorize run and transfer pairing
-    analysis/                   reports, insights, health, budgets: load through db, apply domain rules
+    analysis/                   reports, search, insights, recurring, upcoming, forecast, net worth, refunds, health, budgets, the dashboard: load through db, apply domain rules
     views/                      display rows (text) built once for cli and web
     cli/                        Typer commands (thin)
-    mcp_server/                 MCP tools for the agent (thin; Phase 14)
+    mcp_server/                 MCP tools for the agent on stdio (thin; from Phase 14a)
     web/                        FastAPI app (thin): app.py (application, security, clock hooks), routes/ (one router per area), shared page and form helpers, templates, static files, vendored Chart.js
   tests/
     fixtures/                   synthetic statement text and aggregator responses only
@@ -82,7 +82,8 @@ cli, mcp_server, web  ──►  ingest, sync, categorize, analysis  ──►  
 - `domain` depends on nothing in the project. The rules (what counts as spending, a transfer candidate, a recurring series, a finding, a budget's progress, a data-health problem) live here as pure functions and are tested without a database.
 - `analysis` takes a `Session`, loads through `db`, applies the `domain` rules, and returns domain objects and plain data (integer cents, dates). It never formats text. It is tested on a temporary migrated database.
 - `views` turns analysis results into display text for `cli` and `web` (Phase 22). `mcp_server` does **not** use `views`: the agent's tools return plain data, so they wrap `analysis` and `db` directly.
-- `cli`, `mcp_server`, and `web` are three thin front ends over the same functions. None of them imports another.
+- `cli`, `mcp_server`, and `web` are three thin front ends over the same functions. None of them imports another, except that `fin web serve` and `fin mcp serve` import the app or server they start.
+- **Known drift (to tidy, roadmap Phase 36):** some `views` modules still take a `Session` and load through `db` (accounts, backups, categories, people, sync, transfers), `views/sync.py` reads the Keychain, `views.categories.card_credits_note` counts (a rule, which belongs in `analysis`), `analysis.dashboard` imports from `categorize`, and the transaction page's route builds the refund text itself. None of this touches money or privacy rules; new code follows the rules above.
 - **Today's date** for anything a person reads (the current month, "today", days since) is the machine's local date, read through one function (Phase 31). Stored timestamps (feed pulls, imports) are UTC.
 
 ## Data flow
@@ -120,7 +121,7 @@ cli, mcp_server, web  ──►  ingest, sync, categorize, analysis  ──►  
 The MCP server is how the agent reaches this app. Details are in the Phase 14 and 19 specs; the rules are fixed here.
 
 - **Transport is stdio.** The agent launches `fin mcp serve` as a child process. No port is opened, so nothing else on the machine or network can connect.
-- **Read tools come first** (Phase 14): accounts, balances, transactions, reports, findings, and data coverage (which periods each account has, how old the newest data is, and which periods are statement-audited).
+- **Read tools come first** (Phase 14). Built (14a): `list_accounts`, `get_balances`, `get_net_worth`, each reading through a session that cannot write. Planned: transactions and spending (14b); findings, recurring, upcoming, forecast, budgets, and data coverage (which periods each account has, how old the newest data is, and which periods are statement-audited) (14c); the work queues and `find_merchants` (14d).
 - **The agent recommends; it does not act.** Write tools come later (Phase 19) and store only **proposals** (a category, a transfer or not a transfer, a rule, a merchant alias, a finding's status) and the agent's own advice log. A proposal changes nothing until a person accepts it with `fin review` or the web UI. The ledger is untouchable by the agent: no tool changes an amount, date, balance, or account, imports or deletes anything, triggers a sync, or overrides reconciliation.
 - **Tools are thin.** Each one validates its arguments, calls one function in `analysis`, `categorize`, or `db`, and returns the result. A tool contains no business logic.
 - **Results are plain data:** money as integer cents, dates as ISO strings, the sign convention from `AGENTS.md`, and a hard cap on rows per call with paging.
@@ -132,7 +133,7 @@ Raw financial data stays on the household's machine, with one known exception up
 
 - **Aggregator.** The aggregator company (SimpleFIN Bridge, and the data provider behind it) sees every transaction it delivers. This is accepted in exchange for not importing by hand, and nothing in this app can reduce it. The aggregator is the app's only outbound connection; all of that code lives in `src/finances/sync/`. Nothing else in the app touches the network, and the app sends the aggregator nothing except its credentials and sync requests.
 - **Agent.** The MCP server hands raw data to whatever process launched it. That is acceptable only because the agent runs on a **local model** on the same machine. The app cannot check this. If the finance subagent, or the overarching agent that reads its answers, is ever moved to a hosted model, raw data leaves the machine through the agent, and this design must be revisited first.
-- **Remote access.** The app never listens on a public interface: the MCP server uses stdio and the web UI binds to 127.0.0.1. Remote access is provided outside the app, by an encrypted private network between the household's own devices (a WireGuard-based mesh VPN such as Tailscale) that forwards to the loopback port. A tunnel service that decrypts traffic on its own servers is not used, since it would see the data. The web UI still requires a login (Phase 20), so reaching the port is not enough.
+- **Remote access.** The app never listens on a public interface: the MCP server uses stdio and the web UI binds to 127.0.0.1. Remote access is provided outside the app, by an encrypted private network between the household's own devices (a WireGuard-based mesh VPN such as Tailscale) that forwards to the loopback port. A tunnel service that decrypts traffic on its own servers is not used, since it would see the data. A login for the web UI is planned (Phase 20) and not built yet: until then, anyone who can reach the loopback port through the private network can use the site, so that network must include only the household's own devices.
 - **Logs.** Tool arguments and results, and aggregator responses, are never logged at INFO or above (`AGENTS.md` privacy rule 4).
 
 ## Data model (overview)
@@ -151,6 +152,7 @@ Details are in the phase specs. Core tables:
 - `people`, `account_owners`, `cardholder_aliases`: who owns each account and who each statement cardholder name is (Phase 21).
 - `feed_accounts`: which SimpleFIN account, under which named link, feeds which of ours (Phase 17c).
 - `budgets`: a monthly target per category or group (Phase 26a).
+- `sync_failures`: the last failed sync of each SimpleFIN link, with its time (UTC) and a short message, so `fin health` and the dashboard can say why a sync failed (Phase 33).
 
 Backups are files, not tables: checked SQLite copies in `FIN_BACKUP_DIR` (Phase 24).
 

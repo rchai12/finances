@@ -4,9 +4,9 @@ Each phase is sized for one focused coding session: a few modules, their tests, 
 
 **Input decision:** a third-party **aggregator** is the daily feed. Its rows are provisional. Monthly **PDF statements** are the audit and the record (see `docs/statement-formats.md`): each is reconciled against its own opening and closing balances, then upgrades the matching provisional rows in place. Statements also supply what the feed lacks, such as the cardholder on shared cards.
 
-Status (2026-10-16): built and verified, in the build order below, up to and including Phase 26b. Each phase's spec is in `docs/phases/`, its verification guide in `docs/verification/`, its review in `docs/reviews/`, and its result in `docs/progress.md`. Phases after 26b are outlines until specified.
+Status (2026-10-22): built and verified, in the build order below, up to and including Phase 35b (3145 tests). Each phase's spec is in `docs/phases/`, its verification guide in `docs/verification/`, its review in `docs/reviews/`, and its result in `docs/progress.md`. Phases after 35b are outlines until specified; Phase 14 is built only as 14a.
 
-**Build order:** 2 → 3 → 4 → 17a → 8 → 17b → 17c → 21 → 16a → 16b → 9 → 16c → 16d → 10 → 22 → 23 → 11 → 12 → 13 → 16e → 24 → 24b → 16f → 16j → 16g → 25 → 16h → 16i → 16k → 13d → 26a → 26b → 31 → 32 → 33 → 27a → 27b → 27c → 27d → 14a → 16l → 16m → 16n → 35a → 35b → 14b → 14c → 14d → 34 → 19 → 28 → 29 → 30 → 16 → 20. Phases 5 and 6 (more statement parsers) can be built any time after 4, when audit coverage for those banks is wanted.
+**Build order:** 2 → 3 → 4 → 17a → 8 → 17b → 17c → 21 → 16a → 16b → 9 → 16c → 16d → 10 → 22 → 23 → 11 → 12 → 13 → 16e → 24 → 24b → 16f → 16j → 16g → 25 → 16h → 16i → 16k → 13d → 26a → 26b → 31 → 32 → 33 → 27a → 27b → 27c → 27d → 14a → 16l → 16m → 16n → 35a → 35b → 14b → 14c → 14d → 36 → 34 → 19 → 28 → 29 → 30 → 16 → 20. Phases 5 and 6 (more statement parsers) can be built any time after 4, when audit coverage for those banks is wanted.
 
 | # | Phase | Outcome | Spec |
 |---|---|---|---|
@@ -23,9 +23,9 @@ Status (2026-10-16): built and verified, in the build order below, up to and inc
 | 11 | Categorization and transfers | Merchant normalization, categories, rules, own-account transfer matching | [phase-11a](phases/phase-11a-categories-and-rules.md) (categories, merchants, rules; terminal), [phase-11b](phases/phase-11b-categories-on-the-web.md) (the same on the web), [phase-11c](phases/phase-11c-transfers.md) (transfers between own accounts; terminal), [phase-11d](phases/phase-11d-transfers-on-the-web.md) (the same on the web) |
 | 12 | Core reports | Balances, net worth, spending by category/merchant/person, month-over-month | [phase-12a](phases/phase-12a-spending.md) (spending; terminal), [phase-12b](phases/phase-12b-balances-and-months.md) (balances, net worth, month over month; terminal), [phase-12c](phases/phase-12c-reports-on-the-web.md) (a Reports page on the web) |
 | 13 | Insights engine | Recurring charges, spikes, frequent small purchases, findings list | [phase-13a](phases/phase-13a-recurring-charges.md) (recurring charges; terminal), [phase-13b](phases/phase-13b-findings-and-merchant-stats.md) (findings and merchant stats; terminal), [phase-13c](phases/phase-13c-insights-on-the-web.md) (an Insights page on the web) |
-| 14 | Agent interface (MCP server) | Read-only MCP tools over stdio for the finance subagent: accounts, balances, transactions, reports, findings, data coverage | outline below |
+| 14 | Agent interface (MCP server) | Read-only MCP tools over stdio for the finance subagent: accounts, balances, transactions, reports, findings, data coverage | [phase-14a](phases/phase-14a-mcp-server.md) (the server and the account tools); 14b to 14d outline below |
 | 15 | *Removed* | Was "LLM advice". Advice now comes from the external agent | |
-| 16 | Local web UI | FastAPI dashboard on 127.0.0.1, statement upload, review of agent writes | outline below |
+| 16 | Local web UI | FastAPI dashboard on 127.0.0.1, statement upload, review of agent writes | 16a to 16n built (sub-phases listed below); a login (Phase 20) is not built |
 | 17 | Aggregator sync | Daily pull of transactions and balances into provisional rows; the only network code | [phase-17a](phases/phase-17a-feed-core.md) (feed core), [phase-17b](phases/phase-17b-simplefin-sync.md) (SimpleFIN client and sync), [phase-17c](phases/phase-17c-sync-commands.md) (links, commands, Keychain), [phase-17d](phases/phase-17d-user-agent.md) (a user agent Cloudflare accepts) |
 | 18 | *Removed* | Was "Azure deployment". The app stays on the household's machine | |
 | 19 | Agent write tools | MCP tools that write the interpretation layer only, tagged, reversible, with `fin review` | outline below |
@@ -45,7 +45,8 @@ Status (2026-10-16): built and verified, in the build order below, up to and inc
 | 32 | Split the web app | No behaviour change: `web/app.py` split into one router module per area, with the shared checks and rendering in one place | [phase-32](phases/phase-32-split-the-web-app.md) |
 | 33 | Sync resilience | The daily sync retries when SimpleFIN cannot be reached, scheduled runs leave timestamped log lines, and the last failed sync is stored so `fin health` and the dashboard can say why | [phase-33](phases/phase-33-sync-resilience.md) |
 | 34 | Audit trail | An append-only record of every change to the household's data (who, when, what, before and after), shown by `fin audit` and a History page; Phase 19's accepted proposals are recorded through it | outline below |
-| 35 | Refunds | Spending shown as Spent, Refunds, and Net so no spending figure needs a sign (today a category whose refunds exceed its purchases shows a minus that means money back, the opposite of the Transactions page); refunds labelled and filterable, with the purchase each likely returns | outline below |
+| 35 | Refunds | Spending shown as Spent, Refunds, and Net so no spending figure needs a sign (today a category whose refunds exceed its purchases shows a minus that means money back, the opposite of the Transactions page); refunds labelled and filterable, with the purchase each likely returns | [phase-35a](phases/phase-35a-spent-refunds-net.md), [phase-35b](phases/phase-35b-refunds-on-transactions.md) |
+| 36 | Tidy before the write phases | No behaviour change: split `db/repositories.py` by area behind a facade, add transfer pairing and spending to the critical modules, move the remaining rules out of `views`, share the last hand-built tables | outline below |
 
 Phase numbers are stable. A removed phase keeps its number, and a phase that is too large for one coding session is split into lettered sub-phases (`2a`, `2b`, ...), never renumbered.
 
@@ -287,9 +288,23 @@ The order in the build line above is the architect's recommendation: protect the
 - **Today's rule, kept:** a refund is money in with a spending category (kind `spending`, above zero). It reduces spending in reports, budgets, and insights; no total changes in this phase.
 - **Spent, Refunds, Net:** wherever spending is reported by category, group, merchant, person, account, bank, or card (the Reports page and `fin spending`, the account page's spending section), the single Spent column becomes three: **Spent** (purchases only), **Refunds** (money back only), both never below zero, and **Net** (Spent minus Refunds). A Net below zero is written `$100.00 back`, never with a minus, and shows in 16n's green. The summary line names the period's purchases, refunds, and net.
 - **The same rule everywhere net spending is shown:** the months tables (Reports, the dashboard, the account page) and budgets' spent figure never show a minus meaning money back: a net refund reads `$X back`. 16n's `amount_class` learns that text. Pie charts keep using positive net spending only, as now.
-- **Refunds you can see on transactions:** the Transactions page, a transaction's own page, and `fin transactions list` label refunds (`refund` in a kind column), and the search's `kind` filter gains `refund` on the web and in the terminal.
+- **Refunds you can see on transactions (built in 35b):** the Transactions page and an account's page show a `refund` badge after a refund's category; the web search's `kind` filter accepts `refund`, with an **Only refunds** link. The filter is web-only on purpose: the terminal's `fin transactions list` reads the database directly and has no kinds (a terminal search is in the backlog).
 - **The purchase it returns (shown, not stored):** for each refund, the likely original: the same account and cleaned merchant, an earlier purchase of at least the refund's amount within 90 days, the closest in time; each links to the other. A suggestion only; it never changes a category or a pairing.
 - **Uncategorized money in on a card** (`unsorted_in` on a credit card) is flagged on the uncategorized list as a likely refund or card payment.
 - **The agent:** Phase 14b's spending tools return `spent_cents`, `refunds_cents`, and `net_cents` (each named for what it holds, so no sign needs explaining), and `list_transactions` marks each refund.
 - **Placed before 14b** so the agent's tools are built on the split figures. **Split (2026-10-22):** [35a](phases/phase-35a-spent-refunds-net.md) the Spent, Refunds, and Net columns and `$X back` everywhere net spending is shown; [35b](phases/phase-35b-refunds-on-transactions.md) refund labels, the `refund` filter (web only: the terminal's transaction list has no kinds), matching, and the flag on uncategorized money in on a card.
 - Out of scope: a separate Refunds category or group; changing how refunds count in totals or budgets; storing refund matches.
+
+### Phase 36: Tidy before the write phases (planned 2026-10-22, after an audit at 3145 tests)
+- **Why:** an audit after 35b found the structure sound (layering and privacy hold, the web split and one clock are in place) and listed what to tidy before Phase 34 and 19 add tables and repository functions.
+- **Split `db/repositories.py`** (1433 lines, every table since Phase 2) into one module per area (accounts and balances, statements and transactions, the feed and sync failures, people, categories rules and budgets, transfers), with `db/repositories.py` kept as a facade that re-exports every name, so no import elsewhere changes. Proven as Phase 32 was: the public names and their behaviour pinned from today's code first.
+- **Critical modules:** `domain/transfers.py` and `domain/spending.py` join `scripts/critical_modules.txt` (with `tests/unit/test_check_script.py` and the list in `docs/testing.md`), as `docs/testing.md` promised since Phase 11.
+- **Rules out of `views`:** `card_credits_note`'s count and the transaction page's refund text move to `analysis` and `views` as the layering says; `views` modules stop loading through `db` where an `analysis` function can hand them data (accounts, backups, categories, people, sync, transfers), and the Keychain read in `views/sync.py` moves out.
+- **Small duplication:** the CLI tables still built by hand (listing, health, budgets, accounts, people, sync) use `print_rows`; the two `_change` helpers (months, insights) become one.
+- Out of scope: any change to output, schema, or behaviour.
+
+### Backlog (small, not yet phases)
+- A terminal transaction search (`fin transactions search` with the web search's filters, including `--kind refund`).
+- `fin backup delete NAME` (deleting a backup is web-only since 24b).
+- `fin networth [--months N]` (net worth over time is a Reports chart since 27d).
+- Known limit to revisit: closing an account drops it from net worth history (27d).
