@@ -83,7 +83,7 @@ cli, mcp_server, web  ──►  ingest, sync, categorize, analysis  ──►  
 - `analysis` takes a `Session`, loads through `db`, applies the `domain` rules, and returns domain objects and plain data (integer cents, dates). It never formats text. It is tested on a temporary migrated database.
 - `views` turns analysis results into display text for `cli` and `web` (Phase 22). `mcp_server` does **not** use `views`: the agent's tools return plain data, so they wrap `analysis` and `db` directly.
 - `cli`, `mcp_server`, and `web` are three thin front ends over the same functions. None of them imports another, except that `fin web serve` and `fin mcp serve` import the app or server they start.
-- **Known drift (to tidy, roadmap Phase 36):** some `views` modules still take a `Session` and load through `db` (accounts, backups, categories, people, sync, transfers), `views/sync.py` reads the Keychain, `views.categories.card_credits_note` counts (a rule, which belongs in `analysis`), `analysis.dashboard` imports from `categorize`, and the transaction page's route builds the refund text itself. None of this touches money or privacy rules; new code follows the rules above.
+- **`views` only format** (Phases 36b and 36c): they take what `analysis` returns and never open the database, the Keychain, or the network; a test on the source enforces it. `analysis` may call `categorize`'s read functions (such as `transfer_suggestions`), since both sit in one tier.
 - **Today's date** for anything a person reads (the current month, "today", days since) is the machine's local date, read through one function (Phase 31). Stored timestamps (feed pulls, imports) are UTC.
 
 ## Data flow
