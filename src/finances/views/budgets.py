@@ -4,6 +4,7 @@ from dataclasses import dataclass
 
 from finances.domain.budgets import BudgetLine
 from finances.domain.money import format_cents
+from finances.views.format import net_text
 
 
 @dataclass(frozen=True)
@@ -24,9 +25,9 @@ def budget_rows(lines: list[BudgetLine]) -> list[BudgetTableRow]:
             budget=line.name,
             kind="group" if line.is_group else "category",
             target=format_cents(line.target_cents),
-            spent=format_cents(line.spent_cents),
+            spent=net_text(line.spent_cents),
             left=format_cents(line.left_cents),
-            used=f"{line.used_percent}%",
+            used=f"{max(line.used_percent, 0)}%",
             month_gone=f"{line.month_gone_percent}%",
         )
         for line in lines

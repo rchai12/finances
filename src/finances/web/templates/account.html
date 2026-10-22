@@ -24,9 +24,9 @@
 {% if spending %}
 {% if pie_chart %}<div class="chart"><canvas data-chart="{{ pie_chart }}" role="img" aria-label="Spending by group in {{ month_label }}"></canvas></div>{% endif %}
 <table>
-<thead><tr><th>Group</th><th class="amount">Spent</th><th class="amount">Count</th></tr></thead>
+<thead><tr><th>Group</th><th class="amount">Spent</th><th class="amount">Refunds</th><th class="amount">Net</th><th class="amount">Count</th></tr></thead>
 <tbody>
-{% for row in spending %}<tr><td><a href="/transactions?account={{ name|urlencode }}{% if card %}&amp;card={{ card }}{% endif %}&amp;from={{ start }}&amp;to={{ end }}&amp;group={{ row.label|urlencode }}&amp;kind=spending&amp;limit=1000">{{ row.label }}</a></td><td class="{{ row.spent|amount_class }}">{{ row.spent }}</td><td class="{{ row.count|amount_class }}">{{ row.count }}</td></tr>
+{% for row in spending %}<tr><td><a href="/transactions?account={{ name|urlencode }}{% if card %}&amp;card={{ card }}{% endif %}&amp;from={{ start }}&amp;to={{ end }}&amp;group={{ row.label|urlencode }}&amp;kind=spending&amp;limit=1000">{{ row.label }}</a></td><td class="{{ row.spent|amount_class }}">{{ row.spent }}</td><td class="{{ row.refunds|amount_class }}">{{ row.refunds }}</td><td class="{{ row.net|amount_class }}">{{ row.net }}</td><td class="{{ row.count|amount_class }}">{{ row.count }}</td></tr>
 {% endfor %}</tbody>
 </table>
 {% elif not error %}

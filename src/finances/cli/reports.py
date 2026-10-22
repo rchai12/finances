@@ -80,7 +80,7 @@ def spending_command(
     typer.echo(spending_heading(report))
     rows = spending_rows(report)
     if rows:
-        print_rows((by.capitalize(), "Spent", "Count"), rows)
+        print_rows((by.capitalize(), "Spent", "Refunds", "Net", "Count"), rows)
     else:
         typer.echo("No spending.")
     for line in spending_summary(report):

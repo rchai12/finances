@@ -22,11 +22,16 @@ def last_pull_text(pull: FeedPull | None) -> str:
     return "never" if pull is None else pull.pulled_at.strftime("%Y-%m-%d %H:%M UTC")
 
 
+def net_text(cents: int) -> str:
+    """A net spending figure: money out as usual, money back named as back."""
+    return format_cents(cents) if cents >= 0 else f"{format_cents(-cents)} back"
+
+
 def amount_class(text: str) -> str:
     """The class of a table cell holding this formatted amount."""
     if text.startswith("-$"):
         return "amount neg"
-    if text.startswith("+$"):
+    if text.startswith("+$") or text.endswith(" back"):
         return "amount pos"
     return "amount"
 

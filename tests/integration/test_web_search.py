@@ -236,10 +236,12 @@ def test_a_spending_line_opens_its_transactions(home: TestClient) -> None:
 )
 def test_every_line_opens_exactly_its_transactions(home: TestClient, by: str) -> None:
     found = page(home, f"/reports?month=2026-05&by={by}")
-    spending = found.rows[found.rows.index([by.capitalize(), "Spent", "Count"]) + 1 :]
+    spending = found.rows[
+        found.rows.index([by.capitalize(), "Spent", "Refunds", "Net", "Count"]) + 1 :
+    ]
     assert len(links(found)) == len(spending) > 0
     for link, row in zip(links(found), spending, strict=True):
-        assert len(page(home, link).rows) - 1 == int(row[2]), (link, row)
+        assert len(page(home, link).rows) - 1 == int(row[4]), (link, row)
 
 
 def test_insights_open_their_transactions(home: TestClient) -> None:

@@ -114,5 +114,5 @@ def test_a_closed_account_leaves_balances_and_still_counts_in_spending(
     balances = table_rows(run("balances").stdout)
     assert [row[0] for row in balances[1:]] == ["Test Checking"]
     spending = table_rows(run("spending", "--month", "2026-05", "--by", "account").stdout)
-    assert ["Test Card", "$1.00", "1"] in spending
-    assert ["Test Checking", "$1.00", "1"] in spending
+    assert ["Test Card", "$1.00", "$0.00", "$1.00", "1"] in spending
+    assert ["Test Checking", "$1.00", "$0.00", "$1.00", "1"] in spending

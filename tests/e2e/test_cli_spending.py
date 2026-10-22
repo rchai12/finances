@@ -115,15 +115,15 @@ def test_a_month_by_category(money: Settings) -> None:
     result = run("spending", *MAY)
     assert result.exit_code == 0
     assert table_rows(result.stdout) == [
-        ["Category", "Spent", "Count"],
-        ["Utilities & Internet", "$120.00", "1"],
-        ["Groceries", "$20.00", "2"],
-        ["Coffee & Dessert", "$17.00", "2"],
-        ["Uncategorized", "$15.00", "1"],
+        ["Category", "Spent", "Refunds", "Net", "Count"],
+        ["Utilities & Internet", "$120.00", "$0.00", "$120.00", "1"],
+        ["Groceries", "$25.99", "$5.99", "$20.00", "2"],
+        ["Coffee & Dessert", "$17.00", "$0.00", "$17.00", "2"],
+        ["Uncategorized", "$15.00", "$0.00", "$15.00", "1"],
     ]
     assert plain_lines(result.stdout) == [
         "Spending from 2026-05-01 to 2026-05-31, by category.",
-        "Spent: $172.00. Income: $3,000.00.",
+        "Spent: $177.99. Refunds: $5.99. Net: $172.00. Income: $3,000.00.",
         "Transfers left out: 2.",
         "Money in without a category: $25.00 (count: 1).",
     ]
@@ -135,52 +135,52 @@ def test_a_month_by_category(money: Settings) -> None:
         (
             "group",
             [
-                ["Group", "Spent", "Count"],
-                ["Home", "$120.00", "1"],
-                ["Food", "$37.00", "4"],
-                ["Uncategorized", "$15.00", "1"],
+                ["Group", "Spent", "Refunds", "Net", "Count"],
+                ["Home", "$120.00", "$0.00", "$120.00", "1"],
+                ["Food", "$42.99", "$5.99", "$37.00", "4"],
+                ["Uncategorized", "$15.00", "$0.00", "$15.00", "1"],
             ],
         ),
         (
             "merchant",
             [
-                ["Merchant", "Spent", "Count"],
-                ["ACME UTILITY", "$120.00", "1"],
-                ["FOOBAR GROCERY", "$20.00", "2"],
-                ["ACME COFFEE", "$17.00", "2"],
-                ["BAZ BOOKS", "$15.00", "1"],
+                ["Merchant", "Spent", "Refunds", "Net", "Count"],
+                ["ACME UTILITY", "$120.00", "$0.00", "$120.00", "1"],
+                ["FOOBAR GROCERY", "$25.99", "$5.99", "$20.00", "2"],
+                ["ACME COFFEE", "$17.00", "$0.00", "$17.00", "2"],
+                ["BAZ BOOKS", "$15.00", "$0.00", "$15.00", "1"],
             ],
         ),
         (
             "person",
             [
-                ["Person", "Spent", "Count"],
-                ["Unassigned", "$120.00", "1"],
-                ["Pat Example", "$52.00", "5"],
+                ["Person", "Spent", "Refunds", "Net", "Count"],
+                ["Unassigned", "$120.00", "$0.00", "$120.00", "1"],
+                ["Pat Example", "$57.99", "$5.99", "$52.00", "5"],
             ],
         ),
         (
             "account",
             [
-                ["Account", "Spent", "Count"],
-                ["Test Checking", "$120.00", "1"],
-                ["Test Card", "$52.00", "5"],
+                ["Account", "Spent", "Refunds", "Net", "Count"],
+                ["Test Checking", "$120.00", "$0.00", "$120.00", "1"],
+                ["Test Card", "$57.99", "$5.99", "$52.00", "5"],
             ],
         ),
         (
             "bank",
             [
-                ["Bank", "Spent", "Count"],
-                ["Test Bank", "$120.00", "1"],
-                ["Example Card Co", "$52.00", "5"],
+                ["Bank", "Spent", "Refunds", "Net", "Count"],
+                ["Test Bank", "$120.00", "$0.00", "$120.00", "1"],
+                ["Example Card Co", "$57.99", "$5.99", "$52.00", "5"],
             ],
         ),
         (
             "card",
             [
-                ["Card", "Spent", "Count"],
-                ["No card", "$147.50", "3"],
-                ["1111", "$24.50", "3"],
+                ["Card", "Spent", "Refunds", "Net", "Count"],
+                ["No card", "$147.50", "$0.00", "$147.50", "3"],
+                ["1111", "$30.49", "$5.99", "$24.50", "3"],
             ],
         ),
     ],
@@ -194,19 +194,19 @@ def test_a_month_by_another_field(money: Settings, by: str, rows: list[list[str]
 def test_the_day_bought_decides_the_month(money: Settings) -> None:
     result = run("spending", "--month", "2026-04")
     assert table_rows(result.stdout) == [
-        ["Category", "Spent", "Count"],
-        ["Uncategorized", "$8.00", "1"],
+        ["Category", "Spent", "Refunds", "Net", "Count"],
+        ["Uncategorized", "$8.00", "$0.00", "$8.00", "1"],
     ]
     assert plain_lines(result.stdout) == [
         "Spending from 2026-04-01 to 2026-04-30, by category.",
-        "Spent: $8.00. Income: $0.00.",
+        "Spent: $8.00. Refunds: $0.00. Net: $8.00. Income: $0.00.",
         "Transfers left out: 0.",
     ]
     result = run("spending", "--month", "2026-06")
     assert result.stdout == (
         "Spending from 2026-06-01 to 2026-06-30, by category.\n"
         "No spending.\n"
-        "Spent: $0.00. Income: $0.00.\n"
+        "Spent: $0.00. Refunds: $0.00. Net: $0.00. Income: $0.00.\n"
         "Transfers left out: 0.\n"
     )
 
@@ -214,13 +214,13 @@ def test_the_day_bought_decides_the_month(money: Settings) -> None:
 def test_a_range_where_refunds_win(money: Settings) -> None:
     result = run("spending", "--from", "2026-05-10", "--to", "2026-05-20")
     assert table_rows(result.stdout) == [
-        ["Category", "Spent", "Count"],
-        ["Uncategorized", "$15.00", "1"],
-        ["Groceries", "-$5.99", "1"],
+        ["Category", "Spent", "Refunds", "Net", "Count"],
+        ["Uncategorized", "$15.00", "$0.00", "$15.00", "1"],
+        ["Groceries", "$0.00", "$5.99", "$5.99 back", "1"],
     ]
     assert plain_lines(result.stdout) == [
         "Spending from 2026-05-10 to 2026-05-20, by category.",
-        "Spent: $9.01. Income: $3,000.00.",
+        "Spent: $15.00. Refunds: $5.99. Net: $9.01. Income: $3,000.00.",
         "Transfers left out: 1.",
         "Money in without a category: $25.00 (count: 1).",
     ]

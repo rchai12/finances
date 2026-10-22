@@ -6,6 +6,7 @@ from finances.analysis.account_page import AccountPage
 from finances.domain.models import DataSource
 from finances.domain.money import format_cents
 from finances.domain.people import JOINT
+from finances.views.format import net_text
 from finances.views.spending import SpendingRow
 
 _SOURCES = {DataSource.STATEMENT.value: "statement", DataSource.AGGREGATOR.value: "SimpleFIN"}
@@ -55,7 +56,13 @@ def account_detail_rows(page: AccountPage) -> list[tuple[str, str]]:
 def group_rows(page: AccountPage) -> list[SpendingRow]:
     """Spending by group for the chosen month."""
     return [
-        SpendingRow(line.label, format_cents(line.spent_cents), str(line.count))
+        SpendingRow(
+            line.label,
+            format_cents(line.purchases_cents),
+            format_cents(line.refunds_cents),
+            net_text(line.spent_cents),
+            str(line.count),
+        )
         for line in page.spending
     ]
 
@@ -65,7 +72,7 @@ def account_month_rows(page: AccountPage) -> list[AccountMonthRow]:
     return [
         AccountMonthRow(
             month.start.isoformat()[:7],
-            format_cents(month.spent_cents),
+            net_text(month.spent_cents),
             format_cents(month.income_cents),
         )
         for month in page.months

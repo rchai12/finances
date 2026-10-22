@@ -65,9 +65,9 @@
 <p class="summary">{{ spending.heading }}</p>
 {% if spending.rows %}
 <table>
-<thead><tr><th>{{ spending.by|capitalize }}</th><th class="amount">Spent</th><th class="amount">Count</th></tr></thead>
+<thead><tr><th>{{ spending.by|capitalize }}</th><th class="amount">Spent</th><th class="amount">Refunds</th><th class="amount">Net</th><th class="amount">Count</th></tr></thead>
 <tbody>
-{% for row in spending.rows %}<tr><td><a href="/transactions?from={{ spending.start }}&amp;to={{ spending.end }}&amp;{{ spending.by }}={{ row.label|urlencode }}&amp;kind=spending&amp;limit=1000">{{ row.label }}</a></td><td class="{{ row.spent|amount_class }}">{{ row.spent }}</td><td class="{{ row.count|amount_class }}">{{ row.count }}</td></tr>
+{% for row in spending.rows %}<tr><td><a href="/transactions?from={{ spending.start }}&amp;to={{ spending.end }}&amp;{{ spending.by }}={{ row.label|urlencode }}&amp;kind=spending&amp;limit=1000">{{ row.label }}</a></td><td class="{{ row.spent|amount_class }}">{{ row.spent }}</td><td class="{{ row.refunds|amount_class }}">{{ row.refunds }}</td><td class="{{ row.net|amount_class }}">{{ row.net }}</td><td class="{{ row.count|amount_class }}">{{ row.count }}</td></tr>
 {% endfor %}</tbody>
 </table>
 {% else %}

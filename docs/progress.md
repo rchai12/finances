@@ -512,4 +512,11 @@ Template:
 - Deviations: none
 - Follow-ups: none
 
+## Phase 35a: Spent, Refunds, and Net (2026-10-22)
+- Tests: 3093 -> 3111 (given 14)
+- New public names: `domain.spending`: `SpendingLine.refunds_cents`, `SpendingLine.purchases_cents`, `SpendingSummary.refunds_cents`; `views.format`: `net_text`
+- Changed files: 20
+- Deviations: none
+- Follow-ups: none
+
 

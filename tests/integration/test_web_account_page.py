@@ -22,7 +22,7 @@ from tests.support import WEB_NOT_MIGRATED, WEB_PORT, Page, page, texts
 
 TODAY = date(2026, 5, 25)
 CARD = "/account?name=Test%20Card"
-SPENDING = ["Group", "Spent", "Count"]
+SPENDING = ["Group", "Spent", "Refunds", "Net", "Count"]
 MONTHS = ["Month", "Spent", "Income"]
 BALANCES = ["Date", "Balance", "From"]
 LATEST = ["Date", "Description", "Category", "Amount", "Card", "Person"]
@@ -126,8 +126,8 @@ def test_the_account_page(home: TestClient) -> None:
     assert texts(found, "cards") == ["Cards: 1111, 2222"]
     assert table(found, SPENDING) == [
         SPENDING,
-        ["Food", "$199.01", "3"],
-        ["Uncategorized", "$50.00", "2"],
+        ["Food", "$205.00", "$5.99", "$199.01", "3"],
+        ["Uncategorized", "$50.00", "$0.00", "$50.00", "2"],
     ]
     months = table(found, MONTHS)
     assert len(months) == 13
@@ -164,8 +164,8 @@ def test_one_card_of_the_account(home: TestClient) -> None:
     assert found.rows[:7] == DETAIL
     assert table(found, SPENDING) == [
         SPENDING,
-        ["Uncategorized", "$15.00", "1"],
-        ["Food", "$5.00", "1"],
+        ["Uncategorized", "$15.00", "$0.00", "$15.00", "1"],
+        ["Food", "$5.00", "$0.00", "$5.00", "1"],
     ]
     assert table(found, MONTHS)[-1] == ["2026-05", "$20.00", "$0.00"]
     assert [row[1] for row in table(found, LATEST)[1:]] == ["ACME COFFEE", "BAZ BOOKS"]
@@ -181,7 +181,7 @@ def test_a_group_line_opens_exactly_its_transactions(home: TestClient) -> None:
 
 def test_another_month(home: TestClient) -> None:
     found = page(home, f"{CARD}&month=2026-04")
-    assert table(found, SPENDING) == [SPENDING, ["Food", "$30.00", "1"]]
+    assert table(found, SPENDING) == [SPENDING, ["Food", "$30.00", "$0.00", "$30.00", "1"]]
     assert found.find("/account")["inputs"]["month"] == ("month", "2026-04")
     assert table(found, MONTHS)[-1] == ["2026-05", "$249.01", "$0.00"]
     found = page(home, f"{CARD}&month=2026-02")

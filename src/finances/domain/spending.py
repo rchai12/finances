@@ -43,6 +43,11 @@ class SpendingLine:
     label: str
     spent_cents: int
     count: int
+    refunds_cents: int = 0
+
+    @property
+    def purchases_cents(self) -> int:
+        return self.spent_cents + self.refunds_cents
 
 
 @dataclass(frozen=True)
@@ -52,6 +57,7 @@ class SpendingSummary:
     transfers: int
     unsorted_in_cents: int
     unsorted_in_count: int
+    refunds_cents: int = 0
 
 
 def flow_kind(amount_cents: int, *, paired: bool, category: Category | None) -> str:
@@ -74,20 +80,25 @@ def spending_lines(flows: Iterable[Flow], by: str) -> list[SpendingLine]:
     check_by(by)
     spent: Counter[str] = Counter()
     counts: Counter[str] = Counter()
+    refunds: Counter[str] = Counter()
     for flow in flows:
         if flow.kind == SPENDING:
             label = getattr(flow, by)
             spent[label] -= flow.amount_cents
             counts[label] += 1
-    lines = [SpendingLine(label, spent[label], counts[label]) for label in counts]
+            if flow.amount_cents > 0:
+                refunds[label] += flow.amount_cents
+    lines = [SpendingLine(label, spent[label], counts[label], refunds[label]) for label in counts]
     return sorted(lines, key=lambda line: (-line.spent_cents, line.label.lower(), line.label))
 
 
 def summarize(flows: Iterable[Flow]) -> SpendingSummary:
-    spent = income = transfers = unsorted_in = unsorted_count = 0
+    spent = income = transfers = unsorted_in = unsorted_count = refunds = 0
     for flow in flows:
         if flow.kind == SPENDING:
             spent -= flow.amount_cents
+            if flow.amount_cents > 0:
+                refunds += flow.amount_cents
         elif flow.kind == INCOME:
             income += flow.amount_cents
         elif flow.kind == TRANSFER:
@@ -95,7 +106,7 @@ def summarize(flows: Iterable[Flow]) -> SpendingSummary:
         else:
             unsorted_in += flow.amount_cents
             unsorted_count += 1
-    return SpendingSummary(spent, income, transfers, unsorted_in, unsorted_count)
+    return SpendingSummary(spent, income, transfers, unsorted_in, unsorted_count, refunds)
 
 
 def month_bounds(day: date) -> tuple[date, date]:

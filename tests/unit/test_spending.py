@@ -85,7 +85,7 @@ def test_refunds_net_and_the_largest_comes_first() -> None:
     ]
     assert spending_lines(flows, "category") == [
         SpendingLine("Utilities & Internet", 12000, 1),
-        SpendingLine("Groceries", 2000, 2),
+        SpendingLine("Groceries", 2000, 2, refunds_cents=599),
         SpendingLine("Coffee & Dessert", 1700, 2),
     ]
 
@@ -100,7 +100,7 @@ def test_a_tie_goes_by_name_ignoring_case_and_a_refund_can_win() -> None:
     assert spending_lines(flows, "merchant") == [
         SpendingLine("Alpha", 500, 1),
         SpendingLine("beta", 500, 1),
-        SpendingLine("QUUX", -500, 2),
+        SpendingLine("QUUX", -500, 2, refunds_cents=700),
     ]
 
 
@@ -132,6 +132,7 @@ def test_summarize() -> None:
         transfers=2,
         unsorted_in_cents=2500,
         unsorted_in_count=1,
+        refunds_cents=599,
     )
     assert summarize([]) == SpendingSummary(0, 0, 0, 0, 0)
 

@@ -23,6 +23,7 @@ PORT = 8765
 NOT_MIGRATED = "The database is not up to date. Run: fin db upgrade"
 BALANCES = ["Account", "Type", "Balance", "As of", "From"]
 MONTHS = ["Month", "Spent", "Income", "Change", "Covered"]
+SPENDING = ["Spent", "Refunds", "Net", "Count"]
 BY = ["category", "group", "merchant", "person", "account", "bank", "card"]
 
 
@@ -195,7 +196,10 @@ def section(rows: list[list[str]], heading: list[str]) -> list[list[str]]:
     start = rows.index(heading)
     end = start + 1
     while (
-        end < len(rows) and len(rows[end]) == len(heading) and rows[end] not in (BALANCES, MONTHS)
+        end < len(rows)
+        and len(rows[end]) == len(heading)
+        and rows[end] not in (BALANCES, MONTHS)
+        and rows[end][1:] != SPENDING
     ):
         end += 1
     return rows[start:end]
@@ -247,12 +251,15 @@ def test_a_month(home: TestClient) -> None:
         ["2026-04", "$150.00", "$3,000.00", "+$130.00", "yes"],
         ["2026-05", "$15.00", "$0.00", "-$135.00", "partly"],
     ]
-    assert found.rows[-2:] == [["Category", "Spent", "Count"], ["Uncategorized", "$15.00", "1"]]
+    assert found.rows[-2:] == [
+        ["Category", "Spent", "Refunds", "Net", "Count"],
+        ["Uncategorized", "$15.00", "$0.00", "$15.00", "1"],
+    ]
     assert texts(found, "summary") == [
         "Cash: $13,100.00. Cards: -$612.34. Other: $0.00.",
         "Net worth: $12,487.66.",
         "Spending from 2026-05-01 to 2026-05-31, by category.",
-        "Spent: $15.00. Income: $0.00.",
+        "Spent: $15.00. Refunds: $0.00. Net: $15.00. Income: $0.00.",
         "Transfers left out: 0.",
     ]
     assert texts(found, "hint") == [
@@ -285,13 +292,13 @@ def test_the_form_keeps_what_was_asked(home: TestClient) -> None:
 def test_a_range_by_merchant_and_months_ending_with_it(home: TestClient) -> None:
     found = page(home, "/reports?from=2026-04-01&to=2026-04-30&by=merchant")
     assert found.rows[-3:] == [
-        ["Merchant", "Spent", "Count"],
-        ["ACME UTILITY", "$120.00", "1"],
-        ["FOOBAR GROCERY", "$30.00", "1"],
+        ["Merchant", "Spent", "Refunds", "Net", "Count"],
+        ["ACME UTILITY", "$120.00", "$0.00", "$120.00", "1"],
+        ["FOOBAR GROCERY", "$30.00", "$0.00", "$30.00", "1"],
     ]
     assert texts(found, "summary")[2:] == [
         "Spending from 2026-04-01 to 2026-04-30, by merchant.",
-        "Spent: $150.00. Income: $3,000.00.",
+        "Spent: $150.00. Refunds: $0.00. Net: $150.00. Income: $3,000.00.",
         "Transfers left out: 0.",
     ]
     assert [row[0] for row in section(found.rows, MONTHS)] == [
@@ -315,7 +322,7 @@ def test_a_month_without_spending(home: TestClient) -> None:
     assert ("empty", "No spending.") in found.paragraphs
     assert texts(found, "summary")[2:] == [
         "Spending from 2026-06-01 to 2026-06-30, by category.",
-        "Spent: $0.00. Income: $0.00.",
+        "Spent: $0.00. Refunds: $0.00. Net: $0.00. Income: $0.00.",
         "Transfers left out: 0.",
     ]
 

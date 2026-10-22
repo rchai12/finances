@@ -5,6 +5,7 @@ from datetime import date
 
 from finances.analysis.months import MonthLine
 from finances.domain.money import format_cents
+from finances.views.format import net_text
 
 
 @dataclass(frozen=True)
@@ -33,7 +34,7 @@ def month_rows(lines: list[MonthLine]) -> list[MonthRow]:
         rows.append(
             MonthRow(
                 month=_month(line.start),
-                spent=format_cents(line.spent_cents),
+                spent=net_text(line.spent_cents),
                 income=format_cents(line.income_cents),
                 change="" if previous is None else _change(line.spent_cents - previous),
                 covered="partly" if line.uncovered else "yes",
