@@ -3,6 +3,10 @@
 // "series": [{"name": ..., "cents": [...]}]}. Money stays in whole cents until it is shown.
 (function () {
   "use strict";
+  var styles = getComputedStyle(document.documentElement);
+  var surface = styles.getPropertyValue("--surface").trim();
+  Chart.defaults.color = styles.getPropertyValue("--muted").trim();
+  Chart.defaults.borderColor = styles.getPropertyValue("--line").trim();
   var dollars = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" });
   var colors = ["#2f6f9f", "#c0612b", "#4b8b3b", "#8a5aa8", "#b8963a", "#3a8f8a", "#a8485a", "#6b6b6b"];
 
@@ -17,7 +21,7 @@
         label: series.name,
         data: series.cents.map(function (cents) { return cents / 100; }),
         backgroundColor: pie ? colors : colors[index % colors.length],
-        borderColor: pie ? "#ffffff" : colors[index % colors.length],
+        borderColor: pie ? surface : colors[index % colors.length],
       };
     });
     var options = {

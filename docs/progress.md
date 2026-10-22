@@ -497,3 +497,11 @@ Template:
 - Changed files: 7
 - Deviations: none
 - Follow-ups: none
+
+## Phase 16m: a layered dark look (2026-10-22)
+- Tests: 3049 -> 3060 (given 11)
+- New public names: none
+- Changed files: 4
+- Deviations: none
+- Follow-ups: none
+
