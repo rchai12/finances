@@ -481,3 +481,12 @@ Template:
   - `point_days` uses `months_ending` then replaces this month with today; `_days` refuses non-ASCII with `str.isascii`.
 - Follow-ups:
   - Known limit: a closed account leaves past months too, so closing an account changes the history shown.
+
+## Phase 14a: the MCP server and the account tools (2026-10-22)
+- Tests: 3014 -> 3033 (given 13)
+- New public names: `db.engine.get_engine` (`read_only`); `mcp_server.access`: `NOT_MIGRATED`, `reading`; `mcp_server.server`: `SERVER_NAME`, `INSTRUCTIONS`, `READ_ONLY`, `build_server`, `serve`; `mcp_server.tools`: `list_accounts`, `get_balances`, `get_net_worth`; `cli.mcp`: `app`, `serve`
+- Changed files: 9
+- Deviations:
+  - tools registered in a loop over a table; `reading()` uses try/finally.
+- Follow-ups:
+  - installed mcp 2.3.0

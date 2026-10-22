@@ -19,6 +19,7 @@ from finances.cli.db import app as db_app
 from finances.cli.health import health_command
 from finances.cli.importing import app as import_app
 from finances.cli.listing import statements_app, transactions_app
+from finances.cli.mcp import app as mcp_app
 from finances.cli.people import app as people_app
 from finances.cli.reports import (
     balances_command,
@@ -46,6 +47,7 @@ app.add_typer(transactions_app, name="transactions")
 app.add_typer(sync_app, name="sync")
 app.add_typer(people_app, name="people")
 app.add_typer(web_app, name="web")
+app.add_typer(mcp_app, name="mcp")
 app.add_typer(categories_app, name="categories")
 app.add_typer(rules_app, name="rules")
 app.add_typer(transfers_app, name="transfers")

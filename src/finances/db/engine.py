@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session
 from finances.config import get_settings
 
 
-def get_engine(url: str | None = None) -> Engine:
+def get_engine(url: str | None = None, *, read_only: bool = False) -> Engine:
     """Return an engine for url, or for the configured database when url is None."""
     if url is None:
         url = get_settings().effective_database_url
@@ -31,6 +31,8 @@ def get_engine(url: str | None = None) -> Engine:
     def _on_connect(dbapi_connection, connection_record):
         cursor = dbapi_connection.cursor()
         cursor.execute("PRAGMA foreign_keys=ON")
+        if read_only:
+            cursor.execute("PRAGMA query_only=ON")
         cursor.close()
 
     return engine
