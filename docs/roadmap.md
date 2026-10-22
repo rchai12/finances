@@ -6,7 +6,7 @@ Each phase is sized for one focused coding session: a few modules, their tests, 
 
 Status (2026-10-16): built and verified, in the build order below, up to and including Phase 26b. Each phase's spec is in `docs/phases/`, its verification guide in `docs/verification/`, its review in `docs/reviews/`, and its result in `docs/progress.md`. Phases after 26b are outlines until specified.
 
-**Build order:** 2 → 3 → 4 → 17a → 8 → 17b → 17c → 21 → 16a → 16b → 9 → 16c → 16d → 10 → 22 → 23 → 11 → 12 → 13 → 16e → 24 → 24b → 16f → 16j → 16g → 25 → 16h → 16i → 16k → 13d → 26a → 26b → 31 → 32 → 33 → 27a → 27b → 27c → 27d → 14a → 16l → 16m → 16n → 35 → 14b → 14c → 14d → 34 → 19 → 28 → 29 → 30 → 16 → 20. Phases 5 and 6 (more statement parsers) can be built any time after 4, when audit coverage for those banks is wanted.
+**Build order:** 2 → 3 → 4 → 17a → 8 → 17b → 17c → 21 → 16a → 16b → 9 → 16c → 16d → 10 → 22 → 23 → 11 → 12 → 13 → 16e → 24 → 24b → 16f → 16j → 16g → 25 → 16h → 16i → 16k → 13d → 26a → 26b → 31 → 32 → 33 → 27a → 27b → 27c → 27d → 14a → 16l → 16m → 16n → 35a → 35b → 14b → 14c → 14d → 34 → 19 → 28 → 29 → 30 → 16 → 20. Phases 5 and 6 (more statement parsers) can be built any time after 4, when audit coverage for those banks is wanted.
 
 | # | Phase | Outcome | Spec |
 |---|---|---|---|
@@ -45,7 +45,7 @@ Status (2026-10-16): built and verified, in the build order below, up to and inc
 | 32 | Split the web app | No behaviour change: `web/app.py` split into one router module per area, with the shared checks and rendering in one place | [phase-32](phases/phase-32-split-the-web-app.md) |
 | 33 | Sync resilience | The daily sync retries when SimpleFIN cannot be reached, scheduled runs leave timestamped log lines, and the last failed sync is stored so `fin health` and the dashboard can say why | [phase-33](phases/phase-33-sync-resilience.md) |
 | 34 | Audit trail | An append-only record of every change to the household's data (who, when, what, before and after), shown by `fin audit` and a History page; Phase 19's accepted proposals are recorded through it | outline below |
-| 35 | Refunds | Tell a refund apart from other money in: a refund label and filter on the Transactions page and in the terminal, the purchase each refund likely returns, and refunds shown beside spending in reports | outline below |
+| 35 | Refunds | Spending shown as Spent, Refunds, and Net so no spending figure needs a sign (today a category whose refunds exceed its purchases shows a minus that means money back, the opposite of the Transactions page); refunds labelled and filterable, with the purchase each likely returns | outline below |
 
 Phase numbers are stable. A removed phase keeps its number, and a phase that is too large for one coding session is split into lettered sub-phases (`2a`, `2b`, ...), never renumbered.
 
@@ -283,12 +283,13 @@ The order in the build line above is the architect's recommendation: protect the
 - Out of scope: undoing from the audit trail, exporting it, recording page views or reads.
 
 ### Phase 35: Refunds (planned 2026-10-22)
-- **Why:** the owner cannot tell a refund from other money coming in on the Transactions page. Today a refund is money in with a spending category: its kind is `spending`, so it already reduces spending in reports, budgets, and insights, but nothing labels it; it shows only as a positive amount. Money in with no category is `unsorted_in`, which may be a refund, income, or a transfer not yet paired.
-- **One rule, pure, in `domain`:** a refund is a posted transaction above zero whose kind is `spending` (its category is neither income nor transfer). Nothing new is stored, and no total changes: refunds keep reducing spending exactly as now.
-- **Seen and found:** the Transactions page, a transaction's own page, and `fin transactions list` mark refunds (a `refund` label in a kind column); the search's `kind` filter gains `refund` on the web and in the terminal, next to 16e's kinds; with 16n's colours a refund reads as money back, not as spending.
-- **The purchase it returns (shown, not stored):** for each refund, the likely original: the same account and cleaned merchant, an earlier purchase of at least the refund's amount within 90 days, the closest in time; each links to the other. A refund with no such purchase says so. Matching is a suggestion only and never changes a category or a pairing.
-- **Reports:** the spending table gains a Refunds column per line (spent stays net of refunds, as now), and the summary names the month's refunds; the account page's months show them too.
-- **Uncategorized money in on a card** (`unsorted_in` on a credit card) is flagged on the uncategorized list as a likely refund or card payment, so a person can categorize it or pair it.
-- **The agent:** Phase 14b's `list_transactions` marks each refund (`refund: true`) and the purchase it likely returns.
-- **Placed before 14b** so the agent's transaction tools are built with refunds already marked.
-- Out of scope: a separate Refunds category or group; changing how refunds count in totals; storing refund matches (a person could confirm them later, as with transfers, if the suggestions prove useful).
+- **Why (the owner's report):** the spending report's sign means two things. A category's Spent is its purchases minus its refunds, written as a positive number, so $500 of purchases shows `$500.00`; but when refunds exceed purchases in the period (a purchase last month, its refund this month) the same column shows `-$100.00`, meaning money **back**. On the Transactions page a minus means money **out**. Once 16n's colours apply, that net refund also shows in red, as if it were bad spending. A net figure also hides what happened ($400 out and $300 back reads as `$100.00`).
+- **Today's rule, kept:** a refund is money in with a spending category (kind `spending`, above zero). It reduces spending in reports, budgets, and insights; no total changes in this phase.
+- **Spent, Refunds, Net:** wherever spending is reported by category, group, merchant, person, account, bank, or card (the Reports page and `fin spending`, the account page's spending section), the single Spent column becomes three: **Spent** (purchases only), **Refunds** (money back only), both never below zero, and **Net** (Spent minus Refunds). A Net below zero is written `$100.00 back`, never with a minus, and shows in 16n's green. The summary line names the period's purchases, refunds, and net.
+- **The same rule everywhere net spending is shown:** the months tables (Reports, the dashboard, the account page) and budgets' spent figure never show a minus meaning money back: a net refund reads `$X back`. 16n's `amount_class` learns that text. Pie charts keep using positive net spending only, as now.
+- **Refunds you can see on transactions:** the Transactions page, a transaction's own page, and `fin transactions list` label refunds (`refund` in a kind column), and the search's `kind` filter gains `refund` on the web and in the terminal.
+- **The purchase it returns (shown, not stored):** for each refund, the likely original: the same account and cleaned merchant, an earlier purchase of at least the refund's amount within 90 days, the closest in time; each links to the other. A suggestion only; it never changes a category or a pairing.
+- **Uncategorized money in on a card** (`unsorted_in` on a credit card) is flagged on the uncategorized list as a likely refund or card payment.
+- **The agent:** Phase 14b's spending tools return `spent_cents`, `refunds_cents`, and `net_cents` (each named for what it holds, so no sign needs explaining), and `list_transactions` marks each refund.
+- **Placed before 14b** so the agent's tools are built on the split figures. **Split (2026-10-22):** [35a](phases/phase-35a-spent-refunds-net.md) the Spent, Refunds, and Net columns and `$X back` everywhere net spending is shown; 35b refund labels, the `refund` filter, matching, and the flag on uncategorized money in on a card.
+- Out of scope: a separate Refunds category or group; changing how refunds count in totals or budgets; storing refund matches.
