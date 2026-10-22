@@ -21,6 +21,8 @@ from finances.domain.models import DataSource
 from finances.mcp_server.server import build_server
 
 TOOLS = [
+    "data_coverage",
+    "find_merchants",
     "get_balances",
     "get_budgets",
     "get_forecast",

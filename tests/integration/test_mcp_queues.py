@@ -15,6 +15,8 @@ from finances.domain.models import CONFIRMED
 from finances.mcp_server.server import build_server
 
 TOOLS = [
+    "data_coverage",
+    "find_merchants",
     "get_balances",
     "get_budgets",
     "get_forecast",
@@ -132,7 +134,7 @@ def queues(tmp_settings: Settings) -> Settings:
     return tmp_settings
 
 
-def test_sixteen_read_only_tools(tmp_settings: Settings) -> None:
+def test_the_read_only_tools(tmp_settings: Settings) -> None:
     async def go():
         async with Client(build_server()) as client:
             return (await client.list_tools()).tools

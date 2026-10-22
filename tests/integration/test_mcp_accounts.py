@@ -20,7 +20,7 @@ from finances.domain.models import DataSource
 from finances.mcp_server.access import reading
 from finances.mcp_server.server import INSTRUCTIONS, build_server
 
-NO_AMOUNTS = ("list_accounts", "list_categories", "list_rules")
+NO_AMOUNTS = ("list_accounts", "list_categories", "list_rules", "find_merchants")
 READ_ONLY = {
     "read_only_hint": True,
     "destructive_hint": False,
@@ -73,6 +73,8 @@ def test_the_server_and_its_tools(tmp_settings: Settings) -> None:
     name, instructions, tools = anyio.run(go)
     assert (name, instructions) == ("finances", INSTRUCTIONS)
     assert sorted(tool.name for tool in tools) == [
+        "data_coverage",
+        "find_merchants",
         "get_balances",
         "get_budgets",
         "get_forecast",

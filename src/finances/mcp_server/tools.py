@@ -9,15 +9,18 @@ from pydantic import Field
 import finances.clock as clock
 from finances.analysis.balances import balance_report
 from finances.analysis.budgets import budget_report
+from finances.analysis.coverage import coverage_report
 from finances.analysis.forecast import forecast_report
 from finances.analysis.insights import insights_report
 from finances.analysis.months import month_report
+from finances.analysis.names import find_names
 from finances.analysis.networth import net_worth_over_time
 from finances.analysis.recurring import recurring_charges, recurring_income
 from finances.analysis.search import FoundTransaction, TransactionQuery, search_transactions
 from finances.analysis.spending import spending_report
 from finances.analysis.upcoming import upcoming_report
 from finances.categorize.transfers import transfer_suggestions
+from finances.config import get_settings
 from finances.db.repositories import (
     account_names,
     count_uncategorized,
@@ -480,3 +483,60 @@ def list_transfer_suggestions() -> dict[str, Any]:
                 for out_id, in_id in transfer_suggestions(session)
             ]
         }
+
+
+def _iso(day: date | None) -> str | None:
+    return None if day is None else day.isoformat()
+
+
+def data_coverage() -> dict[str, Any]:
+    today = clock.today()
+    with reading() as session:
+        report = coverage_report(session, get_settings().effective_backup_dir, today)
+    return {
+        "as_of": report.as_of.isoformat(),
+        "accounts": [
+            {
+                "name": item.facts.name,
+                "type": item.type,
+                "first_day": None if item.span is None else item.span[0].isoformat(),
+                "last_day": None if item.span is None else item.span[1].isoformat(),
+                "audited": [
+                    {"start": start.isoformat(), "end": end.isoformat()}
+                    for start, end in item.audited
+                ],
+                "gaps": [
+                    {"start": start.isoformat(), "end": end.isoformat()}
+                    for start, end in item.facts.gaps
+                ],
+                "newest_statement_end": _iso(item.facts.newest_statement_end),
+                "mapped": item.facts.mapped,
+                "last_pull": _iso(item.facts.last_pull),
+                "drift_cents": item.facts.drift_cents,
+                "drift_date": _iso(item.facts.drift_date),
+            }
+            for item in report.accounts
+        ],
+        "problems": [
+            {
+                "kind": problem.kind,
+                "account": problem.account or None,
+                "detail": problem.detail,
+                "action": problem.action,
+            }
+            for problem in report.problems
+        ],
+    }
+
+
+def find_merchants(phrase: str, limit: Annotated[int, Field(ge=1, le=20)] = 5) -> dict[str, Any]:
+    stripped = phrase.strip()
+    if not stripped:
+        raise ToolError("give a phrase to look for")
+    if len(phrase) > 100:
+        raise ToolError("a phrase is at most 100 characters")
+    with reading() as session:
+        found = find_names(session, stripped, limit)
+    return {
+        "matches": [{"name": item.name, "kind": item.kind, "score": item.score} for item in found]
+    }

@@ -105,6 +105,19 @@ LIST_TRANSFER_SUGGESTIONS_DESCRIPTION = (
     "posted day, account, description, amount in integer cents). A person confirms or rejects "
     "them; these tools never do."
 )
+DATA_COVERAGE_DESCRIPTION = (
+    "How far the data can be trusted, as of today: for each open account its type, the first "
+    "and last day with any data, the periods covered by imported statements (audited) and the "
+    "gaps between them, the newest statement's end, whether SimpleFIN feeds it, its last pull, "
+    "and the newest balance drift in integer cents with its day; and the data problems the app "
+    "sees (kind, account, what is wrong, what to do). Use it before answering about a period "
+    "that may be partial or stale."
+)
+FIND_MERCHANTS_DESCRIPTION = (
+    "Merchant and category names that look like a phrase (a misspelling, part of a name, or a "
+    "word such as coffee), best first, each with a score from 75 to 100, at most limit (1 to "
+    "20, default 5). Use the names it returns with the other tools. No amounts."
+)
 _TOOLS = (
     (tools.list_accounts, LIST_ACCOUNTS_DESCRIPTION),
     (tools.get_balances, GET_BALANCES_DESCRIPTION),
@@ -122,6 +135,8 @@ _TOOLS = (
     (tools.list_rules, LIST_RULES_DESCRIPTION),
     (tools.list_transfers, LIST_TRANSFERS_DESCRIPTION),
     (tools.list_transfer_suggestions, LIST_TRANSFER_SUGGESTIONS_DESCRIPTION),
+    (tools.data_coverage, DATA_COVERAGE_DESCRIPTION),
+    (tools.find_merchants, FIND_MERCHANTS_DESCRIPTION),
 )
 
 

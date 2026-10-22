@@ -13,6 +13,8 @@ from finances.db.repositories import add_balance_snapshot, create_account
 from finances.domain.models import DataSource
 from finances.mcp_server.access import reading
 from finances.mcp_server.server import (
+    DATA_COVERAGE_DESCRIPTION,
+    FIND_MERCHANTS_DESCRIPTION,
     GET_BALANCES_DESCRIPTION,
     GET_BUDGETS_DESCRIPTION,
     GET_FORECAST_DESCRIPTION,
@@ -146,6 +148,8 @@ def test_each_tool_description_matches_the_table(tmp_settings: Settings) -> None
         "list_rules": LIST_RULES_DESCRIPTION,
         "list_transfers": LIST_TRANSFERS_DESCRIPTION,
         "list_transfer_suggestions": LIST_TRANSFER_SUGGESTIONS_DESCRIPTION,
+        "data_coverage": DATA_COVERAGE_DESCRIPTION,
+        "find_merchants": FIND_MERCHANTS_DESCRIPTION,
     }
 
 

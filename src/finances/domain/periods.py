@@ -30,8 +30,8 @@ def uncovered(spans: Mapping[str, tuple[date, date] | None], start: date, end: d
     return sorted(names, key=lambda name: (name.lower(), name))
 
 
-def statement_gaps(periods: Iterable[tuple[date, date]]) -> list[tuple[date, date]]:
-    """Each run of days between joined periods, as (first missing day, last missing day)."""
+def joined_periods(periods: Iterable[tuple[date, date]]) -> list[tuple[date, date]]:
+    """Join periods that touch or overlap, oldest first. Two periods one day apart stay apart."""
     ordered = sorted(periods, key=lambda period: period[0])
     if not ordered:
         return []
@@ -42,6 +42,12 @@ def statement_gaps(periods: Iterable[tuple[date, date]]) -> list[tuple[date, dat
             joined[-1][1] = max(last_end, end)
         else:
             joined.append([start, end])
+    return [(item[0], item[1]) for item in joined]
+
+
+def statement_gaps(periods: Iterable[tuple[date, date]]) -> list[tuple[date, date]]:
+    """Each run of days between joined periods, as (first missing day, last missing day)."""
+    joined = joined_periods(periods)
     return [
         (joined[index][1] + _DAY, joined[index + 1][0] - _DAY) for index in range(len(joined) - 1)
     ]

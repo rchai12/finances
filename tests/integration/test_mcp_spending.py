@@ -14,6 +14,8 @@ from finances.db.repositories import create_account, create_person, create_rule,
 from finances.mcp_server.server import build_server
 
 TOOLS = [
+    "data_coverage",
+    "find_merchants",
     "get_balances",
     "get_budgets",
     "get_forecast",

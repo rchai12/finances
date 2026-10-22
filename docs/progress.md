@@ -548,4 +548,11 @@ Template:
 - Deviations: none
 - Follow-ups: none
 
+## Phase 14e: data coverage and finding merchants (2026-10-22)
+- Tests: 3226 -> 3259 (given 28)
+- New public names: `domain.periods`: `joined_periods`; `domain.merchants`: `MATCH_THRESHOLD`, `NameMatch`, `match_score`, `closest_names`; `analysis.coverage`: `AccountCoverage`, `CoverageReport`, `coverage_report`; `analysis.names`: `find_names`; `mcp_server.tools`: `data_coverage`, `find_merchants`; `mcp_server.server`: `DATA_COVERAGE_DESCRIPTION`, `FIND_MERCHANTS_DESCRIPTION`
+- Changed files: 15
+- Deviations: none
+- Follow-ups: none
+
 
