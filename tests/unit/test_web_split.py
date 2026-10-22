@@ -55,6 +55,7 @@ ROUTES = {
     ("POST", "/categories/rules/{rule_id}"),
     ("GET", "/reports"),
     ("GET", "/insights"),
+    ("GET", "/ahead"),
     ("GET", "/transfers"),
     ("POST", "/transfers/find"),
     ("POST", "/transfers/confirm"),

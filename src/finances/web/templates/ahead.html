@@ -1,0 +1,54 @@
+{% extends "layout.html" %}
+{% block title %}Looking ahead · Finances{% endblock %}
+{% block content %}
+<h1>Looking ahead</h1>
+<form method="get" action="/ahead" class="fields">
+  <label>Days <input type="number" name="days" min="1" max="90" value="{{ days }}"></label>
+  {% if detail %}<input type="hidden" name="account" value="{{ detail.account }}">{% endif %}
+  <button type="submit">Show</button>
+</form>
+{% if detail %}
+<h2>{{ detail.account }}</h2>
+<p class="summary">{{ detail.heading }}</p>
+<p class="summary">{{ detail.starting }}</p>
+{% if detail.steps %}
+<table>
+<thead><tr><th>Date</th><th>Merchant</th><th class="amount">Amount</th><th class="amount">Balance</th></tr></thead>
+<tbody>
+{% for row in detail.steps %}<tr><td>{{ row.date }}</td><td>{{ row.merchant }}</td><td class="amount">{{ row.amount }}</td><td class="amount">{{ row.balance }}</td></tr>
+{% endfor %}</tbody>
+</table>
+{% else %}
+<p class="empty">Nothing expected.</p>
+{% endif %}
+<p class="summary">{{ detail.lowest }}</p>
+<p><a href="/ahead?days={{ days }}">All accounts</a></p>
+{% else %}
+<h2>Forecast</h2>
+<p class="summary">{{ forecast.heading }}</p>
+{% if forecast.rows %}
+<table>
+<thead><tr><th>Account</th><th class="amount">Balance</th><th>As of</th><th class="amount">Expected in</th><th class="amount">Expected out</th><th class="amount">End</th><th class="amount">Lowest</th><th>Lowest on</th></tr></thead>
+<tbody>
+{% for row in forecast.rows %}<tr><td><a href="/ahead?account={{ row.account|urlencode }}&amp;days={{ days }}">{{ row.account }}</a></td><td class="amount">{{ row.balance }}</td><td>{{ row.as_of }}</td><td class="amount">{{ row.expected_in }}</td><td class="amount">{{ row.expected_out }}</td><td class="amount">{{ row.end }}</td><td class="amount">{{ row.lowest }}</td><td>{{ row.lowest_on }}</td></tr>
+{% endfor %}</tbody>
+</table>
+{% else %}
+<p class="empty">No accounts with a balance.</p>
+{% endif %}
+{% if forecast.no_balance %}<p class="hint">{{ forecast.no_balance }}</p>{% endif %}
+<h2>Expected</h2>
+<p class="summary">{{ upcoming.heading }}</p>
+{% if upcoming.rows %}
+<table>
+<thead><tr><th>Date</th><th>What</th><th>Merchant</th><th>Every</th><th class="amount">Amount</th></tr></thead>
+<tbody>
+{% for row in upcoming.rows %}<tr><td>{{ row.date }}</td><td>{{ row.what }}</td><td>{{ row.merchant }}</td><td>{{ row.every }}</td><td class="amount">{{ row.amount }}</td></tr>
+{% endfor %}</tbody>
+</table>
+{% else %}
+<p class="empty">Nothing expected.</p>
+{% endif %}
+<p class="summary">{{ upcoming.summary }}</p>
+{% endif %}
+{% endblock %}

@@ -13,7 +13,8 @@ Anything after the options goes to pytest (test paths, -k, -x).
 
 It runs pytest in the scratch copy against the copy's own source (PYTHONPATH), with a small
 plugin that wraps `finances.web.render._render` (route modules
-import it by name when `create_app` first runs, after the plugin has replaced it) so each page's context starts from the defaults.
+import it by name when `create_app` first runs, after the plugin has replaced it)
+so each page's context starts from the defaults.
 Nothing in the copy is changed. Failures left are real: a template that breaks an earlier
 test, or a template bug.
 """

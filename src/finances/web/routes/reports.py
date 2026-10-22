@@ -6,12 +6,23 @@ from fastapi import APIRouter, Request
 from fastapi.responses import Response
 
 from finances.analysis.balances import balance_report
+from finances.analysis.forecast import forecast_report
 from finances.analysis.insights import insights_report
 from finances.analysis.months import month_report
 from finances.analysis.recurring import recurring_charges
 from finances.analysis.spending import spending_report
+from finances.analysis.upcoming import upcoming_report
 from finances.domain.spending import BY, month_bounds, month_range
 from finances.views.balances import balance_rows, balance_summary
+from finances.views.forecast import (
+    account_heading,
+    forecast_heading,
+    forecast_rows,
+    lowest_line,
+    no_balance_line,
+    starting_line,
+    step_rows,
+)
 from finances.views.insights import (
     finding_rows,
     findings_summary,
@@ -21,6 +32,7 @@ from finances.views.insights import (
 from finances.views.months import month_notes, month_rows
 from finances.views.recurring import recurring_rows, recurring_summary
 from finances.views.spending import spending_heading, spending_rows, spending_summary
+from finances.views.upcoming import upcoming_heading, upcoming_rows, upcoming_summary
 from finances.web import app as web_app
 from finances.web.access import _reading
 from finances.web.helpers import _day
@@ -28,6 +40,18 @@ from finances.web.render import _not_migrated, _render
 
 router = APIRouter()
 _REPORT_MONTHS = 6
+DAYS_REFUSED = "days must be a whole number from 1 to 90"
+
+
+def _days(text: str) -> int:
+    if not text:
+        return 30
+    if not text.isdigit():
+        raise ValueError(DAYS_REFUSED)
+    days = int(text)
+    if days < 1 or days > 90:
+        raise ValueError(DAYS_REFUSED)
+    return days
 
 
 def _spending_range(form: dict[str, str]) -> tuple[date, date]:
@@ -121,3 +145,52 @@ def insights(request: Request) -> Response:
         "end": end.isoformat(),
     }
     return _render(request, "insights", {"form": form, "report": report})
+
+
+@router.get("/ahead")
+def ahead(request: Request) -> Response:
+    stopped = _not_migrated(request)
+    if stopped is not None:
+        return stopped
+    query = request.query_params
+    try:
+        days = _days(query.get("days", ""))
+    except ValueError as error:
+        return _render(request, "error", {"message": str(error), "back": "/ahead"}, 400)
+    account = (query.get("account") or "").strip()
+    today = web_app._today()
+    with _reading() as session:
+        if not account:
+            report = forecast_report(session, today, days)
+            found = upcoming_report(session, today, days)
+            context = {
+                "days": str(days),
+                "forecast": {
+                    "heading": forecast_heading(report),
+                    "rows": forecast_rows(report),
+                    "no_balance": no_balance_line(report),
+                },
+                "upcoming": {
+                    "heading": upcoming_heading(found),
+                    "rows": upcoming_rows(found),
+                    "summary": upcoming_summary(found),
+                },
+                "detail": None,
+            }
+            return _render(request, "ahead", context)
+        try:
+            report = forecast_report(session, today, days, account=account)
+        except ValueError as error:
+            return _render(request, "error", {"message": str(error), "back": "/ahead"}, 404)
+        forecast = report.accounts[0]
+        context = {
+            "days": str(days),
+            "detail": {
+                "account": forecast.account,
+                "heading": account_heading(report),
+                "starting": starting_line(forecast),
+                "steps": step_rows(forecast),
+                "lowest": lowest_line(forecast),
+            },
+        }
+        return _render(request, "ahead", context)

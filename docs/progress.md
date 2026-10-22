@@ -463,3 +463,12 @@ Template:
 - Deviations:
   - `walk` totals in and out with two independent sign checks; a private helper picks one account's charges and credits from the loaded flows.
 - Follow-ups: none
+
+## Phase 27c: looking ahead on the web (2026-10-22)
+- Tests: 2976 -> 2997 (given 14)
+- New public names: `analysis.dashboard.Dashboard.upcoming`; `web.routes.reports`: `DAYS_REFUSED`, `ahead`
+- Changed files: 11
+- Deviations:
+  - `_days` uses `str.isdigit`; wrapped a 130-character line in `template_check.py` left by the 27c spec commit so ruff could pass.
+- Follow-ups:
+  - Wrap that `template_check.py` line in the spec tree so later phases do not have to touch it.
