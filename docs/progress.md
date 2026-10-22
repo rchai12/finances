@@ -555,4 +555,11 @@ Template:
 - Deviations: none
 - Follow-ups: none
 
+## Phase 36a: split the repositories (2026-10-22)
+- Tests: 3259 -> 3273 (given 14)
+- New public names: None
+- Changed files: 7
+- Deviations: none
+- Follow-ups: none
+
 

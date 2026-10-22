@@ -38,7 +38,8 @@ Bugs here silently corrupt money data, so every line and every branch of each mu
 - `domain/feed_setup.py` (guessing how to set up a new SimpleFIN account)
 - `analysis/people.py` (whose money a transaction is)
 - `db/backup.py` (copying, checking, and restoring the database)
-- Planned for Phase 36: `domain/transfers.py` (transfer candidates and clear pairs, Phase 11c) and `domain/spending.py` (kinds, spending lines, refunds, Phase 12a and 35), both built without joining this list
+- `domain/transfers.py` (transfer candidates and clear pairs; added in Phase 36a)
+- `domain/spending.py` (kinds, spending lines, refunds; added in Phase 36a)
 
 ## Commands
 

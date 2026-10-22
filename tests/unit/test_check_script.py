@@ -18,6 +18,8 @@ CRITICAL = [
     "domain/feed_setup.py",
     "analysis/people.py",
     "db/backup.py",
+    "domain/transfers.py",
+    "domain/spending.py",
 ]
 
 
