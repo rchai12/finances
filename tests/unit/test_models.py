@@ -7,6 +7,7 @@ import pytest
 from finances.domain.models import Account, AccountType, validate_last4
 
 CREATED = datetime(2026, 1, 2, 3, 4, 5, tzinfo=UTC)
+
 VALID_LAST4 = ["1234", "0000", "0042", "9999"]
 INVALID_LAST4 = [
     "",
