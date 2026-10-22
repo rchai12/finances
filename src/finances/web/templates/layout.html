@@ -23,6 +23,7 @@
   <a href="/ahead"{% if section == "ahead" %} aria-current="page"{% endif %}>Ahead</a>
   <a href="/sync"{% if section == "sync" %} aria-current="page"{% endif %}>SimpleFIN</a>
   <a href="/backups"{% if section == "backups" %} aria-current="page"{% endif %}>Backups</a>
+  <form method="post" action="/sync/run" class="nav-sync"><input type="hidden" name="csrf" value="{{ csrf }}"><button type="submit">Sync now</button></form>
 </nav>
 <main>
 {% block content %}{% endblock %}

@@ -49,7 +49,7 @@ def failed_cleanly(result, message: str) -> bool:
 
 
 class Page(HTMLParser):
-    """The parts of a page the tests read: table rows, paragraphs, and forms."""
+    """The parts of a page the tests read: table rows, paragraphs, and forms (not the menu's)."""
 
     def __init__(self, html: str) -> None:
         super().__init__()
@@ -63,10 +63,13 @@ class Page(HTMLParser):
         self.form: dict | None = None
         self.select: str | None = None
         self.links: list[str] = []
+        self.in_nav = False
         self.feed(html)
 
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
         values = {name: value or "" for name, value in attrs}
+        if tag == "nav":
+            self.in_nav = True
         if tag == "a":
             self.links.append(values.get("href", ""))
         if tag == "tr":
@@ -83,7 +86,8 @@ class Page(HTMLParser):
                 "inputs": {},
                 "selects": {},
             }
-            self.forms.append(self.form)
+            if not self.in_nav:
+                self.forms.append(self.form)
         elif tag == "input" and self.form is not None:
             self.form["inputs"][values.get("name", "")] = (
                 values.get("type", "text"),
@@ -98,6 +102,8 @@ class Page(HTMLParser):
             )
 
     def handle_endtag(self, tag: str) -> None:
+        if tag == "nav":
+            self.in_nav = False
         if tag in ("td", "th") and self.cell is not None and self.row is not None:
             self.row.append("".join(self.cell).strip())
             self.cell = None

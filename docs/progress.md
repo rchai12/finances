@@ -490,3 +490,10 @@ Template:
   - tools registered in a loop over a table; `reading()` uses try/finally.
 - Follow-ups:
   - installed mcp 2.3.0
+
+## Phase 16l: a Sync now button in the menu (2026-10-22)
+- Tests: 3033 -> 3049 (given 16)
+- New public names: none
+- Changed files: 7
+- Deviations: none
+- Follow-ups: none
