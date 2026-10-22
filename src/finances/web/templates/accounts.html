@@ -14,6 +14,7 @@
 {% else %}
 <p class="empty">No accounts.</p>
 {% endif %}
+<section class="card">
 <h2>Add an account</h2>
 <form method="post" action="/accounts/add" class="fields">
   <input type="hidden" name="csrf" value="{{ csrf }}">
@@ -28,7 +29,9 @@
   <label>Last 4 digits <input name="last4" maxlength="4" inputmode="numeric" value="{{ form.last4 }}"></label>
   <button type="submit">Add account</button>
 </form>
+</section>
 {% if every_account %}
+<section class="card">
 <h2>Set an owner</h2>
 <form method="post" action="/accounts/owner" class="fields">
   <input type="hidden" name="csrf" value="{{ csrf }}">
@@ -47,8 +50,10 @@
   </label>
   <button type="submit">Save owner</button>
 </form>
+</section>
 {% endif %}
 {% if every_account %}
+<section class="card">
 <h2>Rename an account</h2>
 <form method="post" action="/accounts/rename" class="fields">
   <input type="hidden" name="csrf" value="{{ csrf }}">
@@ -61,6 +66,8 @@
   <label>New name <input name="to" required maxlength="100" value="{{ rename_form.to }}"></label>
   <button type="submit">Rename</button>
 </form>
+</section>
+<section class="card">
 <h2>Close or reopen an account</h2>
 <p class="hint">A closed account is left out of balances, net worth, coverage, and the account choices; its transactions are kept and still count for the days they happened.</p>
 <form method="post" action="/accounts/active" class="fields">
@@ -74,5 +81,6 @@
   <button type="submit" name="active" value="false">Close</button>
   <button type="submit" name="active" value="true">Reopen</button>
 </form>
+</section>
 {% endif %}
 {% endblock %}

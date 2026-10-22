@@ -9,6 +9,7 @@ from fastapi.responses import RedirectResponse, Response
 from fastapi.templating import Jinja2Templates
 
 from finances.db.migrate import current_revision, head_revision
+from finances.views.format import amount_class
 
 NOT_MIGRATED = "The database is not up to date. Run: fin db upgrade"
 CSRF_COOKIE = "fin_csrf"
@@ -55,6 +56,7 @@ NOTICES = {
 }
 
 _TEMPLATES = Jinja2Templates(directory=Path(__file__).parent / "templates")
+_TEMPLATES.env.filters["amount_class"] = amount_class
 _TOKEN = re.compile(r"[A-Za-z0-9_-]{43}")
 
 

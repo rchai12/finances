@@ -22,6 +22,15 @@ def last_pull_text(pull: FeedPull | None) -> str:
     return "never" if pull is None else pull.pulled_at.strftime("%Y-%m-%d %H:%M UTC")
 
 
+def amount_class(text: str) -> str:
+    """The class of a table cell holding this formatted amount."""
+    if text.startswith("-$"):
+        return "amount neg"
+    if text.startswith("+$"):
+        return "amount pos"
+    return "amount"
+
+
 _KB = 1024
 _MB = 1024 * 1024
 

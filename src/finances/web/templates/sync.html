@@ -4,6 +4,7 @@
 <h1>SimpleFIN</h1>
 {% include "messages.html" %}
 {% if new_accounts %}
+<section class="card">
 <h2>New SimpleFIN accounts</h2>
 <p class="hint">The last sync found these accounts. Set each one up below: check the guesses, then create it, map it to an account you already have, or stop tracking it.</p>
 {% for item in new_accounts %}
@@ -58,12 +59,13 @@
 </form>
 </section>
 {% endfor %}
+</section>
 {% endif %}
 {% if rows %}
 <table>
 <thead><tr><th>Link</th><th>Account</th><th>SimpleFIN account</th><th>Keychain</th><th>Last pull</th><th>Balance date</th><th class="amount">Drift</th></tr></thead>
 <tbody>
-{% for row in rows %}<tr><td>{{ row.link }}</td><td>{{ row.account }}</td><td>{{ row.feed_account }}</td><td>{{ row.keychain }}</td><td>{{ row.last_pull }}</td><td>{{ row.balance_date }}</td><td class="amount">{{ row.drift }}</td></tr>
+{% for row in rows %}<tr><td>{{ row.link }}</td><td>{{ row.account }}</td><td>{{ row.feed_account }}</td><td>{{ row.keychain }}</td><td>{{ row.last_pull }}</td><td>{{ row.balance_date }}</td><td class="{{ row.drift|amount_class }}">{{ row.drift }}</td></tr>
 {% endfor %}</tbody>
 </table>
 <form method="post" action="/sync/run">
@@ -74,6 +76,7 @@
 <p class="empty">No mapped accounts.</p>
 {% endif %}
 {% if links %}
+<section class="card">
 <h2>Links</h2>
 <ul class="links">
 {% for name in links %}<li>{{ name }}
@@ -85,8 +88,10 @@
   </form>
 </li>
 {% endfor %}</ul>
+</section>
 {% endif %}
 {% if ignored_accounts %}
+<section class="card">
 <h2>Not tracked</h2>
 <ul class="links">
 {% for item in ignored_accounts %}<li>{{ item.institution }}: {{ item.name }} <span class="hint">link {{ item.link }}</span>
@@ -98,7 +103,9 @@
   </form>
 </li>
 {% endfor %}</ul>
+</section>
 {% endif %}
+<section class="card">
 <h2>Link a SimpleFIN subscription</h2>
 <p class="hint">Create a setup token in your SimpleFIN account and paste it here. It is used once; the access it gives is kept in this Mac's Keychain.</p>
 <form method="post" action="/sync/link" class="fields">
@@ -108,9 +115,12 @@
   <label class="check"><input type="checkbox" name="replace" value="on"> Replace an existing link</label>
   <button type="submit">Link</button>
 </form>
+</section>
+<section class="card">
 <h2>Open a link's accounts</h2>
 <form method="get" action="/sync/accounts" class="fields">
   <label>Link name <input name="link" required maxlength="30"></label>
   <button type="submit">Show accounts</button>
 </form>
+</section>
 {% endblock %}

@@ -66,3 +66,11 @@ p { margin: .35rem 0; }
 ul.links li { margin: .3rem 0; }
 section.map { border-top: 1px solid var(--line); margin-top: 1rem; }
 .chart { max-width: 32rem; margin: .5rem 0 1rem; padding: .75rem; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); }
+
+/* Cards around each section; money below zero in red, a gain in green. */
+section.card { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: .25rem 1rem .75rem; margin: 1rem 0; }
+section.card > h2 { margin-top: .75rem; }
+section.card table { background: var(--bg); }
+section.card .notice, section.card .error, section.card .attention { background: var(--bg); }
+td.amount.neg { color: var(--bad); }
+td.amount.pos { color: var(--good); }

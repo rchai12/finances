@@ -8,26 +8,30 @@
   <input type="hidden" name="csrf" value="{{ csrf }}">
   <button type="submit">Back up now</button>
 </form>
+<section class="card">
 <h2>Backups</h2>
 {% if backups %}
 <table>
 <thead><tr><th>File</th><th>Taken (UTC)</th><th class="amount">Size</th><th></th></tr></thead>
 <tbody>
-{% for row in backups %}<tr><td>{{ row.file }}</td><td>{{ row.taken }}</td><td class="amount">{{ row.size }}</td><td><a href="/backups/restore?name={{ row.file|urlencode }}">Restore</a> <a href="/backups/delete?name={{ row.file|urlencode }}">Delete</a></td></tr>
+{% for row in backups %}<tr><td>{{ row.file }}</td><td>{{ row.taken }}</td><td class="{{ row.size|amount_class }}">{{ row.size }}</td><td><a href="/backups/restore?name={{ row.file|urlencode }}">Restore</a> <a href="/backups/delete?name={{ row.file|urlencode }}">Delete</a></td></tr>
 {% endfor %}</tbody>
 </table>
 {% else %}
 <p class="empty">No backups.</p>
 {% endif %}
+</section>
+<section class="card">
 <h2>Set aside before a restore</h2>
 {% if set_asides %}
 <table>
 <thead><tr><th>File</th><th>Taken (UTC)</th><th class="amount">Size</th><th></th></tr></thead>
 <tbody>
-{% for row in set_asides %}<tr><td>{{ row.file }}</td><td>{{ row.taken }}</td><td class="amount">{{ row.size }}</td><td><a href="/backups/restore?name={{ row.file|urlencode }}">Restore</a> <a href="/backups/delete?name={{ row.file|urlencode }}">Delete</a></td></tr>
+{% for row in set_asides %}<tr><td>{{ row.file }}</td><td>{{ row.taken }}</td><td class="{{ row.size|amount_class }}">{{ row.size }}</td><td><a href="/backups/restore?name={{ row.file|urlencode }}">Restore</a> <a href="/backups/delete?name={{ row.file|urlencode }}">Delete</a></td></tr>
 {% endfor %}</tbody>
 </table>
 {% else %}
 <p class="empty">No set-aside copies.</p>
 {% endif %}
+</section>
 {% endblock %}

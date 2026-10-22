@@ -13,13 +13,16 @@
 {% else %}
 <p class="empty">No people.</p>
 {% endif %}
+<section class="card">
 <h2>Add a person</h2>
 <form method="post" action="/people/add" class="fields">
   <input type="hidden" name="csrf" value="{{ csrf }}">
   <label>Name <input name="name" required maxlength="100"></label>
   <button type="submit">Add person</button>
 </form>
+</section>
 {% if people %}
+<section class="card">
 <h2>Add a cardholder name</h2>
 <p class="hint">The name a statement prints for this person on a shared card.</p>
 <form method="post" action="/people/alias" class="fields">
@@ -33,5 +36,6 @@
   <label>Cardholder name <input name="cardholder" required maxlength="100"></label>
   <button type="submit">Save name</button>
 </form>
+</section>
 {% endif %}
 {% endblock %}

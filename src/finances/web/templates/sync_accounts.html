@@ -12,7 +12,7 @@
 {% endfor %}</tbody>
 </table>
 {% for row in rows %}
-<section class="map">
+<section class="map card">
 <h2>{{ row.institution }}: {{ row.name }}</h2>
 {% if accounts %}
 <form method="post" action="/sync/map" class="fields">

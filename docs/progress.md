@@ -505,3 +505,11 @@ Template:
 - Deviations: none
 - Follow-ups: none
 
+## Phase 16n: cards and coloured amounts (2026-10-22)
+- Tests: 3060 -> 3093 (given 28)
+- New public names: `views.format`: `amount_class`
+- Changed files: 24
+- Deviations: none
+- Follow-ups: none
+
+

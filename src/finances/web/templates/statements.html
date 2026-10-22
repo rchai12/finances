@@ -3,6 +3,7 @@
 {% block content %}
 <h1>Statements</h1>
 {% include "messages.html" %}
+<section class="card">
 <h2>Upload a statement</h2>
 <p class="hint">A PDF statement from a supported bank. It is read here and not kept or sent anywhere; only its name and a fingerprint are stored.</p>
 <form method="post" action="/statements/upload" enctype="multipart/form-data" class="fields">
@@ -18,25 +19,31 @@
   <label><input type="checkbox" name="dry_run" value="yes"{% if dry_run %} checked{% endif %}> Check only, write nothing</label>
   <button type="submit">Upload</button>
 </form>
+</section>
 {% if result %}
+<section class="card">
 <h2>Result</h2>
 <table class="detail">
 <tbody>
 {% for label, value in result %}<tr><th>{{ label }}</th><td>{{ value }}</td></tr>
 {% endfor %}</tbody>
 </table>
+</section>
 {% endif %}
+<section class="card">
 <h2>Statements</h2>
 {% if statements %}
 <table>
 <thead><tr><th>Account</th><th>File</th><th>Parser</th><th>Period</th><th class="amount">Opening</th><th class="amount">Closing</th><th class="amount">Lines</th><th class="amount">New</th></tr></thead>
 <tbody>
-{% for row in statements %}<tr><td>{{ row.account }}</td><td>{{ row.file }}</td><td>{{ row.parser }}</td><td>{{ row.period }}</td><td class="amount">{{ row.opening }}</td><td class="amount">{{ row.closing }}</td><td class="amount">{{ row.lines }}</td><td class="amount">{{ row.new }}</td></tr>
+{% for row in statements %}<tr><td>{{ row.account }}</td><td>{{ row.file }}</td><td>{{ row.parser }}</td><td>{{ row.period }}</td><td class="{{ row.opening|amount_class }}">{{ row.opening }}</td><td class="{{ row.closing|amount_class }}">{{ row.closing }}</td><td class="{{ row.lines|amount_class }}">{{ row.lines }}</td><td class="{{ row.new|amount_class }}">{{ row.new }}</td></tr>
 {% endfor %}</tbody>
 </table>
 {% else %}
 <p class="empty">No statements.</p>
 {% endif %}
+</section>
+<section class="card">
 <h2>Gaps</h2>
 <p class="hint">Days between two statements of the same account that neither covers.</p>
 {% if gaps %}
@@ -49,4 +56,5 @@
 {% else %}
 <p class="empty">No gaps between statements.</p>
 {% endif %}
+</section>
 {% endblock %}

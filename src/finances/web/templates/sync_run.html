@@ -10,7 +10,7 @@
 <table>
 <thead><tr><th>Link</th><th>Account</th><th>SimpleFIN account</th><th>New</th><th>Changed</th><th>Removed</th><th>Same</th><th class="amount">Drift</th><th>Problem</th></tr></thead>
 <tbody>
-{% for row in rows %}<tr><td>{{ row.link }}</td><td>{{ row.account }}</td><td>{{ row.feed_account }}</td><td>{{ row.new }}</td><td>{{ row.changed }}</td><td>{{ row.removed }}</td><td>{{ row.same }}</td><td class="amount">{{ row.drift }}</td><td>{{ row.problem }}</td></tr>
+{% for row in rows %}<tr><td>{{ row.link }}</td><td>{{ row.account }}</td><td>{{ row.feed_account }}</td><td>{{ row.new }}</td><td>{{ row.changed }}</td><td>{{ row.removed }}</td><td>{{ row.same }}</td><td class="{{ row.drift|amount_class }}">{{ row.drift }}</td><td>{{ row.problem }}</td></tr>
 {% endfor %}</tbody>
 </table>
 {% endif %}

@@ -3,6 +3,7 @@
 {% block content %}
 <h1>Home</h1>
 <p class="summary">Today is {{ today }}.</p>
+<section class="card">
 <h2>Needs attention</h2>
 {% if uncategorized %}<p class="attention"><a href="/categories">{{ uncategorized }} transactions without a category.</a></p>
 {% else %}<p class="empty">Every transaction has a category.</p>
@@ -20,6 +21,8 @@
 {% else %}
 <p class="empty">No data problems found.</p>
 {% endif %}
+</section>
+<section class="card">
 <h2>Money</h2>
 {% if has_accounts %}
 {% for line in balance_summary %}<p class="summary">{{ line }}</p>
@@ -28,31 +31,37 @@
 <p class="empty">No accounts.</p>
 {% endif %}
 <p><a href="/reports">Balances, months, and spending</a></p>
+</section>
+<section class="card">
 <h2>This month and last</h2>
 <table>
 <thead><tr><th>Month</th><th class="amount">Spent</th><th class="amount">Income</th><th class="amount">Change</th><th>Covered</th></tr></thead>
 <tbody>
-{% for row in months %}<tr><td><a href="/reports?month={{ row.month }}">{{ row.month }}</a></td><td class="amount">{{ row.spent }}</td><td class="amount">{{ row.income }}</td><td class="amount">{{ row.change }}</td><td>{{ row.covered }}</td></tr>
+{% for row in months %}<tr><td><a href="/reports?month={{ row.month }}">{{ row.month }}</a></td><td class="{{ row.spent|amount_class }}">{{ row.spent }}</td><td class="{{ row.income|amount_class }}">{{ row.income }}</td><td class="{{ row.change|amount_class }}">{{ row.change }}</td><td>{{ row.covered }}</td></tr>
 {% endfor %}</tbody>
 </table>
+</section>
+<section class="card">
 <h2>Budgets this month</h2>
 {% if budgets %}
 <table>
 <thead><tr><th>Budget</th><th class="amount">Spent</th><th class="amount">Target</th><th class="amount">Used</th><th class="amount">Month gone</th></tr></thead>
 <tbody>
-{% for row in budgets %}<tr><td>{{ row.budget }}</td><td class="amount">{{ row.spent }}</td><td class="amount">{{ row.target }}</td><td class="amount">{{ row.used }}</td><td class="amount">{{ row.month_gone }}</td></tr>
+{% for row in budgets %}<tr><td>{{ row.budget }}</td><td class="{{ row.spent|amount_class }}">{{ row.spent }}</td><td class="{{ row.target|amount_class }}">{{ row.target }}</td><td class="{{ row.used|amount_class }}">{{ row.used }}</td><td class="{{ row.month_gone|amount_class }}">{{ row.month_gone }}</td></tr>
 {% endfor %}</tbody>
 </table>
 {% else %}
 <p class="hint">No budgets yet.</p>
 {% endif %}
 <p><a href="/budgets">Budgets</a></p>
+</section>
+<section class="card">
 <h2>Coming up</h2>
 {% if upcoming %}
 <table>
 <thead><tr><th>Date</th><th>What</th><th>Merchant</th><th class="amount">Amount</th></tr></thead>
 <tbody>
-{% for row in upcoming %}<tr><td>{{ row.date }}</td><td>{{ row.what }}</td><td>{{ row.merchant }}</td><td class="amount">{{ row.amount }}</td></tr>
+{% for row in upcoming %}<tr><td>{{ row.date }}</td><td>{{ row.what }}</td><td>{{ row.merchant }}</td><td class="{{ row.amount|amount_class }}">{{ row.amount }}</td></tr>
 {% endfor %}</tbody>
 </table>
 {% else %}
@@ -60,12 +69,14 @@
 {% endif %}
 <p class="ahead">{{ upcoming_summary }}</p>
 <p><a href="/ahead">Looking ahead</a></p>
+</section>
+<section class="card">
 <h2>Top findings</h2>
 {% if findings %}
 <table>
 <thead><tr><th>Severity</th><th>Type</th><th>About</th><th class="amount">Saves a month</th><th>Detail</th></tr></thead>
 <tbody>
-{% for row in findings %}<tr><td>{{ row.severity }}</td><td>{{ row.type }}</td><td>{{ row.about }}</td><td class="amount">{{ row.saves }}</td><td>{{ row.detail }}</td></tr>
+{% for row in findings %}<tr><td>{{ row.severity }}</td><td>{{ row.type }}</td><td>{{ row.about }}</td><td class="{{ row.saves|amount_class }}">{{ row.saves }}</td><td>{{ row.detail }}</td></tr>
 {% endfor %}</tbody>
 </table>
 <p class="summary">{{ findings_summary }}</p>
@@ -73,4 +84,5 @@
 <p class="empty">No findings this month.</p>
 {% endif %}
 <p><a href="/insights?month={{ month_label }}">All insights for {{ month_label }}</a></p>
+</section>
 {% endblock %}

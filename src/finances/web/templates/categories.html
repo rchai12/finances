@@ -3,18 +3,21 @@
 {% block content %}
 <h1>Categories</h1>
 {% include "messages.html" %}
+<section class="card">
 <h2>Uncategorized</h2>
 {% if uncategorized %}
 <table>
 <thead><tr><th>ID</th><th>Date</th><th>Account</th><th>Merchant</th><th class="amount">Amount</th></tr></thead>
 <tbody>
-{% for row in uncategorized %}<tr><td><a href="/transactions/{{ row.id }}">{{ row.id }}</a></td><td>{{ row.date }}</td><td>{{ row.account }}</td><td>{{ row.merchant }}</td><td class="amount">{{ row.amount }}</td></tr>
+{% for row in uncategorized %}<tr><td><a href="/transactions/{{ row.id }}">{{ row.id }}</a></td><td>{{ row.date }}</td><td>{{ row.account }}</td><td>{{ row.merchant }}</td><td class="{{ row.amount|amount_class }}">{{ row.amount }}</td></tr>
 {% endfor %}</tbody>
 </table>
 {% if uncategorized|length >= limit %}<p class="hint">Showing the {{ limit }} latest. Open one to set its category, or add a rule below.</p>{% endif %}
 {% else %}
 <p class="empty">No uncategorized transactions.</p>
 {% endif %}
+</section>
+<section class="card">
 <h2>Rules</h2>
 <p class="hint">The highest priority wins; a category set by hand is never changed. Adding, editing, or deleting a rule runs the rules again over every transaction. Open a rule's ID to edit it.</p>
 {% if rules %}
@@ -27,8 +30,12 @@
 {% else %}
 <p class="empty">No rules.</p>
 {% endif %}
+</section>
+<section class="card">
 <h2>Add a rule</h2>
 {% with back = "" %}{% include "rule_form.html" %}{% endwith %}
+</section>
+<section class="card">
 <h2>Categories</h2>
 <table>
 <thead><tr><th>Group</th><th>Category</th><th>Kind</th></tr></thead>
@@ -36,6 +43,8 @@
 {% for row in tree %}<tr><td>{{ row.group }}</td><td>{{ row.category }}</td><td>{{ row.kind }}</td></tr>
 {% endfor %}</tbody>
 </table>
+</section>
+<section class="card">
 <h2>Add a category</h2>
 <form method="post" action="/categories/add" class="fields">
   <input type="hidden" name="csrf" value="{{ csrf }}">
@@ -48,6 +57,8 @@
   </label>
   <button type="submit">Add category</button>
 </form>
+</section>
+<section class="card">
 <h2>Rename a category or group</h2>
 <form method="post" action="/categories/rename" class="fields">
   <input type="hidden" name="csrf" value="{{ csrf }}">
@@ -64,6 +75,8 @@
   <label>New name <input name="to" required maxlength="50" value="{{ rename_form.to }}"></label>
   <button type="submit">Rename</button>
 </form>
+</section>
+<section class="card">
 <h2>Delete a category or group</h2>
 <p class="hint">A category in use is deleted only after its transactions and rules move to another category. A group can be deleted when it has no categories.</p>
 <form method="post" action="/categories/delete" class="fields">
@@ -89,4 +102,5 @@
   </label>
   <button type="submit">Delete</button>
 </form>
+</section>
 {% endblock %}

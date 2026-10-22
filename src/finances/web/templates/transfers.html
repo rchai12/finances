@@ -8,26 +8,30 @@
   <input type="hidden" name="csrf" value="{{ csrf }}">
   <button type="submit">Find transfers</button>
 </form>
+<section class="card">
 <h2>Waiting for review</h2>
 {% if suggestions %}
 <table>
 <thead><tr><th>Out</th><th>Out date</th><th>From</th><th>In</th><th>In date</th><th>To</th><th class="amount">Amount</th><th></th></tr></thead>
 <tbody>
-{% for row in suggestions %}<tr><td><a href="/transactions/{{ row.out_id }}">{{ row.out_id }}</a></td><td>{{ row.out_date }}</td><td><a href="/account?name={{ row.from_account|urlencode }}">{{ row.from_account }}</a></td><td><a href="/transactions/{{ row.in_id }}">{{ row.in_id }}</a></td><td>{{ row.in_date }}</td><td><a href="/account?name={{ row.to_account|urlencode }}">{{ row.to_account }}</a></td><td class="amount">{{ row.amount }}</td><td><form method="post" action="/transfers/confirm" class="inline"><input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="out" value="{{ row.out_id }}"><input type="hidden" name="in" value="{{ row.in_id }}"><button type="submit">Transfer</button></form> <form method="post" action="/transfers/reject" class="inline"><input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="out" value="{{ row.out_id }}"><input type="hidden" name="in" value="{{ row.in_id }}"><button type="submit">Not a transfer</button></form></td></tr>
+{% for row in suggestions %}<tr><td><a href="/transactions/{{ row.out_id }}">{{ row.out_id }}</a></td><td>{{ row.out_date }}</td><td><a href="/account?name={{ row.from_account|urlencode }}">{{ row.from_account }}</a></td><td><a href="/transactions/{{ row.in_id }}">{{ row.in_id }}</a></td><td>{{ row.in_date }}</td><td><a href="/account?name={{ row.to_account|urlencode }}">{{ row.to_account }}</a></td><td class="{{ row.amount|amount_class }}">{{ row.amount }}</td><td><form method="post" action="/transfers/confirm" class="inline"><input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="out" value="{{ row.out_id }}"><input type="hidden" name="in" value="{{ row.in_id }}"><button type="submit">Transfer</button></form> <form method="post" action="/transfers/reject" class="inline"><input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="out" value="{{ row.out_id }}"><input type="hidden" name="in" value="{{ row.in_id }}"><button type="submit">Not a transfer</button></form></td></tr>
 {% endfor %}</tbody>
 </table>
 {% else %}
 <p class="empty">No transfers wait for review.</p>
 {% endif %}
+</section>
+<section class="card">
 <h2>Transfers</h2>
 {% if pairs %}
 <table>
 <thead><tr><th>Pair</th><th>Date</th><th>From</th><th>To</th><th class="amount">Amount</th><th>Out</th><th>In</th><th>How</th><th></th></tr></thead>
 <tbody>
-{% for row in pairs %}<tr><td>{{ row.pair }}</td><td>{{ row.date }}</td><td><a href="/account?name={{ row.from_account|urlencode }}">{{ row.from_account }}</a></td><td><a href="/account?name={{ row.to_account|urlencode }}">{{ row.to_account }}</a></td><td class="amount">{{ row.amount }}</td><td><a href="/transactions/{{ row.out_id }}">{{ row.out_id }}</a></td><td><a href="/transactions/{{ row.in_id }}">{{ row.in_id }}</a></td><td>{{ row.how }}</td><td><form method="post" action="/transfers/unpair" class="inline"><input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="pair" value="{{ row.pair }}"><button type="submit">Unpair</button></form></td></tr>
+{% for row in pairs %}<tr><td>{{ row.pair }}</td><td>{{ row.date }}</td><td><a href="/account?name={{ row.from_account|urlencode }}">{{ row.from_account }}</a></td><td><a href="/account?name={{ row.to_account|urlencode }}">{{ row.to_account }}</a></td><td class="{{ row.amount|amount_class }}">{{ row.amount }}</td><td><a href="/transactions/{{ row.out_id }}">{{ row.out_id }}</a></td><td><a href="/transactions/{{ row.in_id }}">{{ row.in_id }}</a></td><td>{{ row.how }}</td><td><form method="post" action="/transfers/unpair" class="inline"><input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="pair" value="{{ row.pair }}"><button type="submit">Unpair</button></form></td></tr>
 {% endfor %}</tbody>
 </table>
 {% else %}
 <p class="empty">No transfers.</p>
 {% endif %}
+</section>
 {% endblock %}

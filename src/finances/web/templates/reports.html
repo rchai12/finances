@@ -5,12 +5,13 @@
 {% block content %}
 <h1>Reports</h1>
 {% include "messages.html" %}
+<section class="card">
 <h2>Balances</h2>
 {% if balances %}
 <table>
 <thead><tr><th>Account</th><th>Type</th><th class="amount">Balance</th><th>As of</th><th>From</th></tr></thead>
 <tbody>
-{% for row in balances %}<tr><td><a href="/account?name={{ row.account|urlencode }}">{{ row.account }}</a></td><td>{{ row.type }}</td><td class="amount">{{ row.balance }}</td><td>{{ row.as_of }}</td><td>{{ row.source }}</td></tr>
+{% for row in balances %}<tr><td><a href="/account?name={{ row.account|urlencode }}">{{ row.account }}</a></td><td>{{ row.type }}</td><td class="{{ row.balance|amount_class }}">{{ row.balance }}</td><td>{{ row.as_of }}</td><td>{{ row.source }}</td></tr>
 {% endfor %}</tbody>
 </table>
 {% for line in balance_summary %}<p class="summary">{{ line }}</p>
@@ -18,29 +19,35 @@
 {% else %}
 <p class="empty">No accounts.</p>
 {% endif %}
+</section>
+<section class="card">
 <h2>Net worth over time</h2>
 {% if net_worth %}
 <div class="chart"><canvas data-chart="{{ net_worth_chart }}" role="img" aria-label="Net worth at the end of each month"></canvas></div>
 <table>
 <thead><tr><th>Date</th><th class="amount">Net worth</th><th class="amount">Accounts</th></tr></thead>
 <tbody>
-{% for row in net_worth %}<tr><td>{{ row.date }}</td><td class="amount">{{ row.net_worth }}</td><td class="amount">{{ row.accounts }}</td></tr>
+{% for row in net_worth %}<tr><td>{{ row.date }}</td><td class="{{ row.net_worth|amount_class }}">{{ row.net_worth }}</td><td class="{{ row.accounts|amount_class }}">{{ row.accounts }}</td></tr>
 {% endfor %}</tbody>
 </table>
 {% else %}
 <p class="empty">No balances yet.</p>
 {% endif %}
+</section>
+<section class="card">
 <h2>Months</h2>
 {% if months %}
 <table>
 <thead><tr><th>Month</th><th class="amount">Spent</th><th class="amount">Income</th><th class="amount">Change</th><th>Covered</th></tr></thead>
 <tbody>
-{% for row in months %}<tr><td><a href="/reports?month={{ row.month }}">{{ row.month }}</a></td><td class="amount">{{ row.spent }}</td><td class="amount">{{ row.income }}</td><td class="amount">{{ row.change }}</td><td>{{ row.covered }}</td></tr>
+{% for row in months %}<tr><td><a href="/reports?month={{ row.month }}">{{ row.month }}</a></td><td class="{{ row.spent|amount_class }}">{{ row.spent }}</td><td class="{{ row.income|amount_class }}">{{ row.income }}</td><td class="{{ row.change|amount_class }}">{{ row.change }}</td><td>{{ row.covered }}</td></tr>
 {% endfor %}</tbody>
 </table>
 {% for line in month_notes %}<p class="hint">{{ line }}</p>
 {% endfor %}
 {% endif %}
+</section>
+<section class="card">
 <h2>Spending</h2>
 <form method="get" action="/reports" class="fields">
   <label>Month <input type="month" name="month" value="{{ form.month }}"></label>
@@ -60,7 +67,7 @@
 <table>
 <thead><tr><th>{{ spending.by|capitalize }}</th><th class="amount">Spent</th><th class="amount">Count</th></tr></thead>
 <tbody>
-{% for row in spending.rows %}<tr><td><a href="/transactions?from={{ spending.start }}&amp;to={{ spending.end }}&amp;{{ spending.by }}={{ row.label|urlencode }}&amp;kind=spending&amp;limit=1000">{{ row.label }}</a></td><td class="amount">{{ row.spent }}</td><td class="amount">{{ row.count }}</td></tr>
+{% for row in spending.rows %}<tr><td><a href="/transactions?from={{ spending.start }}&amp;to={{ spending.end }}&amp;{{ spending.by }}={{ row.label|urlencode }}&amp;kind=spending&amp;limit=1000">{{ row.label }}</a></td><td class="{{ row.spent|amount_class }}">{{ row.spent }}</td><td class="{{ row.count|amount_class }}">{{ row.count }}</td></tr>
 {% endfor %}</tbody>
 </table>
 {% else %}
@@ -69,4 +76,5 @@
 {% for line in spending.summary %}<p class="summary">{{ line }}</p>
 {% endfor %}
 {% endif %}
+</section>
 {% endblock %}
