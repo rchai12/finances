@@ -6,6 +6,7 @@ from typing import Annotated
 import typer
 from rich.table import Table
 
+from finances.analysis.listings import people_listing
 from finances.cli.common import fail, print_table, require_current_schema
 from finances.db.engine import get_engine, session_scope
 from finances.db.repositories import (
@@ -38,7 +39,7 @@ def list_command() -> None:
     require_current_schema()
 
     with session_scope(get_engine()) as session:
-        rows = people_rows(session)
+        rows = people_rows(people_listing(session))
     if not rows:
         typer.echo("No people.")
         return

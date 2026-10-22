@@ -5,6 +5,12 @@ import re
 from fastapi import APIRouter, Request
 from fastapi.responses import Response
 
+from finances.analysis.categories import (
+    card_credit_count,
+    category_tree,
+    rule_listing,
+    uncategorized_items,
+)
 from finances.categorize.service import categorize
 from finances.db.repositories import (
     create_category,
@@ -53,16 +59,18 @@ def _categories_page(
     status_code: int = 200,
 ) -> Response:
     with _reading() as session:
-        choices = category_choices(session)
+        tree = category_tree(session)
+        items = uncategorized_items(session, _UNCATEGORIZED_LIMIT)
+        choices = category_choices(tree)
         context = {
-            "uncategorized": uncategorized_lines(session, _UNCATEGORIZED_LIMIT),
-            "card_note": card_credits_note(session, _UNCATEGORIZED_LIMIT),
+            "uncategorized": uncategorized_lines(items),
+            "card_note": card_credits_note(card_credit_count(items)),
             "limit": _UNCATEGORIZED_LIMIT,
-            "rules": rule_lines(session),
+            "rules": rule_lines(rule_listing(session)),
             "matches": MATCHES,
             "choices": choices,
             "rule_form": rule_form if rule_form is not None else _rule_form(),
-            "tree": category_lines(session),
+            "tree": category_lines(tree),
             "groups": [group for group, _ in choices],
             "category_form": category_form or {"name": "", "group": ""},
             "rename_form": rename_form or {"name": "", "to": ""},
@@ -93,7 +101,7 @@ def _rule_edit_page(
             "rule_id": rule_id,
             "rule_form": form,
             "matches": MATCHES,
-            "choices": category_choices(session),
+            "choices": category_choices(category_tree(session)),
             "error": error,
         }
     return _render(request, "rule_edit", context, status_code)

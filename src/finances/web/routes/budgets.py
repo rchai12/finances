@@ -6,6 +6,7 @@ from fastapi import APIRouter, Request
 from fastapi.responses import Response
 
 from finances.analysis.budgets import budget_report
+from finances.analysis.categories import category_tree
 from finances.db.repositories import remove_budget, set_budget
 from finances.domain.budgets import AMOUNT_MESSAGE
 from finances.domain.money import parse_money
@@ -41,7 +42,7 @@ def _budgets_page(
         error = str(month_error)
         status_code = 400
     with _reading() as session:
-        choices = category_choices(session)
+        choices = category_choices(category_tree(session))
         if month_label is not None and start is not None:
             lines = budget_report(session, start, today)
             rows = budget_rows(lines)

@@ -3,6 +3,7 @@
 from fastapi import APIRouter, Request
 from fastapi.responses import Response
 
+from finances.analysis.listings import people_listing
 from finances.db.repositories import create_person, get_person_by_name, set_cardholder_alias
 from finances.views.people import people_rows
 from finances.web.access import _reading
@@ -14,7 +15,7 @@ router = APIRouter()
 
 def _people_page(request: Request, *, error: str | None = None, status_code: int = 200) -> Response:
     with _reading() as session:
-        rows = people_rows(session)
+        rows = people_rows(people_listing(session))
     context = {"rows": rows, "people": [row.name for row in rows], "error": error}
     return _render(request, "people", context, status_code)
 

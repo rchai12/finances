@@ -2,10 +2,7 @@
 
 from dataclasses import dataclass
 
-from sqlalchemy.orm import Session
-
-from finances.analysis.people import load_attribution
-from finances.db.repositories import list_accounts
+from finances.analysis.listings import AccountListing
 from finances.views.format import mask_last4
 
 
@@ -19,16 +16,15 @@ class AccountRow:
     owner: str
 
 
-def account_rows(session: Session, *, include_inactive: bool = False) -> list[AccountRow]:
-    attribution = load_attribution(session)
+def account_rows(listing: list[AccountListing]) -> list[AccountRow]:
     return [
         AccountRow(
-            account.name,
-            account.institution,
-            account.type.value,
-            mask_last4(account.last4),
-            "yes" if account.is_active else "no",
-            attribution.owner(account.id) or "",
+            item.account.name,
+            item.account.institution,
+            item.account.type.value,
+            mask_last4(item.account.last4),
+            "yes" if item.account.is_active else "no",
+            item.owner or "",
         )
-        for account in list_accounts(session, include_inactive=include_inactive)
+        for item in listing
     ]

@@ -7,6 +7,7 @@ from fastapi import APIRouter, Form, Request
 from fastapi.responses import Response
 
 from finances.analysis.account_page import account_page
+from finances.analysis.listings import account_listing
 from finances.db.repositories import (
     account_names,
     get_account_by_name,
@@ -54,7 +55,7 @@ def _accounts_page(
     status_code: int = 200,
 ) -> Response:
     with _reading() as session:
-        rows = account_rows(session, include_inactive=closed)
+        rows = account_rows(account_listing(session, include_inactive=closed))
         every_account = list(account_names(session).values())
         people = [person.name for person in list_people(session)]
     context = {

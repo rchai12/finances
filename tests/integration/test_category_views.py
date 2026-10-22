@@ -6,6 +6,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy import Engine
 from sqlalchemy.orm import Session
 
+from finances.analysis.categories import category_tree, transaction_facts
 from finances.config import Settings
 from finances.db.engine import session_scope
 from finances.db.migrate import upgrade_to_head
@@ -66,13 +67,18 @@ def test_an_unknown_transaction_is_none(session: Session) -> None:
 # transaction_detail
 
 
+def detail_of(session: Session, transaction_id: int) -> TransactionDetail | None:
+    facts = transaction_facts(session, transaction_id)
+    return None if facts is None else transaction_detail(facts)
+
+
 def test_the_detail_of_an_unknown_transaction_is_none(session: Session) -> None:
-    assert transaction_detail(session, 99) is None
+    assert transaction_facts(session, 99) is None
 
 
 def test_a_transaction_without_a_category(session: Session) -> None:
     made = add_transaction(session, 3, "SQ *ACME COFFEE #12", cents=-2599)
-    assert transaction_detail(session, made) == TransactionDetail(
+    assert detail_of(session, made) == TransactionDetail(
         id=made,
         date="2026-05-03",
         account="Test Card",
@@ -87,7 +93,7 @@ def test_a_transaction_without_a_category(session: Session) -> None:
 
 def test_the_card_is_masked(session: Session) -> None:
     made = add_transaction(session, 3, "ACME COFFEE", card="4321")
-    detail = transaction_detail(session, made)
+    detail = detail_of(session, made)
     assert detail is not None
     assert detail.card == "••4321"
 
@@ -95,7 +101,7 @@ def test_the_card_is_masked(session: Session) -> None:
 def test_a_category_set_by_hand(session: Session) -> None:
     made = add_transaction(session, 3, "FOOBAR GROCERY")
     set_category_by_hand(session, made, "groceries")
-    detail = transaction_detail(session, made)
+    detail = detail_of(session, made)
     assert detail is not None
     assert (detail.category, detail.set_by) == ("Groceries", "by hand")
 
@@ -105,7 +111,7 @@ def test_a_category_set_by_a_rule(session: Session) -> None:
     create_rule(session, "ACME", "Dining")
     rule = create_rule(session, "ACME COFFEE", "Coffee & Dessert", priority=5)
     assign_by_rule(session, made, rule)
-    detail = transaction_detail(session, made)
+    detail = detail_of(session, made)
     assert detail is not None
     assert (detail.category, detail.set_by) == ("Coffee & Dessert", f"by rule {rule.id}")
 
@@ -115,7 +121,7 @@ def test_a_category_set_by_a_rule(session: Session) -> None:
 
 def test_groups_and_their_categories_in_name_order(session: Session) -> None:
     create_category(session, "aquarium", "Home")
-    choices = category_choices(session)
+    choices = category_choices(category_tree(session))
     groups = [group for group, _ in choices]
     assert groups == sorted(groups, key=str.lower)
     names = dict(choices)["Home"]

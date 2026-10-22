@@ -6,6 +6,7 @@ from typing import Annotated
 import typer
 from rich.table import Table
 
+from finances.analysis.listings import account_listing
 from finances.cli.common import fail, print_table, require_current_schema
 from finances.db.engine import get_engine, session_scope
 from finances.db.repositories import (
@@ -54,7 +55,7 @@ def list_command(
     require_current_schema()
 
     with session_scope(get_engine()) as session:
-        rows = account_rows(session, include_inactive=show_all)
+        rows = account_rows(account_listing(session, include_inactive=show_all))
     if not rows:
         typer.echo("No accounts.")
         return

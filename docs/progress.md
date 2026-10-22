@@ -562,4 +562,12 @@ Template:
 - Deviations: none
 - Follow-ups: none
 
+## Phase 36b: views that only format (2026-10-22)
+- Tests: 3273 -> 3286 (given 8)
+- New public names: `analysis.listings`: `AccountListing`, `PersonListing`, `account_listing`, `people_listing`; `analysis.categories`: `RuleListing`, `UncategorizedItem`, `TransactionFacts`, `category_tree`, `rule_listing`, `uncategorized_items`, `card_credit_count`, `transaction_facts`; `views.refunds`: `RefundLine`, `RefundView`, `refund_view`, `refunded_lines`
+- Changed files: 19
+- Deviations: none
+- Follow-ups: none
+
+
 

@@ -6,6 +6,7 @@ from fastapi import APIRouter, Request
 from fastapi.responses import Response
 from starlette.concurrency import run_in_threadpool
 
+from finances.analysis.categories import category_tree, transaction_facts
 from finances.analysis.people import JOINT_FILTER, UNASSIGNED_FILTER
 from finances.analysis.refunds import refund_facts
 from finances.analysis.search import TransactionQuery, search_transactions
@@ -19,9 +20,9 @@ from finances.db.repositories import (
     set_categories_by_hand,
     set_category_by_hand,
 )
-from finances.domain.money import format_cents
 from finances.domain.rules import MATCHES
 from finances.views.categories import category_choices, transaction_detail
+from finances.views.refunds import refund_view, refunded_lines
 from finances.views.transactions import found_rows
 from finances.views.transfers import transfer_of
 from finances.web.access import _reading
@@ -85,7 +86,7 @@ def _transactions_page(
         choices = {
             "accounts": list(names.values()),
             "people": [person.name for person in list_people(session)],
-            "categories": category_choices(session),
+            "categories": category_choices(category_tree(session)),
         }
         try:
             found = search_transactions(session, _search_query(chosen))
@@ -116,31 +117,15 @@ def _transaction_page(
 ) -> Response:
     transaction_id = _id(text)
     with _reading() as session:
-        detail = None if transaction_id is None else transaction_detail(session, transaction_id)
-        choices = category_choices(session)
+        loaded = None if transaction_id is None else transaction_facts(session, transaction_id)
+        detail = None if loaded is None else transaction_detail(loaded)
+        choices = category_choices(category_tree(session))
         transfer = None if detail is None else transfer_of(session, detail.id)
         facts = None if detail is None else refund_facts(session, detail.id)
     if detail is None or facts is None:
         return _missing_transaction(request)
-    refund = None
-    if facts.is_refund:
-        purchase = None
-        if facts.purchase is not None:
-            shown = facts.purchase.transaction_date or facts.purchase.posted_date
-            purchase = {
-                "id": facts.purchase.id,
-                "date": shown.isoformat(),
-                "amount": format_cents(facts.purchase.amount_cents),
-            }
-        refund = {"amount": detail.amount, "purchase": purchase}
-    refunded = [
-        {
-            "id": item.id,
-            "date": (item.transaction_date or item.posted_date).isoformat(),
-            "amount": format_cents(item.amount_cents),
-        }
-        for item in facts.refunds
-    ]
+    refund = refund_view(facts, detail.amount)
+    refunded = refunded_lines(facts)
     context = {
         "detail": detail,
         "transfer": transfer,

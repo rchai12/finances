@@ -7,6 +7,7 @@ import keyring.errors
 import pytest
 from sqlalchemy import Engine
 
+from finances.analysis.listings import account_listing, people_listing
 from finances.db.engine import session_scope
 from finances.db.orm import AccountRow as AccountTable
 from finances.db.repositories import (
@@ -128,11 +129,11 @@ def test_pull_texts() -> None:
 
 def test_account_rows(household: Engine) -> None:
     with session_scope(household) as session:
-        assert account_rows(session) == [
+        assert account_rows(account_listing(session)) == [
             AccountRow("Test Card", "Test Bank", "credit_card", "••1111", "yes", "Alex"),
             AccountRow("Test Checking", "Test Bank", "checking", "", "yes", "Joint"),
         ]
-        every = account_rows(session, include_inactive=True)
+        every = account_rows(account_listing(session, include_inactive=True))
     assert [row.name for row in every] == [
         "Test Card",
         "Test Checking",
@@ -153,7 +154,7 @@ def test_an_account_row_lists_its_cells_in_column_order() -> None:
 
 def test_people_rows(household: Engine) -> None:
     with session_scope(household) as session:
-        assert people_rows(session) == [
+        assert people_rows(people_listing(session)) == [
             PersonRow("Alex", "Test Card", ""),
             PersonRow("Sam", "Test Old Card", "S DOE, SAM DOE"),
         ]
@@ -172,7 +173,11 @@ def test_account_names_include_closed_accounts(household: Engine) -> None:
 
 def test_no_people_or_accounts(db_engine: Engine) -> None:
     with session_scope(db_engine) as session:
-        assert (account_rows(session), people_rows(session), account_names(session)) == (
+        assert (
+            account_rows(account_listing(session)),
+            people_rows(people_listing(session)),
+            account_names(session),
+        ) == (
             [],
             [],
             {},

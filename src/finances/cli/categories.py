@@ -4,6 +4,12 @@ from typing import Annotated
 
 import typer
 
+from finances.analysis.categories import (
+    card_credit_count,
+    category_tree,
+    rule_listing,
+    uncategorized_items,
+)
 from finances.categorize.service import CategorizeResult, categorize
 from finances.categorize.transfers import pair_transfers
 from finances.cli.common import fail, print_rows, require_current_schema
@@ -47,7 +53,7 @@ def list_categories_command() -> None:
     """List the categories in each group."""
     require_current_schema()
     with session_scope(get_engine()) as session:
-        lines = category_lines(session)
+        lines = category_lines(category_tree(session))
     print_rows(("Group", "Category", "Kind"), lines)
 
 
@@ -116,7 +122,7 @@ def list_rules_command() -> None:
     """List the rules in the order they are tried."""
     require_current_schema()
     with session_scope(get_engine()) as session:
-        lines = rule_lines(session)
+        lines = rule_lines(rule_listing(session))
     if not lines:
         typer.echo("No rules.")
         return
@@ -211,8 +217,9 @@ def uncategorized_command(
     """List transactions without a category, latest first."""
     require_current_schema()
     with session_scope(get_engine()) as session:
-        lines = uncategorized_lines(session, limit)
-        note = card_credits_note(session, limit)
+        items = uncategorized_items(session, limit)
+        lines = uncategorized_lines(items)
+        note = card_credits_note(card_credit_count(items))
     if not lines:
         typer.echo("No uncategorized transactions.")
         return
