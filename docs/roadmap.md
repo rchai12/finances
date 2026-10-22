@@ -6,7 +6,7 @@ Each phase is sized for one focused coding session: a few modules, their tests, 
 
 Status (2026-10-16): built and verified, in the build order below, up to and including Phase 26b. Each phase's spec is in `docs/phases/`, its verification guide in `docs/verification/`, its review in `docs/reviews/`, and its result in `docs/progress.md`. Phases after 26b are outlines until specified.
 
-**Build order:** 2 → 3 → 4 → 17a → 8 → 17b → 17c → 21 → 16a → 16b → 9 → 16c → 16d → 10 → 22 → 23 → 11 → 12 → 13 → 16e → 24 → 24b → 16f → 16j → 16g → 25 → 16h → 16i → 16k → 13d → 26a → 26b → 31 → 32 → 33 → 27a → 27b → 27c → 27d → 14 → 34 → 19 → 28 → 29 → 30 → 16 → 20. Phases 5 and 6 (more statement parsers) can be built any time after 4, when audit coverage for those banks is wanted.
+**Build order:** 2 → 3 → 4 → 17a → 8 → 17b → 17c → 21 → 16a → 16b → 9 → 16c → 16d → 10 → 22 → 23 → 11 → 12 → 13 → 16e → 24 → 24b → 16f → 16j → 16g → 25 → 16h → 16i → 16k → 13d → 26a → 26b → 31 → 32 → 33 → 27a → 27b → 27c → 27d → 14a → 14b → 14c → 14d → 34 → 19 → 28 → 29 → 30 → 16 → 20. Phases 5 and 6 (more statement parsers) can be built any time after 4, when audit coverage for those banks is wanted.
 
 | # | Phase | Outcome | Spec |
 |---|---|---|---|
@@ -151,6 +151,7 @@ Testing rules for every phase are in [testing.md](testing.md). Each later phase 
 - **The agent never reads the database directly.** Every answer comes through these tools, already computed by the app, with fixed caps; that boundary keeps arithmetic in tested code and lets the app decide what the agent sees.
 - **Vector search: not now (decided 2026-10-21).** The owner asked about adding vector capabilities so the agent could search by meaning. Most questions are exact and numeric (filter, group, sum), which the analysis functions answer and embeddings cannot; a local embedding model, a SQLite vector extension, and re-indexing on every import would add cost and another derived copy of the data. Revisit only if real use shows the agent failing because the household's words do not match merchant names (for example "gym" against "ACME FITNESS LLC"): then embed merchant and category names only, never transactions, locally, behind one tool that returns matches, never raw rows. The agent's own memory (advice, preferences) may use a vector store on the agent's side, outside this app.
 - Depends on Phases 12 and 13. Will be specified as several sub-phases (server skeleton plus one tool, then tool groups).
+- **Split (2026-10-22):** [14a](phases/phase-14a-mcp-server.md) the server on stdio, a read-only session, `fin mcp serve`, and `list_accounts`, `get_balances`, `get_net_worth`; then 14b transactions and spending; 14c findings, recurring, upcoming, forecast, budgets, and `data_coverage`; 14d the work queues and `find_merchants`. The SDK is mcp 2.x (`MCPServer`; 1.x's `FastMCP` is gone).
 
 ### Phase 15: removed
 The app no longer calls an LLM. The finance subagent of the overarching agent produces advice from the Phase 14 tools.
