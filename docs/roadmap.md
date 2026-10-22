@@ -6,7 +6,7 @@ Each phase is sized for one focused coding session: a few modules, their tests, 
 
 Status (2026-10-16): built and verified, in the build order below, up to and including Phase 26b. Each phase's spec is in `docs/phases/`, its verification guide in `docs/verification/`, its review in `docs/reviews/`, and its result in `docs/progress.md`. Phases after 26b are outlines until specified.
 
-**Build order:** 2 → 3 → 4 → 17a → 8 → 17b → 17c → 21 → 16a → 16b → 9 → 16c → 16d → 10 → 22 → 23 → 11 → 12 → 13 → 16e → 24 → 24b → 16f → 16j → 16g → 25 → 16h → 16i → 16k → 13d → 26a → 26b → 31 → 32 → 33 → 27a → 27b → 27c → 27d → 14a → 14b → 14c → 14d → 34 → 19 → 28 → 29 → 30 → 16 → 20. Phases 5 and 6 (more statement parsers) can be built any time after 4, when audit coverage for those banks is wanted.
+**Build order:** 2 → 3 → 4 → 17a → 8 → 17b → 17c → 21 → 16a → 16b → 9 → 16c → 16d → 10 → 22 → 23 → 11 → 12 → 13 → 16e → 24 → 24b → 16f → 16j → 16g → 25 → 16h → 16i → 16k → 13d → 26a → 26b → 31 → 32 → 33 → 27a → 27b → 27c → 27d → 14a → 16l → 14b → 14c → 14d → 34 → 19 → 28 → 29 → 30 → 16 → 20. Phases 5 and 6 (more statement parsers) can be built any time after 4, when audit coverage for those banks is wanted.
 
 | # | Phase | Outcome | Spec |
 |---|---|---|---|
@@ -162,6 +162,7 @@ The app no longer calls an LLM. The finance subagent of the overarching agent pr
 - **16b, the setup workflows, is specified** ([phase-16b](phases/phase-16b-web-setup.md)): a form token on every form; add an account, a person, an owner, a cardholder name; link SimpleFIN by pasting the setup token into a password field; list SimpleFIN's accounts with a dropdown to map each one, or to create the matching account and map it in one step; a "Sync now" button; unlink.
 - **16c, forms that work in a real browser, is specified** ([phase-16c](phases/phase-16c-browser-origin.md)): the `no-referrer` policy of 16a made browsers send `Origin: null`, which the origin check of 16b refuses; the policy becomes `same-origin`.
 - **16d, new SimpleFIN accounts, is specified** ([phase-16d](phases/phase-16d-new-simplefin-accounts.md)): each sync remembers the SimpleFIN accounts it receives; `fin sync run` and Sync now say how many are new; the SimpleFIN page offers each one pre-filled (type, last four digits, owner, and an existing account it looks like) to create and map, map, or not track, in one click.
+- **16l, a Sync now button in the menu** ([phase-16l](phases/phase-16l-sync-button-in-the-menu.md); the owner's request, 2026-10-22): every page's menu ends with a button that posts to the existing `/sync/run`; the test page readers leave the menu's form out.
 - **Decided (2026-10-15): four web sub-phases before Phase 14**, in this order, so each builds on the last and the agent's tools can reuse their filters:
   - **16e, find and drill down** ([phase-16e](phases/phase-16e-find-and-drill-down.md)): search transactions by text; filter by category and merchant; a category column; each spending line, merchant, and finding links to its transactions.
   - **16f, editing categories and rules** ([phase-16f](phases/phase-16f-editing-categories-and-rules.md); decided 2026-10-15: a category in use moves its transactions and rules to a chosen category before it is deleted; web and terminal both): rename categories and groups, delete them, edit rules.
