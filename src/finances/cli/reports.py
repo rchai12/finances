@@ -7,6 +7,7 @@ import typer
 
 from finances import clock
 from finances.analysis.balances import balance_report
+from finances.analysis.forecast import forecast_report
 from finances.analysis.insights import insights_report
 from finances.analysis.months import month_report
 from finances.analysis.recurring import recurring_charges, recurring_income
@@ -17,6 +18,15 @@ from finances.db.engine import get_engine, session_scope
 from finances.domain.periods import MONTHS_MAX
 from finances.domain.spending import month_bounds, month_range
 from finances.views.balances import balance_rows, balance_summary
+from finances.views.forecast import (
+    account_heading,
+    forecast_heading,
+    forecast_rows,
+    lowest_line,
+    no_balance_line,
+    starting_line,
+    step_rows,
+)
 from finances.views.insights import (
     finding_rows,
     findings_summary,
@@ -166,6 +176,60 @@ def upcoming_command(
     else:
         typer.echo("Nothing expected.")
     typer.echo(upcoming_summary(report))
+
+
+def forecast_command(
+    as_of: Annotated[
+        datetime | None,
+        typer.Option(
+            "--as-of", formats=["%Y-%m-%d"], help="The day to look from (today by default)."
+        ),
+    ] = None,
+    days: Annotated[
+        int, typer.Option("--days", min=1, max=90, help="How many days to look ahead, 1 to 90.")
+    ] = 30,
+    account: Annotated[
+        str | None, typer.Option("--account", help="One account, shown day by day.")
+    ] = None,
+) -> None:
+    """Walk each account's balance through the bills and income expected in the next days."""
+    require_current_schema()
+    day = clock.today() if as_of is None else as_of.date()
+    with session_scope(get_engine()) as session:
+        try:
+            report = forecast_report(session, day, days, account)
+        except ValueError as error:
+            fail(str(error))
+    if account is not None:
+        forecast = report.accounts[0]
+        typer.echo(account_heading(report))
+        typer.echo(starting_line(forecast))
+        rows = step_rows(forecast)
+        if rows:
+            print_rows(("Date", "Merchant", "Amount", "Balance"), rows)
+        else:
+            typer.echo("Nothing expected.")
+        typer.echo(lowest_line(forecast))
+        return
+    typer.echo(forecast_heading(report))
+    rows = forecast_rows(report)
+    if rows:
+        headings = (
+            "Account",
+            "Balance",
+            "As of",
+            "Expected in",
+            "Expected out",
+            "End",
+            "Lowest",
+            "Lowest on",
+        )
+        print_rows(headings, rows)
+    else:
+        typer.echo("No accounts with a balance.")
+    missing = no_balance_line(report)
+    if missing is not None:
+        typer.echo(missing)
 
 
 _MONTH_OPTION = typer.Option("--month", help="A month, YYYY-MM (this month by default).")

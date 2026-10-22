@@ -455,3 +455,11 @@ Template:
 - Deviations:
   - Charges and income share `_find` and `_series`; `two_weeks` is in the shared band tables, and `find_recurring` still passes `CADENCES`.
 - Follow-ups: none
+
+## Phase 27b: a 30-day forecast per account (2026-10-22)
+- Tests: 2954 -> 2976 (given 16)
+- New public names: `domain.forecast`: `Step`, `Walk`, `walk`; `analysis.forecast`: `AccountForecast`, `ForecastReport`, `forecast_report`; `views.forecast`: `ForecastRow`, `StepRow`, `forecast_rows`, `forecast_heading`, `no_balance_line`, `account_heading`, `starting_line`, `step_rows`, `lowest_line`; `cli.reports`: `forecast_command`
+- Changed files: 9
+- Deviations:
+  - `walk` totals in and out with two independent sign checks; a private helper picks one account's charges and credits from the loaded flows.
+- Follow-ups: none

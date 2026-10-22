@@ -22,6 +22,7 @@ from finances.cli.listing import statements_app, transactions_app
 from finances.cli.people import app as people_app
 from finances.cli.reports import (
     balances_command,
+    forecast_command,
     insights_command,
     merchants_command,
     months_command,
@@ -57,6 +58,7 @@ app.command("balances")(balances_command)
 app.command("months")(months_command)
 app.command("recurring")(recurring_command)
 app.command("upcoming")(upcoming_command)
+app.command("forecast")(forecast_command)
 app.command("insights")(insights_command)
 app.command("merchants")(merchants_command)
 app.command("health")(health_command)
