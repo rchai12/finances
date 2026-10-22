@@ -526,4 +526,12 @@ Template:
 - Deviations: none
 - Follow-ups: none
 
+## Phase 14b: the agent's transaction and spending tools (2026-10-22)
+- Tests: 3145 -> 3182 (given 27)
+- New public names: `mcp_server.tools`: `list_transactions`, `get_spending`, `month_over_month`; `mcp_server.server`: `LIST_TRANSACTIONS_DESCRIPTION`, `GET_SPENDING_DESCRIPTION`, `MONTH_OVER_MONTH_DESCRIPTION`
+- Changed files: 7
+- Deviations:
+  - The summary's `spent_cents` is `spent_cents + refunds_cents` because `SpendingSummary` has no `purchases_cents`.
+- Follow-ups: none
+
 

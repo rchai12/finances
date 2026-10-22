@@ -71,7 +71,14 @@ def test_the_server_and_its_tools(tmp_settings: Settings) -> None:
 
     name, instructions, tools = anyio.run(go)
     assert (name, instructions) == ("finances", INSTRUCTIONS)
-    assert sorted(tool.name for tool in tools) == ["get_balances", "get_net_worth", "list_accounts"]
+    assert sorted(tool.name for tool in tools) == [
+        "get_balances",
+        "get_net_worth",
+        "get_spending",
+        "list_accounts",
+        "list_transactions",
+        "month_over_month",
+    ]
     for tool in tools:
         assert tool.annotations.model_dump(include=set(READ_ONLY)) == READ_ONLY, tool.name
         assert "cents" in tool.description or tool.name == "list_accounts", tool.name

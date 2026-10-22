@@ -31,10 +31,32 @@ GET_NET_WORTH_DESCRIPTION = (
     "this month ending today: each open account's newest balance on or before that day, "
     "with how many accounts were counted. Months before any balance are left out."
 )
+LIST_TRANSACTIONS_DESCRIPTION = (
+    "Transactions, latest first, filtered by any of: text in the description, account, person "
+    "(a name, joint, or unassigned), category, group, merchant, bank, card (last 4 digits), "
+    "kind (spending, income, transfer, unsorted_in, pending, refund), and a start and end day. "
+    "Amounts in integer cents, money out negative. At most limit (1 to 200, default 50) per "
+    "call; pass next_offset as offset for the next page."
+)
+GET_SPENDING_DESCRIPTION = (
+    "Spending from start to end (ISO days, both or neither; default this month) grouped by "
+    "category, group, merchant, person, account, bank, or card. Each line: spent_cents "
+    "(purchases), refunds_cents (money back), net_cents (spent minus refunds, below zero when "
+    "refunds win), and count; plus a summary with income, transfers left out, and money in "
+    "without a category. Integer cents."
+)
+MONTH_OVER_MONTH_DESCRIPTION = (
+    "Net spending (purchases minus refunds) and income in integer cents for each of the last N "
+    "months (1 to 24, default 6) ending with the given month (YYYY-MM, default this month), "
+    "oldest first, with the accounts whose data does not cover that whole month."
+)
 _TOOLS = (
     (tools.list_accounts, LIST_ACCOUNTS_DESCRIPTION),
     (tools.get_balances, GET_BALANCES_DESCRIPTION),
     (tools.get_net_worth, GET_NET_WORTH_DESCRIPTION),
+    (tools.list_transactions, LIST_TRANSACTIONS_DESCRIPTION),
+    (tools.get_spending, GET_SPENDING_DESCRIPTION),
+    (tools.month_over_month, MONTH_OVER_MONTH_DESCRIPTION),
 )
 
 

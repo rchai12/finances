@@ -15,7 +15,10 @@ from finances.mcp_server.access import reading
 from finances.mcp_server.server import (
     GET_BALANCES_DESCRIPTION,
     GET_NET_WORTH_DESCRIPTION,
+    GET_SPENDING_DESCRIPTION,
     LIST_ACCOUNTS_DESCRIPTION,
+    LIST_TRANSACTIONS_DESCRIPTION,
+    MONTH_OVER_MONTH_DESCRIPTION,
     build_server,
 )
 from tests.support import run
@@ -120,6 +123,9 @@ def test_each_tool_description_matches_the_table(tmp_settings: Settings) -> None
         "list_accounts": LIST_ACCOUNTS_DESCRIPTION,
         "get_balances": GET_BALANCES_DESCRIPTION,
         "get_net_worth": GET_NET_WORTH_DESCRIPTION,
+        "list_transactions": LIST_TRANSACTIONS_DESCRIPTION,
+        "get_spending": GET_SPENDING_DESCRIPTION,
+        "month_over_month": MONTH_OVER_MONTH_DESCRIPTION,
     }
 
 
