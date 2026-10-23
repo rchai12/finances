@@ -34,6 +34,10 @@ ACTIONS = (
     "proposal_declined",
     "alias_added",
     "alias_deleted",
+    "tag_added",
+    "tag_removed",
+    "note_set",
+    "note_cleared",
 )
 KINDS = (
     "account",

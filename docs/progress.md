@@ -650,5 +650,14 @@ Template:
 - Deviations: None
 - Follow-ups: None
 
+## Phase 28c: tags and notes (2026-10-23)
+- Tests: 3550 -> 3574 (given 14)
+- New public names: `domain.text`: `TAG_LIMIT`, `NOTE_LIMIT`; `domain.tags`: `TagCount`, `normalize_tag`, `clean_note`; `db.orm`: `TransactionTagRow`, `TransactionNoteRow`; `db.repositories`: `add_tags`, `remove_tags`, `tags_for`, `list_tags`, `set_note`, `note_of`; `cli.tags`: `fin transactions tag`, `untag`, `note`, `tags`
+- Changed files: 18
+- Deviations:
+  - extra `test_untagging_several_transactions` so `fin transactions untag` with two ids is covered (the given CLI tests only untag one)
+  - ruff format folded the given migration's `UniqueConstraint` onto one line; the name and columns are the same
+- Follow-ups: None
+
 
 

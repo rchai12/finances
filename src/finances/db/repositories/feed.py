@@ -11,7 +11,9 @@ from sqlalchemy.orm import Session
 from finances.db.orm import (
     FeedItemRow,
     FeedPullRow,
+    TransactionNoteRow,
     TransactionRow,
+    TransactionTagRow,
     TransferPairRow,
     TransferRejectionRow,
     to_feed_pull,
@@ -115,6 +117,12 @@ def delete_feed_transaction(session: Session, transaction_id: int) -> bool:
     session.execute(delete(TransferPairRow).where(_names(TransferPairRow, transaction_id)))
     session.execute(
         delete(TransferRejectionRow).where(_names(TransferRejectionRow, transaction_id))
+    )
+    session.execute(
+        delete(TransactionTagRow).where(TransactionTagRow.transaction_id == transaction_id)
+    )
+    session.execute(
+        delete(TransactionNoteRow).where(TransactionNoteRow.transaction_id == transaction_id)
     )
     session.flush()
     session.delete(session.get(TransactionRow, transaction_id))

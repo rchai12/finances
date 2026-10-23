@@ -35,6 +35,7 @@ from finances.cli.reports import (
 )
 from finances.cli.review import app as review_app
 from finances.cli.sync import app as sync_app
+from finances.cli.tags import tag_command as _register_tag_commands  # noqa: F401
 from finances.cli.transfers import transfers_app
 from finances.cli.web import app as web_app
 from finances.config import get_settings
@@ -47,6 +48,7 @@ app.add_typer(accounts_app, name="accounts")
 app.add_typer(import_app, name="import")
 app.add_typer(statements_app, name="statements")
 app.add_typer(transactions_app, name="transactions")
+_ = _register_tag_commands
 app.add_typer(sync_app, name="sync")
 app.add_typer(people_app, name="people")
 app.add_typer(web_app, name="web")

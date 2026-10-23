@@ -45,9 +45,11 @@ from finances.domain.text import (
     FEED_ID_LIMIT,
     MERCHANT_NAME_LIMIT,
     NAME_LIMIT,
+    NOTE_LIMIT,
     PROPOSAL_TEXT_LIMIT,
     PROVIDER_ACCOUNT_ID_LIMIT,
     RULE_PATTERN_LIMIT,
+    TAG_LIMIT,
 )
 
 NAMING_CONVENTION = {
@@ -477,6 +479,32 @@ def to_category_assignment(row: TransactionCategoryRow) -> CategoryAssignment:
         source=row.source,
         rule_id=row.rule_id,
     )
+
+
+class TransactionTagRow(Base):
+    """One row of the transaction_tags table: a tag on a transaction."""
+
+    __tablename__ = "transaction_tags"
+    __table_args__ = (
+        UniqueConstraint("transaction_id", "tag", name="uq_transaction_tags_transaction_id_tag"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    transaction_id: Mapped[int] = mapped_column(ForeignKey("transactions.id"), nullable=False)
+    tag: Mapped[str] = mapped_column(String(TAG_LIMIT), nullable=False)
+
+
+class TransactionNoteRow(Base):
+    """One row of the transaction_notes table: a transaction's one note."""
+
+    __tablename__ = "transaction_notes"
+    __table_args__ = (
+        UniqueConstraint("transaction_id", name="uq_transaction_notes_transaction_id"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    transaction_id: Mapped[int] = mapped_column(ForeignKey("transactions.id"), nullable=False)
+    text: Mapped[str] = mapped_column(String(NOTE_LIMIT), nullable=False)
 
 
 class TransferPairRow(Base):

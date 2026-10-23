@@ -60,7 +60,8 @@ UNKNOWN = (
     "ed, category_deleted, rule_added, rule_edited, rule_deleted, category_set, categ"
     "ory_cleared, budget_set, budget_removed, transfer_confirmed, transfer_rejected, "
     "transfer_unpaired, statement_imported, backup_deleted, backup_restored, proposal"
-    "_accepted, proposal_declined, alias_added, alias_deleted"
+    "_accepted, proposal_declined, alias_added, alias_deleted, tag_added, tag_removed, "
+    "note_set, note_cleared"
 )
 
 

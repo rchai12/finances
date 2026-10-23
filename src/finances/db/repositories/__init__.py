@@ -113,6 +113,14 @@ from finances.db.repositories.statements import (
     statement_covers,
     statement_periods,
 )
+from finances.db.repositories.tags import (
+    add_tags,
+    list_tags,
+    note_of,
+    remove_tags,
+    set_note,
+    tags_for,
+)
 from finances.db.repositories.transactions import (
     existing_fingerprints,
     get_transaction,
@@ -142,6 +150,7 @@ __all__ = [
     "account_names",
     "add_alias",
     "add_balance_snapshot",
+    "add_tags",
     "alias_map",
     "assign_by_rule",
     "check_rule",
@@ -201,6 +210,7 @@ __all__ = [
     "list_rules",
     "list_statements",
     "list_sync_failures",
+    "list_tags",
     "list_transaction_descriptions",
     "list_transactions",
     "list_transactions_between",
@@ -211,6 +221,7 @@ __all__ = [
     "list_uncategorized",
     "log_advice",
     "map_feed_account",
+    "note_of",
     "proposal_out_of_date",
     "propose_category",
     "propose_merchant_alias",
@@ -223,6 +234,7 @@ __all__ = [
     "reject_transfer",
     "remove_budget",
     "remove_category",
+    "remove_tags",
     "rename_account",
     "rename_category",
     "resolve_owner",
@@ -234,8 +246,10 @@ __all__ = [
     "set_categories_by_hand",
     "set_category_by_hand",
     "set_feed_account_ignored",
+    "set_note",
     "statement_covers",
     "statement_periods",
+    "tags_for",
     "unpair_transfer",
     "update_feed_transaction",
 ]
