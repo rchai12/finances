@@ -24,13 +24,17 @@ from finances.mcp_server.server import (
     GET_SPENDING_DESCRIPTION,
     GET_UPCOMING_DESCRIPTION,
     LIST_ACCOUNTS_DESCRIPTION,
+    LIST_ADVICE_DESCRIPTION,
     LIST_CATEGORIES_DESCRIPTION,
+    LIST_PROPOSALS_DESCRIPTION,
     LIST_RULES_DESCRIPTION,
     LIST_TRANSACTIONS_DESCRIPTION,
     LIST_TRANSFER_SUGGESTIONS_DESCRIPTION,
     LIST_TRANSFERS_DESCRIPTION,
     LIST_UNCATEGORIZED_DESCRIPTION,
+    LOG_ADVICE_DESCRIPTION,
     MONTH_OVER_MONTH_DESCRIPTION,
+    PROPOSE_CATEGORY_DESCRIPTION,
     build_server,
 )
 from tests.support import run
@@ -150,6 +154,10 @@ def test_each_tool_description_matches_the_table(tmp_settings: Settings) -> None
         "list_transfer_suggestions": LIST_TRANSFER_SUGGESTIONS_DESCRIPTION,
         "data_coverage": DATA_COVERAGE_DESCRIPTION,
         "find_merchants": FIND_MERCHANTS_DESCRIPTION,
+        "propose_category": PROPOSE_CATEGORY_DESCRIPTION,
+        "list_proposals": LIST_PROPOSALS_DESCRIPTION,
+        "log_advice": LOG_ADVICE_DESCRIPTION,
+        "list_advice": LIST_ADVICE_DESCRIPTION,
     }
 
 

@@ -32,6 +32,7 @@ from finances.cli.reports import (
     spending_command,
     upcoming_command,
 )
+from finances.cli.review import app as review_app
 from finances.cli.sync import app as sync_app
 from finances.cli.transfers import transfers_app
 from finances.cli.web import app as web_app
@@ -54,6 +55,7 @@ app.add_typer(rules_app, name="rules")
 app.add_typer(transfers_app, name="transfers")
 app.add_typer(backup_app, name="backup")
 app.add_typer(budgets_app, name="budgets")
+app.add_typer(review_app, name="review")
 app.command("categorize")(categorize_command)
 app.command("uncategorized")(uncategorized_command)
 app.command("spending")(spending_command)

@@ -22,3 +22,15 @@ def reading() -> Iterator[Session]:
             yield session
     finally:
         engine.dispose()
+
+
+@contextmanager
+def writing() -> Iterator[Session]:
+    if current_revision() != head_revision():
+        raise ToolError(NOT_MIGRATED)
+    engine = get_engine()
+    try:
+        with session_scope(engine) as session:
+            yield session
+    finally:
+        engine.dispose()

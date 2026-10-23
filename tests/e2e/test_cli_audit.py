@@ -59,7 +59,8 @@ UNKNOWN = (
     "eopened, owner_set, person_added, cardholder_set, category_added, category_renam"
     "ed, category_deleted, rule_added, rule_edited, rule_deleted, category_set, categ"
     "ory_cleared, budget_set, budget_removed, transfer_confirmed, transfer_rejected, "
-    "transfer_unpaired, statement_imported, backup_deleted, backup_restored"
+    "transfer_unpaired, statement_imported, backup_deleted, backup_restored, proposal"
+    "_accepted, proposal_declined"
 )
 
 

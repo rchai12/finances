@@ -1,10 +1,12 @@
 """The agent's read-only tools. Each returns one JSON object."""
 
+from collections.abc import Callable
 from datetime import date
 from typing import Annotated, Any, Literal
 
 from mcp.server.mcpserver.exceptions import ToolError
 from pydantic import Field
+from sqlalchemy.orm import Session
 
 import finances.clock as clock
 from finances.analysis.balances import balance_report
@@ -28,15 +30,21 @@ from finances.db.repositories import (
     list_account_owners,
     list_people,
     list_transfer_pairs,
+    proposal_out_of_date,
 )
 from finances.db.repositories import list_accounts as load_accounts
+from finances.db.repositories import list_advice as load_advice
 from finances.db.repositories import list_categories as load_categories
+from finances.db.repositories import list_proposals as load_proposals
 from finances.db.repositories import list_rules as load_rules
 from finances.db.repositories import list_uncategorized as load_uncategorized
+from finances.db.repositories import log_advice as keep_advice
+from finances.db.repositories import propose_category as store_category_proposal
 from finances.domain.merchants import clean_merchant
 from finances.domain.models import Transaction
+from finances.domain.proposals import Proposal
 from finances.domain.spending import UNASSIGNED, UNCATEGORIZED, is_refund, month_bounds, month_range
-from finances.mcp_server.access import reading
+from finances.mcp_server.access import reading, writing
 
 By = Literal["category", "group", "merchant", "person", "account", "bank", "card"]
 
@@ -540,3 +548,80 @@ def find_merchants(phrase: str, limit: Annotated[int, Field(ge=1, le=20)] = 5) -
     return {
         "matches": [{"name": item.name, "kind": item.kind, "score": item.score} for item in found]
     }
+
+
+def _proposal_item(session: Session, proposal: Proposal) -> dict[str, Any]:
+    return {
+        "id": proposal.id,
+        "kind": proposal.kind,
+        "transaction_id": proposal.target_id,
+        "category": proposal.value,
+        "reason": proposal.reason,
+        "status": proposal.status,
+        "created_at": proposal.created_at.isoformat(),
+        "decided_at": _iso(proposal.decided_at),
+        "out_of_date": proposal_out_of_date(session, proposal),
+    }
+
+
+def _as_tool(work: Callable[[], dict[str, Any]]) -> dict[str, Any]:
+    try:
+        return work()
+    except ValueError as error:
+        raise ToolError(str(error)) from None
+
+
+def propose_category(transaction_id: int, category: str, reason: str) -> dict[str, Any]:
+    def work() -> dict[str, Any]:
+        with writing() as session:
+            found = store_category_proposal(session, transaction_id, category, reason)
+            return {"proposal": _proposal_item(session, found)}
+
+    return _as_tool(work)
+
+
+def list_proposals(
+    status: Literal["open", "accepted", "declined"] = "open",
+    limit: Annotated[int, Field(ge=1, le=200)] = 50,
+) -> dict[str, Any]:
+    def work() -> dict[str, Any]:
+        with reading() as session:
+            found = load_proposals(session, status=status, limit=limit)
+            return {"proposals": [_proposal_item(session, item) for item in found]}
+
+    return _as_tool(work)
+
+
+def log_advice(text: str, subject: str = "") -> dict[str, Any]:
+    def work() -> dict[str, Any]:
+        with writing() as session:
+            found = keep_advice(session, text, subject)
+            return {
+                "advice": {
+                    "id": found.id,
+                    "created_at": found.created_at.isoformat(),
+                    "subject": found.subject,
+                    "text": found.text,
+                }
+            }
+
+    return _as_tool(work)
+
+
+def list_advice(limit: Annotated[int, Field(ge=1, le=200)] = 20) -> dict[str, Any]:
+    def work() -> dict[str, Any]:
+        with reading() as session:
+            found = load_advice(session, limit=limit)
+            return {
+                "advice": [
+                    {
+                        "id": item.id,
+                        "created_at": item.created_at.isoformat(),
+                        "subject": item.subject,
+                        "text": item.text,
+                    }
+                    for item in found
+                ]
+            }
+
+    return _as_tool(work)

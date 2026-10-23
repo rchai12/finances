@@ -30,13 +30,17 @@ TOOLS = [
     "get_spending",
     "get_upcoming",
     "list_accounts",
+    "list_advice",
     "list_categories",
+    "list_proposals",
     "list_rules",
     "list_transactions",
     "list_transfer_suggestions",
     "list_transfers",
     "list_uncategorized",
+    "log_advice",
     "month_over_month",
+    "propose_category",
 ]
 
 
@@ -124,7 +128,11 @@ def test_eighteen_read_only_tools(tmp_settings: Settings) -> None:
 
     found = anyio.run(go)
     assert sorted(tool.name for tool in found) == TOOLS
-    assert all(tool.annotations.read_only_hint for tool in found)
+    assert all(
+        tool.annotations.read_only_hint
+        for tool in found
+        if tool.name not in ("propose_category", "log_advice")
+    )
 
 
 def test_data_coverage(data: Settings) -> None:

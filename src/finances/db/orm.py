@@ -35,12 +35,15 @@ from finances.domain.models import (
     Transaction,
     TransferPair,
 )
+from finances.domain.proposals import Advice, Proposal
 from finances.domain.text import (
+    ADVICE_TEXT_LIMIT,
     AUDIT_TEXT_LIMIT,
     CATEGORY_NAME_LIMIT,
     DESCRIPTION_LIMIT,
     FEED_ID_LIMIT,
     NAME_LIMIT,
+    PROPOSAL_TEXT_LIMIT,
     PROVIDER_ACCOUNT_ID_LIMIT,
     RULE_PATTERN_LIMIT,
 )
@@ -558,4 +561,54 @@ def to_change(row: AuditRow) -> Change:
         record_id=row.record_id,
         before=row.before,
         after=row.after,
+    )
+
+
+class ProposalRow(Base):
+    """One row of the proposals table: a suggestion waiting for a person."""
+
+    __tablename__ = "proposals"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    kind: Mapped[str] = mapped_column(String(20), nullable=False)
+    target_id: Mapped[int] = mapped_column(Integer, nullable=False)
+    value: Mapped[str] = mapped_column(String(PROPOSAL_TEXT_LIMIT), nullable=False)
+    reason: Mapped[str] = mapped_column(String(PROPOSAL_TEXT_LIMIT), nullable=False)
+    status: Mapped[str] = mapped_column(String(10), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    decided_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
+def to_proposal(row: ProposalRow) -> Proposal:
+    """Return the domain Proposal for a row of the proposals table."""
+    return Proposal(
+        id=row.id,
+        kind=row.kind,
+        target_id=row.target_id,
+        value=row.value,
+        reason=row.reason,
+        status=row.status,
+        created_at=_as_utc(row.created_at),
+        decided_at=None if row.decided_at is None else _as_utc(row.decided_at),
+    )
+
+
+class AdviceRow(Base):
+    """One row of the advice_log table: a note the agent kept."""
+
+    __tablename__ = "advice_log"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    subject: Mapped[str] = mapped_column(String(NAME_LIMIT), nullable=False)
+    text: Mapped[str] = mapped_column(String(ADVICE_TEXT_LIMIT), nullable=False)
+
+
+def to_advice(row: AdviceRow) -> Advice:
+    """Return the domain Advice for a row of the advice_log table."""
+    return Advice(
+        id=row.id,
+        created_at=_as_utc(row.created_at),
+        subject=row.subject,
+        text=row.text,
     )

@@ -30,6 +30,8 @@ ACTIONS = (
     "statement_imported",
     "backup_deleted",
     "backup_restored",
+    "proposal_accepted",
+    "proposal_declined",
 )
 KINDS = (
     "account",
@@ -40,6 +42,7 @@ KINDS = (
     "transfer",
     "statement",
     "backup",
+    "proposal",
 )
 
 

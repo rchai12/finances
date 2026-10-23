@@ -593,5 +593,13 @@ Template:
 - Deviations: none
 - Follow-ups: none
 
+## Phase 19a: proposals and the advice log (2026-10-22)
+- Tests: 3349 -> 3397 (given 39)
+- New public names: `domain.text`: `PROPOSAL_TEXT_LIMIT`, `ADVICE_TEXT_LIMIT`; `domain.proposals`: `CATEGORY`, `KINDS`, `OPEN`, `ACCEPTED`, `DECLINED`, `STATUSES`, `Proposal`, `Advice`, `out_of_date`, `proposal_text`; `db.orm`: `ProposalRow`, `AdviceRow`, `to_proposal`, `to_advice`; `db.repositories`: `accept_proposal`, `decided_by_a_person`, `decline_proposal`, `list_advice`, `list_proposals`, `log_advice`, `proposal_out_of_date`, `propose_category`; `analysis.review`: `ReviewItem`, `review_items`; `views.review`: `ReviewRow`, `review_rows`, `accepted_text`, `declined_text`; `cli.review`: `app`; `mcp_server.access`: `writing`
+- Changed files: 31
+- Deviations:
+  - extra tests also cover a declined proposal decided again, a rule-set category that is not out of date, and pairing after a proposal
+- Follow-ups: none
+
 
 

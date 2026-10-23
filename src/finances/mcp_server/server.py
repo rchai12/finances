@@ -11,7 +11,8 @@ SERVER_NAME = "finances"
 INSTRUCTIONS = (
     "Read-only tools over one household's finances. Money is in integer cents. Amounts are"
     " from the account holder's side: money leaving is negative, money coming in is positive,"
-    " and a card balance owed is negative. Dates are ISO (YYYY-MM-DD). Nothing here changes data."
+    " and a card balance owed is negative. Dates are ISO (YYYY-MM-DD). The tools change no"
+    " data: they only store your proposals, which a person accepts or declines, and your notes."
 )
 READ_ONLY = ToolAnnotations(
     read_only_hint=True, destructive_hint=False, idempotent_hint=True, open_world_hint=False
@@ -118,6 +119,30 @@ FIND_MERCHANTS_DESCRIPTION = (
     "word such as coffee), best first, each with a score from 75 to 100, at most limit (1 to "
     "20, default 5). Use the names it returns with the other tools. No amounts."
 )
+WRITES_PROPOSALS = ToolAnnotations(
+    read_only_hint=False, destructive_hint=False, idempotent_hint=False, open_world_hint=False
+)
+PROPOSE_CATEGORY_DESCRIPTION = (
+    "Propose a category for a transaction without one (or set only by a rule), with a one-line "
+    "reason a person will read. It changes nothing: a person accepts or declines it with fin "
+    "review. Refused when a person already decided the transaction, declined this same "
+    "proposal, or another proposal for it is open."
+)
+LIST_PROPOSALS_DESCRIPTION = (
+    "Your proposals, newest first, of one status (open by default, accepted, or declined), at "
+    "most limit (1 to 200, default 50): the transaction, the category, your reason, when it was "
+    "made and decided, and whether it is out of date (a person decided the transaction since). "
+    "No amounts."
+)
+LOG_ADVICE_DESCRIPTION = (
+    "Keep a note of advice you gave or something to remember about this household (up to 1000 "
+    "characters, with an optional subject of up to 100). It changes no data. No amounts are "
+    "computed here; write them as you would in integer cents or plain text."
+)
+LIST_ADVICE_DESCRIPTION = (
+    "Your notes, newest first, at most limit (1 to 200, default 20), with when each was kept."
+)
+_WRITES = ("propose_category", "log_advice")
 _TOOLS = (
     (tools.list_accounts, LIST_ACCOUNTS_DESCRIPTION),
     (tools.get_balances, GET_BALANCES_DESCRIPTION),
@@ -144,6 +169,16 @@ def build_server() -> MCPServer:
     server = MCPServer(name=SERVER_NAME, instructions=INSTRUCTIONS, log_level="WARNING")
     for fn, description in _TOOLS:
         server.add_tool(fn, description=description, annotations=READ_ONLY, structured_output=True)
+    for fn, description in (
+        (tools.propose_category, PROPOSE_CATEGORY_DESCRIPTION),
+        (tools.list_proposals, LIST_PROPOSALS_DESCRIPTION),
+        (tools.log_advice, LOG_ADVICE_DESCRIPTION),
+        (tools.list_advice, LIST_ADVICE_DESCRIPTION),
+    ):
+        annotations = WRITES_PROPOSALS if fn.__name__ in _WRITES else READ_ONLY
+        server.add_tool(
+            fn, description=description, annotations=annotations, structured_output=True
+        )
     logging.getLogger("mcp").setLevel(logging.CRITICAL)
     return server
 
