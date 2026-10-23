@@ -1,14 +1,12 @@
 """The `fin budgets` commands."""
 
-from dataclasses import astuple
 from typing import Annotated
 
 import typer
-from rich.table import Table
 
 from finances import clock
 from finances.analysis.budgets import budget_report
-from finances.cli.common import fail, print_table, require_current_schema
+from finances.cli.common import fail, print_rows, require_current_schema
 from finances.db.engine import get_engine, session_scope
 from finances.db.repositories import list_budgets, remove_budget, set_budget
 from finances.domain.budgets import AMOUNT_MESSAGE
@@ -71,10 +69,8 @@ def list_command(
             return
         lines = budget_report(session, start, today)
     typer.echo(f"Budgets for {start.isoformat()[:7]}.")
-    table = Table()
-    for heading in ("Budget", "Kind", "Target", "Spent", "Left", "Used", "Month gone"):
-        table.add_column(heading)
-    for row in budget_rows(lines):
-        table.add_row(*astuple(row))
-    print_table(table)
+    print_rows(
+        ("Budget", "Kind", "Target", "Spent", "Left", "Used", "Month gone"),
+        budget_rows(lines),
+    )
     typer.echo(budgets_summary(lines))

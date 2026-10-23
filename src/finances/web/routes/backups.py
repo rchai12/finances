@@ -5,6 +5,7 @@ from pathlib import Path
 from fastapi import APIRouter, Request
 from fastapi.responses import Response
 
+from finances.analysis.backups import backup_file, backup_files
 from finances.config import get_settings
 from finances.db.backup import (
     BackupCheck,
@@ -31,8 +32,8 @@ def _backups_page(request: Request, error: str | None = None, status_code: int =
     context = {
         "folder": str(folder.resolve()),
         "keep": settings.backup_keep,
-        "backups": backup_rows(list_backups(folder)),
-        "set_asides": backup_rows(list_set_asides(folder)),
+        "backups": backup_rows(backup_files(list_backups(folder))),
+        "set_asides": backup_rows(backup_files(list_set_asides(folder))),
         "error": error,
     }
     return _render(request, "backups", context, status_code)
@@ -48,7 +49,7 @@ def _backup_confirm(
     context = {
         "action": action,
         "name": path.name,
-        "taken": taken_text(path),
+        "taken": taken_text(backup_file(path).taken),
         "check": check,
         "error": error,
     }

@@ -1,15 +1,13 @@
 """The `fin statements` and `fin transactions` commands."""
 
-from dataclasses import astuple
 from datetime import datetime
 from typing import Annotated
 
 import typer
-from rich.table import Table
 from sqlalchemy.orm import Session
 
 from finances.analysis.people import list_transactions_with_people
-from finances.cli.common import print_rows, print_table, require_current_schema
+from finances.cli.common import print_rows, require_current_schema
 from finances.db.engine import get_engine, session_scope
 from finances.db.repositories import account_names, get_account_by_name, list_statements
 from finances.views.statements import statement_rows
@@ -75,12 +73,10 @@ def list_transactions_command(
     if not found:
         typer.echo("No transactions.")
         return
-    table = Table()
-    for heading in ("Date", "Account", "Description", "Amount", "Card", "Section", "Person"):
-        table.add_column(heading)
-    for item, who in found:
-        table.add_row(*astuple(transaction_row(item, who, names)))
-    print_table(table)
+    print_rows(
+        ("Date", "Account", "Description", "Amount", "Card", "Section", "Person"),
+        [transaction_row(item, who, names) for item, who in found],
+    )
 
 
 def _account_id(session: Session, name: str | None) -> int | None:

@@ -7,6 +7,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy import Engine, func, select
 from sqlalchemy.orm import Session
 
+from finances.analysis.transfers import pair_listing
 from finances.categorize.transfers import TransferResult, pair_transfers, transfer_suggestions
 from finances.config import Settings
 from finances.db.engine import get_engine, session_scope
@@ -262,7 +263,7 @@ def test_transfer_lines_latest_outflow_first_then_highest_pair(session: Session)
     create_transfer_pair(session, late_out, late_in, AUTO)
     create_transfer_pair(session, early_out, early_in, CONFIRMED)
     create_transfer_pair(session, same_out, same_in, AUTO)
-    lines = transfer_lines(session)
+    lines = transfer_lines(pair_listing(session))
     assert [line.pair for line in lines] == ["3", "1", "2"]
     first = lines[1]
     assert (first.date, first.from_account, first.to_account, first.amount, first.how) == (

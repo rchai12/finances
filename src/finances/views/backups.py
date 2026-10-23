@@ -1,9 +1,9 @@
 """The backups and set-aside copies as the Backups page shows them."""
 
 from dataclasses import dataclass
-from pathlib import Path
+from datetime import datetime
 
-from finances.db.backup import taken_at
+from finances.analysis.backups import BackupFile
 from finances.views.format import size_text
 
 
@@ -14,11 +14,9 @@ class BackupRow:
     size: str
 
 
-def taken_text(path: Path) -> str:
-    return taken_at(path).strftime("%Y-%m-%d %H:%M:%S")
+def taken_text(taken: datetime) -> str:
+    return taken.strftime("%Y-%m-%d %H:%M:%S")
 
 
-def backup_rows(paths: list[Path]) -> list[BackupRow]:
-    return [
-        BackupRow(path.name, taken_text(path), size_text(path.stat().st_size)) for path in paths
-    ]
+def backup_rows(files: list[BackupFile]) -> list[BackupRow]:
+    return [BackupRow(item.name, taken_text(item.taken), size_text(item.size)) for item in files]

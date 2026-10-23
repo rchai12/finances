@@ -22,6 +22,12 @@ def last_pull_text(pull: FeedPull | None) -> str:
     return "never" if pull is None else pull.pulled_at.strftime("%Y-%m-%d %H:%M UTC")
 
 
+def change_text(cents: int) -> str:
+    """A signed amount: "+$1.00" when above zero, else format_cents."""
+    text = format_cents(cents)
+    return f"+{text}" if cents > 0 else text
+
+
 def net_text(cents: int) -> str:
     """A net spending figure: money out as usual, money back named as back."""
     return format_cents(cents) if cents >= 0 else f"{format_cents(-cents)} back"

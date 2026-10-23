@@ -2,21 +2,9 @@
 
 from dataclasses import dataclass
 
-from sqlalchemy.orm import Session
-
-from finances.db.repositories import (
-    account_names,
-    latest_feed_pull,
-    list_accounts,
-    list_feed_accounts,
-    list_new_feed_accounts,
-    list_people,
-)
-from finances.domain.feed_setup import AccountGuess, guess_account, guess_owner, suggest_existing
-from finances.domain.models import Account, SyncFailure
-from finances.sync.links import load_access_url
+from finances.analysis.simplefin import MappingStatus
+from finances.domain.models import SyncFailure
 from finances.sync.runner import LinkRun
-from finances.sync.simplefin import SyncError
 from finances.views.format import balance_date_text, drift_text, last_pull_text
 
 
@@ -44,17 +32,6 @@ class RunRow:
     problem: str
 
 
-@dataclass(frozen=True)
-class SetupOffer:
-    link: str
-    feed_account: str
-    name: str
-    institution: str
-    guess: AccountGuess
-    owner: str | None
-    suggestion: str | None
-
-
 def failure_lines(failures: list[SyncFailure]) -> list[str]:
     """One line per stored failure, with the time in UTC to the minute."""
     return [
@@ -66,34 +43,20 @@ def failure_lines(failures: list[SyncFailure]) -> list[str]:
     ]
 
 
-def keychain_state(link: str) -> str:
-    try:
-        return "no" if load_access_url(link) is None else "yes"
-    except SyncError:
-        return "unknown"
-
-
-def status_rows(session: Session) -> list[StatusRow]:
+def status_rows(statuses: list[MappingStatus]) -> list[StatusRow]:
     """One row per mapping: its keychain state, last pull, and last balance drift."""
-    names = account_names(session)
-    keychain: dict[str, str] = {}
-    rows = []
-    for item in list_feed_accounts(session):
-        if item.link not in keychain:
-            keychain[item.link] = keychain_state(item.link)
-        balanced = latest_feed_pull(session, item.account_id, with_balance=True)
-        rows.append(
-            StatusRow(
-                item.link,
-                names[item.account_id],
-                item.provider_account_id,
-                keychain[item.link],
-                last_pull_text(latest_feed_pull(session, item.account_id)),
-                balance_date_text(balanced),
-                drift_text(balanced),
-            )
+    return [
+        StatusRow(
+            item.link,
+            item.account,
+            item.feed_account,
+            item.keychain,
+            last_pull_text(item.last_pull),
+            balance_date_text(item.balanced),
+            drift_text(item.balanced),
         )
-    return rows
+        for item in statuses
+    ]
 
 
 def run_rows(runs: list[LinkRun], names: dict[int, str]) -> list[RunRow]:
@@ -122,16 +85,6 @@ def run_rows(runs: list[LinkRun], names: dict[int, str]) -> list[RunRow]:
     return rows
 
 
-def waiting_counts(session: Session, runs: list[LinkRun]) -> list[tuple[str, int]]:
-    """How many new SimpleFIN accounts each link that ran has, leaving out links with none."""
-    counts = [
-        (run.link, len(list_new_feed_accounts(session, run.link)))
-        for run in runs
-        if run.report is not None
-    ]
-    return [(link, count) for link, count in counts if count]
-
-
 def simplefin_messages(runs: list[LinkRun]) -> list[tuple[str, str]]:
     return [
         (run.link, message)
@@ -139,30 +92,3 @@ def simplefin_messages(runs: list[LinkRun]) -> list[tuple[str, str]]:
         if run.report is not None
         for message in run.report.messages
     ]
-
-
-def unmapped_accounts(session: Session) -> list[Account]:
-    """The active accounts that no SimpleFIN account feeds, under any link."""
-    mapped = {item.account_id for item in list_feed_accounts(session)}
-    return [account for account in list_accounts(session) if account.id not in mapped]
-
-
-def setup_offers(session: Session) -> list[SetupOffer]:
-    """For each new SimpleFIN account, the guesses that pre-fill its setup."""
-    people = [person.name for person in list_people(session)]
-    candidates = [(account.name, account.last4) for account in unmapped_accounts(session)]
-    offers = []
-    for item in list_new_feed_accounts(session):
-        guess = guess_account(item.name, item.institution)
-        offers.append(
-            SetupOffer(
-                item.link,
-                item.provider_account_id,
-                item.name,
-                item.institution,
-                guess,
-                guess_owner(item.link, people),
-                suggest_existing(guess, candidates),
-            )
-        )
-    return offers

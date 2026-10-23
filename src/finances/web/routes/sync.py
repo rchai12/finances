@@ -5,6 +5,12 @@ from typing import Annotated
 from fastapi import APIRouter, Form, Request
 from fastapi.responses import Response
 
+from finances.analysis.simplefin import (
+    mapping_status,
+    setup_offers,
+    unmapped_accounts,
+    waiting_counts,
+)
 from finances.categorize.service import categorize
 from finances.categorize.transfers import pair_transfers
 from finances.db.engine import session_scope
@@ -24,20 +30,14 @@ from finances.domain.feed_setup import new_accounts
 from finances.sync import transport
 from finances.sync.links import (
     delete_access_url,
+    keychain_state,
     load_access_url,
     save_access_url,
     validate_link_name,
 )
 from finances.sync.runner import run_links
 from finances.sync.simplefin import SyncError, claim_access_url, fetch_accounts
-from finances.views.sync import (
-    run_rows,
-    setup_offers,
-    simplefin_messages,
-    status_rows,
-    unmapped_accounts,
-    waiting_counts,
-)
+from finances.views.sync import run_rows, simplefin_messages, status_rows
 from finances.web import app as web_app
 from finances.web.access import _engine, _reading
 from finances.web.forms import _REFUSALS, _Field, refused
@@ -57,7 +57,7 @@ def _sync_page(
     request: Request, *, link: str = "", error: str | None = None, status_code: int = 200
 ) -> Response:
     with _reading() as session:
-        rows = status_rows(session)
+        rows = status_rows(mapping_status(session, keychain_state))
         offers = setup_offers(session)
         ignored = list_new_feed_accounts(session, ignored=True)
         people = [person.name for person in list_people(session)]

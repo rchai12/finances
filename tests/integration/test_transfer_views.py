@@ -5,11 +5,12 @@ import pytest
 from sqlalchemy import Engine
 from sqlalchemy.orm import Session
 
+from finances.analysis.transfers import pair_listing, pair_of
 from finances.db.engine import session_scope
 from finances.db.orm import TransactionRow
 from finances.db.repositories import create_account, create_transfer_pair, find_transfer_pair
 from finances.domain.models import AUTO, CONFIRMED
-from finances.views.transfers import TransferLine, transfer_lines, transfer_of
+from finances.views.transfers import TransferLine, transfer_line, transfer_lines
 
 CHECKING, SAVINGS, CARD = 1, 2, 3
 
@@ -71,17 +72,22 @@ def test_a_transaction_in_no_pair(session: Session) -> None:
 # transfer_of
 
 
+def transfer_of(session: Session, transaction_id: int) -> TransferLine | None:
+    found = pair_of(session, transaction_id)
+    return None if found is None else transfer_line(found)
+
+
 @pytest.mark.parametrize("transaction_id", [3, 4])
 def test_both_sides_show_their_pairs_line(session: Session, transaction_id: int) -> None:
     line = transfer_of(session, transaction_id)
     assert line == TransferLine(
         "2", "2026-05-09", "Test Checking", "Test Card", "$500.00", "3", "4", "auto"
     )
-    assert line == transfer_lines(session)[0]
+    assert line == transfer_lines(pair_listing(session))[0]
 
 
 def test_the_in_side_of_the_other_pair(session: Session) -> None:
-    assert transfer_of(session, 2) == transfer_lines(session)[1]
+    assert transfer_of(session, 2) == transfer_lines(pair_listing(session))[1]
 
 
 @pytest.mark.parametrize("transaction_id", [5, 99])

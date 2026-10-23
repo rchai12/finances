@@ -5,6 +5,7 @@ from typing import Annotated
 from fastapi import APIRouter, Form, Request
 from fastapi.responses import Response
 
+from finances.analysis.transfers import pair_listing, suggestion_listing
 from finances.categorize.transfers import pair_transfers
 from finances.db.repositories import create_transfer_pair, reject_transfer, unpair_transfer
 from finances.domain.models import CONFIRMED
@@ -23,8 +24,8 @@ def _transfers_page(
 ) -> Response:
     with _reading() as session:
         context = {
-            "suggestions": suggestion_lines(session),
-            "pairs": transfer_lines(session),
+            "suggestions": suggestion_lines(suggestion_listing(session)),
+            "pairs": transfer_lines(pair_listing(session)),
             "max_days": TRANSFER_MAX_DAYS,
             "error": error,
         }

@@ -5,7 +5,7 @@ from datetime import date
 
 from finances.analysis.months import MonthLine
 from finances.domain.money import format_cents
-from finances.views.format import net_text
+from finances.views.format import change_text, net_text
 
 
 @dataclass(frozen=True)
@@ -21,11 +21,6 @@ def _month(start: date) -> str:
     return start.isoformat()[:7]
 
 
-def _change(cents: int) -> str:
-    text = format_cents(cents)
-    return f"+{text}" if cents > 0 else text
-
-
 def month_rows(lines: list[MonthLine]) -> list[MonthRow]:
     """One row per month; the change is this month's spent minus the month before's."""
     rows = []
@@ -36,7 +31,7 @@ def month_rows(lines: list[MonthLine]) -> list[MonthRow]:
                 month=_month(line.start),
                 spent=net_text(line.spent_cents),
                 income=format_cents(line.income_cents),
-                change="" if previous is None else _change(line.spent_cents - previous),
+                change="" if previous is None else change_text(line.spent_cents - previous),
                 covered="partly" if line.uncovered else "yes",
             )
         )

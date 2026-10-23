@@ -4,6 +4,7 @@ from typing import Annotated
 
 import typer
 
+from finances.analysis.transfers import pair_listing, suggestion_listing
 from finances.categorize.transfers import pair_transfers
 from finances.cli.common import fail, print_rows, require_current_schema
 from finances.db.engine import get_engine, session_scope
@@ -22,7 +23,7 @@ def list_command() -> None:
     """List the transfers, latest first."""
     require_current_schema()
     with session_scope(get_engine()) as session:
-        lines = transfer_lines(session)
+        lines = transfer_lines(pair_listing(session))
     if not lines:
         typer.echo("No transfers.")
         return
@@ -34,7 +35,7 @@ def review_command() -> None:
     """List the possible transfers that wait for a decision."""
     require_current_schema()
     with session_scope(get_engine()) as session:
-        lines = suggestion_lines(session)
+        lines = suggestion_lines(suggestion_listing(session))
     if not lines:
         typer.echo("No transfers wait for review.")
         return

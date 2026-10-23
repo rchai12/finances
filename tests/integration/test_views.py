@@ -8,6 +8,13 @@ import pytest
 from sqlalchemy import Engine
 
 from finances.analysis.listings import account_listing, people_listing
+from finances.analysis.simplefin import (
+    SetupOffer,
+    mapping_status,
+    setup_offers,
+    unmapped_accounts,
+    waiting_counts,
+)
 from finances.db.engine import session_scope
 from finances.db.orm import AccountRow as AccountTable
 from finances.db.repositories import (
@@ -23,6 +30,7 @@ from finances.db.repositories import (
 )
 from finances.domain.feed_setup import AccountGuess
 from finances.domain.models import AccountType, DataSource, FeedPull, Transaction
+from finances.sync.links import keychain_state
 from finances.sync.runner import AccountSync, LinkRun, SyncReport
 from finances.views.accounts import AccountRow, account_rows
 from finances.views.format import (
@@ -33,18 +41,7 @@ from finances.views.format import (
     mask_last4,
 )
 from finances.views.people import PersonRow, people_rows
-from finances.views.sync import (
-    RunRow,
-    SetupOffer,
-    StatusRow,
-    keychain_state,
-    run_rows,
-    setup_offers,
-    simplefin_messages,
-    status_rows,
-    unmapped_accounts,
-    waiting_counts,
-)
+from finances.views.sync import RunRow, StatusRow, run_rows, simplefin_messages, status_rows
 from finances.views.transactions import TransactionRow, transaction_row
 
 SERVICE = "finances-simplefin"
@@ -274,7 +271,7 @@ def test_status_rows(household: Engine, keychain) -> None:
             drift_cents=None,
         )
     with session_scope(household) as session:
-        rows = status_rows(session)
+        rows = status_rows(mapping_status(session, keychain_state))
     assert [astuple(row)[:4] for row in rows] == [
         ("alex", "Test Card", "ACT-1", "yes"),
         ("sam", "Test Checking", "ACT-2", "no"),
@@ -286,7 +283,7 @@ def test_status_rows(household: Engine, keychain) -> None:
 
 def test_no_status_rows_without_mappings(household: Engine) -> None:
     with session_scope(household) as session:
-        assert status_rows(session) == []
+        assert status_rows(mapping_status(session, keychain_state)) == []
 
 
 # Sync now and fin sync run

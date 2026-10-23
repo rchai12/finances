@@ -4,6 +4,7 @@ from dataclasses import dataclass
 
 from finances.analysis.insights import InsightsReport
 from finances.domain.money import format_cents
+from finances.views.format import change_text
 
 
 @dataclass(frozen=True)
@@ -24,11 +25,6 @@ class MerchantRow:
     baseline: str
     change: str
     weekend: str
-
-
-def _change(cents: int) -> str:
-    text = format_cents(cents)
-    return f"+{text}" if cents > 0 else text
 
 
 def insights_heading(report: InsightsReport) -> str:
@@ -61,7 +57,7 @@ def merchant_rows(report: InsightsReport) -> list[MerchantRow]:
             spent=format_cents(stat.spent_cents),
             average=format_cents(stat.average_cents),
             baseline=format_cents(stat.baseline_cents),
-            change=_change(stat.change_cents),
+            change=change_text(stat.change_cents),
             weekend=str(stat.weekend_visits),
         )
         for stat in report.merchants

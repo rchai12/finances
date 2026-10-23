@@ -569,5 +569,12 @@ Template:
 - Deviations: none
 - Follow-ups: none
 
+## Phase 36c: views that only format, and the CLI tables (2026-10-22)
+- Tests: 3286 -> 3298 (given 8)
+- New public names: `analysis.simplefin`: `MappingStatus`, `SetupOffer`, `mapping_status`, `waiting_counts`, `unmapped_accounts`, `setup_offers`; `analysis.transfers`: `PairListing`, `SuggestionListing`, `pair_listing`, `pair_of`, `suggestion_listing`; `analysis.backups`: `BackupFile`, `backup_file`, `backup_files`; `sync.links`: `keychain_state`; `views.transfers`: `transfer_line`; `views.format`: `change_text`
+- Changed files: 28
+- Deviations: none
+- Follow-ups: none
+
 
 

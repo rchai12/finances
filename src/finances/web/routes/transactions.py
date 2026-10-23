@@ -10,6 +10,7 @@ from finances.analysis.categories import category_tree, transaction_facts
 from finances.analysis.people import JOINT_FILTER, UNASSIGNED_FILTER
 from finances.analysis.refunds import refund_facts
 from finances.analysis.search import TransactionQuery, search_transactions
+from finances.analysis.transfers import pair_of
 from finances.categorize.service import categorize
 from finances.db.repositories import (
     account_names,
@@ -24,7 +25,7 @@ from finances.domain.rules import MATCHES
 from finances.views.categories import category_choices, transaction_detail
 from finances.views.refunds import refund_view, refunded_lines
 from finances.views.transactions import found_rows
-from finances.views.transfers import transfer_of
+from finances.views.transfers import transfer_line
 from finances.web.access import _reading
 from finances.web.forms import _REFUSALS, _Field, refused
 from finances.web.helpers import _WHOLE, _day, _id, _rule_form
@@ -120,7 +121,8 @@ def _transaction_page(
         loaded = None if transaction_id is None else transaction_facts(session, transaction_id)
         detail = None if loaded is None else transaction_detail(loaded)
         choices = category_choices(category_tree(session))
-        transfer = None if detail is None else transfer_of(session, detail.id)
+        found = None if detail is None else pair_of(session, detail.id)
+        transfer = None if found is None else transfer_line(found)
         facts = None if detail is None else refund_facts(session, detail.id)
     if detail is None or facts is None:
         return _missing_transaction(request)

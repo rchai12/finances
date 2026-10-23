@@ -39,6 +39,13 @@ def load_access_url(link: str) -> str | None:
         raise SyncError("could not use the system keychain") from None
 
 
+def keychain_state(link: str) -> str:
+    try:
+        return "no" if load_access_url(link) is None else "yes"
+    except SyncError:
+        return "unknown"
+
+
 def delete_access_url(link: str) -> bool:
     """Forget the link's access URL. Return False when there was none."""
     validate_link_name(link)

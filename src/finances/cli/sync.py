@@ -1,14 +1,14 @@
 """The `fin sync` commands."""
 
-from dataclasses import astuple
 from datetime import UTC, datetime
 from typing import Annotated
 
 import typer
 from rich.table import Table
 
+from finances.analysis.simplefin import mapping_status, waiting_counts
 from finances.cli.categories import categorize_all
-from finances.cli.common import fail, print_table, require_current_schema
+from finances.cli.common import fail, print_rows, print_table, require_current_schema
 from finances.db.engine import get_engine, session_scope
 from finances.db.repositories import (
     account_names,
@@ -23,19 +23,14 @@ from finances.domain.models import DEFAULT_LINK, validate_provider_account_id
 from finances.sync import transport
 from finances.sync.links import (
     delete_access_url,
+    keychain_state,
     load_access_url,
     save_access_url,
     validate_link_name,
 )
 from finances.sync.runner import KEYCHAIN_FAILED, NOT_SET_UP, RETRY_WAITS, LinkRun, run_links
 from finances.sync.simplefin import SyncError, claim_access_url, fetch_accounts
-from finances.views.sync import (
-    failure_lines,
-    run_rows,
-    simplefin_messages,
-    status_rows,
-    waiting_counts,
-)
+from finances.views.sync import failure_lines, run_rows, simplefin_messages, status_rows
 
 app = typer.Typer(help="Pull transactions from SimpleFIN.", no_args_is_help=True)
 
@@ -199,22 +194,20 @@ def run_command(
         rows = run_rows(runs, account_names(session))
         waiting = waiting_counts(session, runs)
     if rows:
-        table = Table()
-        for heading in (
-            "Link",
-            "Account",
-            "SimpleFIN account",
-            "New",
-            "Changed",
-            "Removed",
-            "Same",
-            "Drift",
-            "Problem",
-        ):
-            table.add_column(heading)
-        for row in rows:
-            table.add_row(*astuple(row))
-        print_table(table)
+        print_rows(
+            (
+                "Link",
+                "Account",
+                "SimpleFIN account",
+                "New",
+                "Changed",
+                "Removed",
+                "Same",
+                "Drift",
+                "Problem",
+            ),
+            rows,
+        )
     for name, count in waiting:
         typer.echo(
             f"SimpleFIN ({name}): {new_accounts(count)} to set up "
@@ -246,24 +239,22 @@ def status_command() -> None:
     """Show each mapped account's last pull and drift."""
     require_current_schema()
     with session_scope(get_engine()) as session:
-        rows = status_rows(session)
+        rows = status_rows(mapping_status(session, keychain_state))
         lines = failure_lines(list_sync_failures(session))
     if not rows:
         typer.echo("No mapped accounts.")
         return
-    table = Table()
-    for heading in (
-        "Link",
-        "Account",
-        "SimpleFIN account",
-        "Keychain",
-        "Last pull",
-        "Balance date",
-        "Drift",
-    ):
-        table.add_column(heading)
-    for row in rows:
-        table.add_row(*astuple(row))
-    print_table(table)
+    print_rows(
+        (
+            "Link",
+            "Account",
+            "SimpleFIN account",
+            "Keychain",
+            "Last pull",
+            "Balance date",
+            "Drift",
+        ),
+        rows,
+    )
     for line in lines:
         typer.echo(line)

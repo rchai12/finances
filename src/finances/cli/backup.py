@@ -6,6 +6,7 @@ from typing import Annotated
 
 import typer
 
+from finances.analysis.backups import backup_files
 from finances.cli.common import fail, print_rows, require_current_schema
 from finances.config import get_settings
 from finances.db.backup import check_backup, list_backups, make_backup, restore_backup
@@ -42,7 +43,7 @@ def list_command() -> None:
     if not backups:
         typer.echo("No backups.")
         return
-    print_rows(("File", "Taken (UTC)", "Size"), backup_rows(backups))
+    print_rows(("File", "Taken (UTC)", "Size"), backup_rows(backup_files(backups)))
 
 
 @app.command("restore")

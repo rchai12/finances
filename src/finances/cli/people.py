@@ -1,13 +1,11 @@
 """The `fin people` commands."""
 
-from dataclasses import astuple
 from typing import Annotated
 
 import typer
-from rich.table import Table
 
 from finances.analysis.listings import people_listing
-from finances.cli.common import fail, print_table, require_current_schema
+from finances.cli.common import fail, print_rows, require_current_schema
 from finances.db.engine import get_engine, session_scope
 from finances.db.repositories import (
     PersonExistsError,
@@ -43,12 +41,7 @@ def list_command() -> None:
     if not rows:
         typer.echo("No people.")
         return
-    table = Table()
-    for heading in ("Name", "Owns", "Cardholder names"):
-        table.add_column(heading)
-    for row in rows:
-        table.add_row(*astuple(row))
-    print_table(table)
+    print_rows(("Name", "Owns", "Cardholder names"), rows)
 
 
 @app.command()
