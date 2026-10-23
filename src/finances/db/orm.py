@@ -598,6 +598,7 @@ class ProposalRow(Base):
     pattern: Mapped[str | None] = mapped_column(String(RULE_PATTERN_LIMIT), nullable=True)
     match: Mapped[str | None] = mapped_column(String(12), nullable=True)
     priority: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    source: Mapped[str | None] = mapped_column(String(MERCHANT_NAME_LIMIT), nullable=True)
 
 
 def to_proposal(row: ProposalRow) -> Proposal:
@@ -615,6 +616,7 @@ def to_proposal(row: ProposalRow) -> Proposal:
         pattern=row.pattern,
         match=row.match,
         priority=row.priority,
+        source=row.source,
     )
 
 

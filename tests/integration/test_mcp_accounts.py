@@ -27,6 +27,7 @@ NO_AMOUNTS = (
     "list_rules",
     "find_merchants",
     "propose_category",
+    "propose_merchant_alias",
     "list_proposals",
     "list_advice",
     "propose_transfer",

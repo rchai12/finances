@@ -643,5 +643,12 @@ Template:
 - Follow-ups:
   - include `tests/unit/test_web_split.py` in the given diff whenever a web route is added
 
+## Phase 19e: the agent proposes merchant aliases (2026-10-23)
+- Tests: 3534 -> 3550 (given 5)
+- New public names: `domain.proposals`: `ALIAS`, `Proposal.source`; `db.orm`: `ProposalRow.source`; `db.repositories`: `propose_merchant_alias`; `mcp_server.tools`: `propose_merchant_alias`
+- Changed files: 23
+- Deviations: None
+- Follow-ups: None
+
 
 

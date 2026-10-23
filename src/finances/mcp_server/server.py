@@ -147,6 +147,14 @@ PROPOSE_RULE_DESCRIPTION = (
     "Refused when it does not match the example, a rule with this pattern and match exists, a "
     "person declined it, or another proposal for it is open. No amounts."
 )
+PROPOSE_MERCHANT_ALIAS_DESCRIPTION = (
+    "Propose merging the merchant of an example transaction (its cleaned name) into another "
+    "merchant (target), with a one-line reason a person will read, so reports count them as "
+    "one and a rule on either name matches both. It changes nothing until a person accepts "
+    "it; then the rules run over every transaction. Refused when the two are the same, "
+    "either is already merged, other merchants are merged into the example's, a person "
+    "declined it, or another proposal for that merchant is open. No amounts."
+)
 LIST_PROPOSALS_DESCRIPTION = (
     "Your proposals, newest first, of one status (open by default, accepted, or declined), at "
     "most limit (1 to 200, default 50): the transaction, the category, your reason, when it was "
@@ -166,6 +174,7 @@ _WRITES = (
     "propose_transfer",
     "propose_not_transfer",
     "propose_rule",
+    "propose_merchant_alias",
     "log_advice",
 )
 _TOOLS = (
@@ -199,6 +208,7 @@ def build_server() -> MCPServer:
         (tools.propose_transfer, PROPOSE_TRANSFER_DESCRIPTION),
         (tools.propose_not_transfer, PROPOSE_NOT_TRANSFER_DESCRIPTION),
         (tools.propose_rule, PROPOSE_RULE_DESCRIPTION),
+        (tools.propose_merchant_alias, PROPOSE_MERCHANT_ALIAS_DESCRIPTION),
         (tools.list_proposals, LIST_PROPOSALS_DESCRIPTION),
         (tools.log_advice, LOG_ADVICE_DESCRIPTION),
         (tools.list_advice, LIST_ADVICE_DESCRIPTION),

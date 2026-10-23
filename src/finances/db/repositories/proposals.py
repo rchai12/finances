@@ -4,7 +4,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from finances.db.orm import AdviceRow, CategoryRuleRow, ProposalRow, to_advice, to_proposal
-from finances.db.repositories.aliases import alias_map
+from finances.db.repositories.aliases import add_alias, alias_map
 from finances.db.repositories.assignments import _assignment_row, set_category_by_hand
 from finances.db.repositories.audit import record_change
 from finances.db.repositories.categories import _category_row, _leaf_category, create_rule
@@ -16,10 +16,11 @@ from finances.db.repositories.transfers import (
     list_transfer_rejections,
     reject_transfer,
 )
-from finances.domain.merchants import merchant_names
+from finances.domain.merchants import check_alias, clean_merchant, merchant_names
 from finances.domain.models import CONFIRMED, MANUAL, CategoryRule
 from finances.domain.proposals import (
     ACCEPTED,
+    ALIAS,
     CATEGORY,
     DECLINED,
     NOT_TRANSFER,
@@ -198,6 +199,40 @@ def propose_rule(
     return to_proposal(row)
 
 
+def propose_merchant_alias(session: Session, example_id: int, target: str, reason: str) -> Proposal:
+    clean = collapse_ws(reason)
+    if not 1 <= len(clean) <= PROPOSAL_TEXT_LIMIT:
+        raise ValueError("a reason must be 1 to 200 characters")
+    example = get_transaction(session, example_id)
+    if example is None:
+        raise ValueError("transaction not found")
+    source, stored = check_alias(clean_merchant(example.description), target, alias_map(session))
+    existing = session.scalars(
+        select(ProposalRow).where(ProposalRow.kind == ALIAS, ProposalRow.source == source)
+    ).all()
+    if any(row.status == DECLINED and row.value == stored for row in existing):
+        raise ValueError("a person declined this proposal already")
+    if any(row.status == OPEN for row in existing):
+        raise ValueError("this merchant already has an open proposal")
+    row = ProposalRow(
+        kind=ALIAS,
+        target_id=example_id,
+        value=stored,
+        reason=clean,
+        status=OPEN,
+        created_at=_now(),
+        decided_at=None,
+        other_id=None,
+        pattern=None,
+        match=None,
+        priority=None,
+        source=source,
+    )
+    session.add(row)
+    session.flush()
+    return to_proposal(row)
+
+
 def list_proposals(
     session: Session, *, status: str | None = None, limit: int = 50
 ) -> list[Proposal]:
@@ -219,6 +254,12 @@ def proposal_out_of_date(session: Session, proposal: Proposal) -> bool:
             category_found=found is not None and found.parent_id is not None,
             rule_exists=_rule_exists(session, proposal.match or "", proposal.pattern or ""),
         )
+    if proposal.kind == ALIAS:
+        try:
+            check_alias(proposal.source or "", proposal.value, alias_map(session))
+        except ValueError:
+            return True
+        return False
     if proposal.kind != CATEGORY:
         in_id = proposal.other_id
         exists = (
@@ -261,6 +302,10 @@ def accept_proposal(session: Session, proposal_id: int) -> Proposal:
             raise ValueError(
                 f"proposal {proposal_id} is out of date: the rules or categories changed since"
             )
+        if row.kind == ALIAS:
+            raise ValueError(
+                f"proposal {proposal_id} is out of date: the merchant aliases changed since"
+            )
         raise ValueError(
             f"proposal {proposal_id} is out of date: the transactions were decided since"
         )
@@ -270,6 +315,8 @@ def accept_proposal(session: Session, proposal_id: int) -> Proposal:
         reject_transfer(session, row.target_id, row.other_id)
     elif row.kind == RULE:
         create_rule(session, row.pattern, row.value, row.match, row.priority)
+    elif row.kind == ALIAS:
+        add_alias(session, row.source or "", row.value)
     else:
         set_category_by_hand(session, row.target_id, row.value)
     row.status = ACCEPTED

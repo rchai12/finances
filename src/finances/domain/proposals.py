@@ -9,7 +9,8 @@ CATEGORY = "category"
 TRANSFER = "transfer"
 NOT_TRANSFER = "not_transfer"
 RULE = "rule"
-KINDS = (CATEGORY, TRANSFER, NOT_TRANSFER, RULE)
+ALIAS = "alias"
+KINDS = (CATEGORY, TRANSFER, NOT_TRANSFER, RULE, ALIAS)
 OPEN = "open"
 ACCEPTED = "accepted"
 DECLINED = "declined"
@@ -30,6 +31,7 @@ class Proposal:
     pattern: str | None = None
     match: str | None = None
     priority: int | None = None
+    source: str | None = None
 
 
 @dataclass(frozen=True)
@@ -64,4 +66,6 @@ def proposal_text(proposal: Proposal) -> str:
             proposal.value,
             0 if proposal.priority is None else proposal.priority,
         )
+    if proposal.kind == ALIAS:
+        return f"alias: {proposal.source} -> {proposal.value}"
     return f"transaction {proposal.target_id}: {proposal.value}"

@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from finances.analysis.review import ReviewItem
 from finances.domain.audit import rule_text
 from finances.domain.money import format_cents
-from finances.domain.proposals import NOT_TRANSFER, RULE, TRANSFER, Advice, Proposal
+from finances.domain.proposals import ALIAS, NOT_TRANSFER, RULE, TRANSFER, Advice, Proposal
 
 
 @dataclass(frozen=True)
@@ -55,6 +55,8 @@ def proposed_text(proposal: Proposal) -> str:
         return f"not a transfer with transaction {proposal.other_id}"
     if proposal.kind == RULE:
         return f"a rule: {_rule_line(proposal)}"
+    if proposal.kind == ALIAS:
+        return f"merge {proposal.source} into {proposal.value}"
     return proposal.value
 
 
@@ -71,6 +73,8 @@ def accepted_text(proposal: Proposal) -> str:
         )
     if proposal.kind == RULE:
         return f"Accepted proposal {proposal.id}: a rule, {_rule_line(proposal)}."
+    if proposal.kind == ALIAS:
+        return f"Accepted proposal {proposal.id}: {proposal.source} merged into {proposal.value}."
     return (
         f"Accepted proposal {proposal.id}: {proposal.value} for transaction {proposal.target_id}."
     )

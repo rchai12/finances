@@ -173,6 +173,7 @@ MCP_TOOLS = [
     "log_advice",
     "month_over_month",
     "propose_category",
+    "propose_merchant_alias",
     "propose_not_transfer",
     "propose_rule",
     "propose_transfer",
@@ -182,5 +183,6 @@ MCP_WRITERS = (
     "propose_transfer",
     "propose_not_transfer",
     "propose_rule",
+    "propose_merchant_alias",
     "log_advice",
 )

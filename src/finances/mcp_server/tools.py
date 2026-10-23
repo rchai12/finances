@@ -40,12 +40,13 @@ from finances.db.repositories import list_rules as load_rules
 from finances.db.repositories import list_uncategorized as load_uncategorized
 from finances.db.repositories import log_advice as keep_advice
 from finances.db.repositories import propose_category as store_category_proposal
+from finances.db.repositories import propose_merchant_alias as store_alias
 from finances.db.repositories import propose_not_transfer as store_not_transfer
 from finances.db.repositories import propose_rule as store_rule
 from finances.db.repositories import propose_transfer as store_transfer
 from finances.domain.merchants import clean_merchant
 from finances.domain.models import Transaction
-from finances.domain.proposals import CATEGORY, RULE, Proposal
+from finances.domain.proposals import ALIAS, CATEGORY, RULE, Proposal
 from finances.domain.spending import UNASSIGNED, UNCATEGORIZED, is_refund, month_bounds, month_range
 from finances.mcp_server.access import reading, writing
 
@@ -569,6 +570,11 @@ def _proposal_item(session: Session, proposal: Proposal) -> dict[str, Any]:
                 "priority": proposal.priority,
             }
         ),
+        "alias": (
+            None
+            if proposal.kind != ALIAS
+            else {"source": proposal.source, "target": proposal.value}
+        ),
         "reason": proposal.reason,
         "status": proposal.status,
         "created_at": proposal.created_at.isoformat(),
@@ -624,6 +630,15 @@ def propose_rule(
             found = store_rule(
                 session, example_id, pattern, category, reason, match=match, priority=priority
             )
+            return {"proposal": _proposal_item(session, found)}
+
+    return _as_tool(work)
+
+
+def propose_merchant_alias(example_id: int, target: str, reason: str) -> dict[str, Any]:
+    def work() -> dict[str, Any]:
+        with writing() as session:
+            found = store_alias(session, example_id, target, reason)
             return {"proposal": _proposal_item(session, found)}
 
     return _as_tool(work)

@@ -17,7 +17,7 @@ MADE = datetime(2026, 5, 25, tzinfo=UTC)
 
 def test_the_kinds() -> None:
     assert RULE == "rule"
-    assert KINDS == ("category", "transfer", "not_transfer", "rule")
+    assert KINDS == ("category", "transfer", "not_transfer", "rule", "alias")
 
 
 @pytest.mark.parametrize(
