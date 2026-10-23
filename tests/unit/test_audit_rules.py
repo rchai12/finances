@@ -36,6 +36,8 @@ def test_the_lists() -> None:
         "tag_removed",
         "note_set",
         "note_cleared",
+        "split_set",
+        "split_cleared",
     )
     assert KINDS == (
         "account",

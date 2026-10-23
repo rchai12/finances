@@ -9,11 +9,13 @@ from sqlalchemy.orm import Session
 
 from finances.db.orm import (
     TransactionRow,
+    TransactionSplitRow,
     TransferPairRow,
     TransferRejectionRow,
     to_transfer_pair,
 )
 from finances.db.repositories.audit import record_change
+from finances.db.repositories.splits import _is_split
 from finances.domain.audit import pair_text
 from finances.domain.models import (
     AUTO,
@@ -35,6 +37,7 @@ def _names(
 def list_transfer_movements(session: Session) -> list[Movement]:
     """Return each posted, non-zero transaction that is in no pair, in id order."""
     paired = exists().where(_names(TransferPairRow, TransactionRow.id))
+    split = exists().where(TransactionSplitRow.transaction_id == TransactionRow.id)
     stmt = (
         select(
             TransactionRow.id,
@@ -42,7 +45,12 @@ def list_transfer_movements(session: Session) -> list[Movement]:
             TransactionRow.amount_cents,
             TransactionRow.posted_date,
         )
-        .where(TransactionRow.is_pending.is_(False), TransactionRow.amount_cents != 0, ~paired)
+        .where(
+            TransactionRow.is_pending.is_(False),
+            TransactionRow.amount_cents != 0,
+            ~paired,
+            ~split,
+        )
         .order_by(TransactionRow.id)
     )
     return [Movement(*row) for row in session.execute(stmt).all()]
@@ -77,6 +85,8 @@ def _check_transfer(session: Session, out_id: int, in_id: int) -> None:
         raise ValueError("a transfer goes from one account to another")
     if out.amount_cents >= 0 or into.amount_cents != -out.amount_cents:
         raise ValueError("a transfer pairs money out with the same amount in")
+    if _is_split(session, out_id) or _is_split(session, in_id):
+        raise ValueError("a split transaction cannot be in a transfer")
 
 
 def _drop_rejection(session: Session, out_id: int, in_id: int) -> None:

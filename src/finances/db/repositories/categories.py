@@ -13,6 +13,7 @@ from finances.db.orm import (
     CategoryRow,
     CategoryRuleRow,
     TransactionCategoryRow,
+    TransactionSplitRow,
     to_category,
     to_category_rule,
 )
@@ -219,7 +220,7 @@ def delete_category(session: Session, name: str, move_to: str = "") -> CategoryD
         if target.id == row.id:
             raise ValueError("a category cannot be moved to itself")
 
-    transactions = (
+    assigned = (
         session.scalar(
             select(func.count())
             .select_from(TransactionCategoryRow)
@@ -227,6 +228,15 @@ def delete_category(session: Session, name: str, move_to: str = "") -> CategoryD
         )
         or 0
     )
+    split_in = (
+        session.scalar(
+            select(func.count(func.distinct(TransactionSplitRow.transaction_id))).where(
+                TransactionSplitRow.category_id == row.id
+            )
+        )
+        or 0
+    )
+    transactions = assigned + split_in
     rules = (
         session.scalar(
             select(func.count())
@@ -246,6 +256,11 @@ def delete_category(session: Session, name: str, move_to: str = "") -> CategoryD
         session.execute(
             update(TransactionCategoryRow)
             .where(TransactionCategoryRow.category_id == row.id)
+            .values(category_id=target.id)
+        )
+        session.execute(
+            update(TransactionSplitRow)
+            .where(TransactionSplitRow.category_id == row.id)
             .values(category_id=target.id)
         )
         session.execute(

@@ -16,6 +16,7 @@ from finances.db.repositories import (
     list_rules,
     list_transaction_descriptions,
     remove_category,
+    splits_for,
 )
 from finances.domain.merchants import merchant_name, merchant_names
 from finances.domain.models import BY_RULE, MANUAL, CategoryAssignment, CategoryRule, Transaction
@@ -38,11 +39,13 @@ def categorize(session: Session) -> CategorizeResult:
     rules = list_rules(session)
     aliases = alias_map(session)
     held = list_category_assignments(session)
+    descriptions = list_transaction_descriptions(session)
+    split = splits_for(session, [transaction_id for transaction_id, _description in descriptions])
     total = changed = uncategorized = 0
-    for transaction_id, description in list_transaction_descriptions(session):
+    for transaction_id, description in descriptions:
         total += 1
         before = held.get(transaction_id)
-        if before is not None and before.source == MANUAL:
+        if (before is not None and before.source == MANUAL) or transaction_id in split:
             continue
         rule = pick_rule_for(merchant_names(description, aliases), rules)
         after = (

@@ -40,6 +40,7 @@ Bugs here silently corrupt money data, so every line and every branch of each mu
 - `db/backup.py` (copying, checking, and restoring the database)
 - `domain/transfers.py` (transfer candidates and clear pairs; added in Phase 36a)
 - `domain/spending.py` (kinds, spending lines, refunds; added in Phase 36a)
+- `domain/splits.py` (parts that add up to a transaction; added in Phase 28d)
 
 ## Commands
 

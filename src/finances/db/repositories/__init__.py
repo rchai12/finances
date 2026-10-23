@@ -106,6 +106,11 @@ from finances.db.repositories.proposals import (
     propose_rule,
     propose_transfer,
 )
+from finances.db.repositories.splits import (
+    clear_split,
+    set_split,
+    splits_for,
+)
 from finances.db.repositories.statements import (
     create_statement,
     find_statement_by_hash,
@@ -156,6 +161,7 @@ __all__ = [
     "check_rule",
     "clear_categories_by_hand",
     "clear_category_by_hand",
+    "clear_split",
     "clear_sync_failure",
     "confirm_transaction",
     "count_uncategorized",
@@ -247,8 +253,10 @@ __all__ = [
     "set_category_by_hand",
     "set_feed_account_ignored",
     "set_note",
+    "set_split",
     "statement_covers",
     "statement_periods",
+    "splits_for",
     "tags_for",
     "unpair_transfer",
     "update_feed_transaction",

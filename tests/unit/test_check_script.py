@@ -20,6 +20,7 @@ CRITICAL = [
     "db/backup.py",
     "domain/transfers.py",
     "domain/spending.py",
+    "domain/splits.py",
 ]
 
 

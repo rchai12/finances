@@ -14,6 +14,7 @@ from finances.db.repositories import (
     list_category_assignments,
     list_transactions_between,
     list_transfer_pairs,
+    splits_for,
 )
 from finances.domain.merchants import merchant_name
 from finances.domain.models import Transaction
@@ -30,6 +31,7 @@ from finances.domain.spending import (
     spending_lines,
     summarize,
 )
+from finances.domain.splits import SPLIT
 
 
 @dataclass(frozen=True)
@@ -53,20 +55,28 @@ def flows_for(session: Session, transactions: Iterable[Transaction]) -> list[Flo
     accounts = {account.id: account for account in list_accounts(session, include_inactive=True)}
     attribution = load_attribution(session)
     aliases = alias_map(session)
+    items = list(transactions)
+    split = splits_for(session, [item.id for item in items])
     flows = []
-    for item in transactions:
+    for item in items:
         assignment = assignments.get(item.id)
         category = None if assignment is None else categories[assignment.category_id]
         account = accounts[item.account_id]
+        labeled = SPLIT if item.id in split else None
+        kind_category = None if labeled is not None else category
         flows.append(
             Flow(
                 amount_cents=item.amount_cents,
                 day=item.transaction_date or item.posted_date,
                 kind=PENDING
                 if item.is_pending
-                else flow_kind(item.amount_cents, paired=item.id in paired, category=category),
-                category=UNCATEGORIZED if category is None else category.name,
-                group=UNCATEGORIZED if category is None else categories[category.group_id].name,
+                else flow_kind(item.amount_cents, paired=item.id in paired, category=kind_category),
+                category=labeled
+                if labeled is not None
+                else (UNCATEGORIZED if category is None else category.name),
+                group=labeled
+                if labeled is not None
+                else (UNCATEGORIZED if category is None else categories[category.group_id].name),
                 merchant=merchant_name(item.description, aliases),
                 person=attribution.person(item) or UNASSIGNED,
                 account=account.name,

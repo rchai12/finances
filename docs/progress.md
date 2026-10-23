@@ -659,5 +659,10 @@ Template:
   - ruff format folded the given migration's `UniqueConstraint` onto one line; the name and columns are the same
 - Follow-ups: None
 
-
+## Phase 28d: splits stored (2026-10-23)
+- Tests: 3574 -> 3605 (given 19)
+- New public names: `domain.splits`: `MAX_PARTS`, `SPLIT`, `SplitPart`, `check_split`; `db.orm`: `TransactionSplitRow`, `to_split_part`; `db.repositories`: `set_split`, `clear_split`, `splits_for`
+- Changed files: 23
+- Deviations: None
+- Follow-ups: None
 

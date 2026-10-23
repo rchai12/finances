@@ -7,6 +7,7 @@ from finances.db.orm import (
     CategoryRow,
     TransactionCategoryRow,
     TransactionRow,
+    TransactionSplitRow,
     TransferPairRow,
     to_category,
     to_category_assignment,
@@ -14,6 +15,7 @@ from finances.db.orm import (
 )
 from finances.db.repositories.audit import record_change
 from finances.db.repositories.categories import _leaf_category
+from finances.db.repositories.splits import _is_split
 from finances.db.repositories.transactions import (
     _distinct_transaction_ids,
     _require_transaction,
@@ -54,6 +56,11 @@ def _assigned_name(session: Session, transaction_id: int) -> str | None:
     return _category_name(session, row.category_id)
 
 
+def _refuse_if_split(session: Session, transaction_id: int) -> None:
+    if _is_split(session, transaction_id):
+        raise ValueError("a split transaction takes its categories from its parts")
+
+
 def _assign(
     session: Session, transaction_id: int, category_id: int, source: str, rule_id: int | None
 ) -> None:
@@ -87,6 +94,8 @@ def set_categories_by_hand(
     ids = _distinct_transaction_ids(transaction_ids)
     for transaction_id in ids:
         _require_transaction(session, transaction_id)
+    for transaction_id in ids:
+        _refuse_if_split(session, transaction_id)
     target = _leaf_category(session, category)
     for transaction_id in ids:
         before = _assigned_name(session, transaction_id)
@@ -109,6 +118,8 @@ def clear_categories_by_hand(session: Session, transaction_ids: Iterable[int]) -
     for transaction_id in ids:
         _require_transaction(session, transaction_id)
     for transaction_id in ids:
+        _refuse_if_split(session, transaction_id)
+    for transaction_id in ids:
         before = _assigned_name(session, transaction_id)
         remove_category(session, transaction_id)
         if before is not None:
@@ -125,6 +136,7 @@ def clear_categories_by_hand(session: Session, transaction_ids: Iterable[int]) -
 def set_category_by_hand(session: Session, transaction_id: int, category: str) -> Category:
     """Set the transaction's category by hand, so rules leave it alone. The caller commits."""
     _require_transaction(session, transaction_id)
+    _refuse_if_split(session, transaction_id)
     target = _leaf_category(session, category)
     before = _assigned_name(session, transaction_id)
     _assign(session, transaction_id, target.id, MANUAL, None)
@@ -143,6 +155,7 @@ def set_category_by_hand(session: Session, transaction_id: int, category: str) -
 def clear_category_by_hand(session: Session, transaction_id: int) -> None:
     """Remove the transaction's category, leaving it to the rules. The caller commits."""
     _require_transaction(session, transaction_id)
+    _refuse_if_split(session, transaction_id)
     before = _assigned_name(session, transaction_id)
     remove_category(session, transaction_id)
     if before is not None:
@@ -161,9 +174,10 @@ def list_uncategorized(session: Session, limit: int) -> list[Transaction]:
         raise ValueError("limit must be at least 1")
     categorized = exists().where(TransactionCategoryRow.transaction_id == TransactionRow.id)
     paired = exists().where(_names(TransferPairRow, TransactionRow.id))
+    split = exists().where(TransactionSplitRow.transaction_id == TransactionRow.id)
     stmt = (
         select(TransactionRow)
-        .where(~categorized, ~paired)
+        .where(~categorized, ~paired, ~split)
         .order_by(TransactionRow.posted_date.desc(), TransactionRow.id.desc())
         .limit(limit)
     )
@@ -174,9 +188,10 @@ def count_uncategorized(session: Session) -> int:
     """How many transactions have no category and are in no transfer pair."""
     categorized = exists().where(TransactionCategoryRow.transaction_id == TransactionRow.id)
     paired = exists().where(_names(TransferPairRow, TransactionRow.id))
+    split = exists().where(TransactionSplitRow.transaction_id == TransactionRow.id)
     return (
         session.scalar(
-            select(func.count()).select_from(TransactionRow).where(~categorized, ~paired)
+            select(func.count()).select_from(TransactionRow).where(~categorized, ~paired, ~split)
         )
         or 0
     )

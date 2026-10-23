@@ -130,6 +130,11 @@ HOMES = {
         "remove_budget",
         "set_budget",
     ],
+    "splits": [
+        "clear_split",
+        "set_split",
+        "splits_for",
+    ],
     "tags": [
         "add_tags",
         "list_tags",
@@ -159,7 +164,7 @@ def test_the_package_holds_one_module_per_area() -> None:
 
 def test_the_facade_offers_every_name_and_only_those() -> None:
     expected = sorted(name for names in HOMES.values() for name in names)
-    assert len(expected) == 111
+    assert len(expected) == 114
     assert sorted(repositories.__all__) == expected
     public = sorted(name for name in vars(repositories) if not name.startswith("_"))
     assert sorted(set(public) - set(HOMES)) == expected

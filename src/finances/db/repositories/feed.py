@@ -20,8 +20,11 @@ from finances.db.orm import (
     to_transaction,
 )
 from finances.db.repositories.assignments import remove_category
+from finances.db.repositories.audit import record_change
+from finances.db.repositories.splits import _delete_parts, _is_split, _split_names
 from finances.db.repositories.transactions import _FINGERPRINT_CHUNK
 from finances.db.repositories.transfers import _names
+from finances.domain.audit import SYSTEM
 from finances.domain.models import (
     DataSource,
     FeedPull,
@@ -95,6 +98,17 @@ def update_feed_transaction(
     item = _feed_item(session, transaction_id)
     if row is None or item is None:
         raise ValueError("transaction did not come from the feed")
+    if amount_cents != row.amount_cents and _is_split(session, transaction_id):
+        before = _split_names(session, transaction_id)
+        _delete_parts(session, transaction_id)
+        record_change(
+            session,
+            action="split_cleared",
+            kind="transaction",
+            record_id=transaction_id,
+            before=before,
+            who=SYSTEM,
+        )
     row.posted_date = posted_date
     row.transaction_date = transaction_date
     row.amount_cents = amount_cents
@@ -124,6 +138,7 @@ def delete_feed_transaction(session: Session, transaction_id: int) -> bool:
     session.execute(
         delete(TransactionNoteRow).where(TransactionNoteRow.transaction_id == transaction_id)
     )
+    _delete_parts(session, transaction_id)
     session.flush()
     session.delete(session.get(TransactionRow, transaction_id))
     session.flush()

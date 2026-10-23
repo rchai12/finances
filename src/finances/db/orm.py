@@ -37,6 +37,7 @@ from finances.domain.models import (
     TransferPair,
 )
 from finances.domain.proposals import Advice, Proposal
+from finances.domain.splits import SplitPart
 from finances.domain.text import (
     ADVICE_TEXT_LIMIT,
     AUDIT_TEXT_LIMIT,
@@ -505,6 +506,33 @@ class TransactionNoteRow(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     transaction_id: Mapped[int] = mapped_column(ForeignKey("transactions.id"), nullable=False)
     text: Mapped[str] = mapped_column(String(NOTE_LIMIT), nullable=False)
+
+
+class TransactionSplitRow(Base):
+    """One row of the transaction_splits table: one part of a split transaction."""
+
+    __tablename__ = "transaction_splits"
+    __table_args__ = (
+        UniqueConstraint(
+            "transaction_id", "position", name="uq_transaction_splits_transaction_id_position"
+        ),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    transaction_id: Mapped[int] = mapped_column(ForeignKey("transactions.id"), nullable=False)
+    position: Mapped[int] = mapped_column(Integer, nullable=False)
+    amount_cents: Mapped[int] = mapped_column(Integer, nullable=False)
+    category_id: Mapped[int] = mapped_column(ForeignKey("categories.id"), nullable=False)
+
+
+def to_split_part(row: TransactionSplitRow) -> SplitPart:
+    """Return the domain SplitPart for a row of the transaction_splits table."""
+    return SplitPart(
+        transaction_id=row.transaction_id,
+        position=row.position,
+        amount_cents=row.amount_cents,
+        category_id=row.category_id,
+    )
 
 
 class TransferPairRow(Base):

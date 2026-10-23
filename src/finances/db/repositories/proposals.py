@@ -8,6 +8,7 @@ from finances.db.repositories.aliases import add_alias, alias_map
 from finances.db.repositories.assignments import _assignment_row, set_category_by_hand
 from finances.db.repositories.audit import record_change
 from finances.db.repositories.categories import _category_row, _leaf_category, create_rule
+from finances.db.repositories.splits import _is_split
 from finances.db.repositories.transactions import get_transaction
 from finances.db.repositories.transfers import (
     _check_transfer,
@@ -52,6 +53,8 @@ def _now() -> datetime:
 def decided_by_a_person(session: Session, transaction_id: int) -> bool:
     row = _assignment_row(session, transaction_id)
     if row is not None and row.source == MANUAL:
+        return True
+    if _is_split(session, transaction_id):
         return True
     return find_transfer_pair(session, transaction_id) is not None
 
@@ -277,7 +280,8 @@ def proposal_out_of_date(session: Session, proposal: Proposal) -> bool:
     row = _assignment_row(session, proposal.target_id)
     return out_of_date(
         exists=get_transaction(session, proposal.target_id) is not None,
-        set_by_hand=row is not None and row.source == MANUAL,
+        set_by_hand=(row is not None and row.source == MANUAL)
+        or _is_split(session, proposal.target_id),
         paired=find_transfer_pair(session, proposal.target_id) is not None,
     )
 

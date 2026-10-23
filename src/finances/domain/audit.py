@@ -38,6 +38,8 @@ ACTIONS = (
     "tag_removed",
     "note_set",
     "note_cleared",
+    "split_set",
+    "split_cleared",
 )
 KINDS = (
     "account",
