@@ -16,6 +16,7 @@ from finances.db.orm import (
     to_balance_snapshot,
     to_feed_pull,
 )
+from finances.db.repositories.audit import record_change
 from finances.domain.models import (
     Account,
     AccountType,
@@ -98,6 +99,7 @@ def create_account(
     # Add the row to session and flush to get the ID
     session.add(row)
     session.flush()
+    record_change(session, action="account_added", kind="account", record_id=row.id, after=row.name)
 
     # Return the Account domain object
     return to_account(row)
@@ -159,8 +161,18 @@ def rename_account(session: Session, account_id: int, new_name: str) -> Account:
     ).first()
     if other is not None and other.id != account_id:
         raise AccountExistsError("an account with this name already exists")
+    old = row.name
     row.name = clean
     session.flush()
+    if old != clean:
+        record_change(
+            session,
+            action="account_renamed",
+            kind="account",
+            record_id=account_id,
+            before=old,
+            after=clean,
+        )
     return to_account(row)
 
 
@@ -169,7 +181,28 @@ def set_account_active(session: Session, account_id: int, active: bool) -> Accou
     row = session.get(AccountRow, account_id)
     if row is None:
         raise ValueError("account not found")
-    row.is_active = active
+    if row.is_active != active:
+        row.is_active = active
+        session.flush()
+        if active:
+            record_change(
+                session,
+                action="account_reopened",
+                kind="account",
+                record_id=account_id,
+                before="closed",
+                after="open",
+            )
+        else:
+            record_change(
+                session,
+                action="account_closed",
+                kind="account",
+                record_id=account_id,
+                before="open",
+                after="closed",
+            )
+        return to_account(row)
     session.flush()
     return to_account(row)
 

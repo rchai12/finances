@@ -15,6 +15,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
+from finances.domain.audit import Change
 from finances.domain.models import (
     DEFAULT_LINK,
     Account,
@@ -35,6 +36,7 @@ from finances.domain.models import (
     TransferPair,
 )
 from finances.domain.text import (
+    AUDIT_TEXT_LIMIT,
     CATEGORY_NAME_LIMIT,
     DESCRIPTION_LIMIT,
     FEED_ID_LIMIT,
@@ -528,3 +530,32 @@ class SyncFailureRow(Base):
 def to_sync_failure(row: SyncFailureRow) -> SyncFailure:
     """Return the domain SyncFailure for a row of the sync_failures table."""
     return SyncFailure(link=row.link, failed_at=_as_utc(row.failed_at), message=row.message)
+
+
+class AuditRow(Base):
+    """One row of the audit_log table: a change a person made, never edited."""
+
+    __tablename__ = "audit_log"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    who: Mapped[str] = mapped_column(String(10), nullable=False)
+    action: Mapped[str] = mapped_column(String(30), nullable=False)
+    kind: Mapped[str] = mapped_column(String(20), nullable=False)
+    record_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    before: Mapped[str | None] = mapped_column(String(AUDIT_TEXT_LIMIT), nullable=True)
+    after: Mapped[str | None] = mapped_column(String(AUDIT_TEXT_LIMIT), nullable=True)
+
+
+def to_change(row: AuditRow) -> Change:
+    """Return the domain Change for a row of the audit_log table."""
+    return Change(
+        id=row.id,
+        at=_as_utc(row.at),
+        who=row.who,
+        action=row.action,
+        kind=row.kind,
+        record_id=row.record_id,
+        before=row.before,
+        after=row.after,
+    )

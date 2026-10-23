@@ -10,6 +10,7 @@ from finances.db.orm import (
     PersonRow,
     to_person,
 )
+from finances.db.repositories.audit import record_change
 from finances.domain.models import Person
 from finances.domain.people import (
     JOINT,
@@ -31,6 +32,7 @@ def create_person(session: Session, name: str) -> Person:
     row = PersonRow(name=clean)
     session.add(row)
     session.flush()
+    record_change(session, action="person_added", kind="person", record_id=row.id, after=row.name)
     return to_person(row)
 
 
@@ -57,15 +59,37 @@ def list_people(session: Session) -> list[Person]:
     return [to_person(row) for row in session.scalars(stmt).all()]
 
 
+def _person_name(session: Session, person_id: int) -> str:
+    found = session.get(PersonRow, person_id)
+    return found.name
+
+
 def set_account_owner(session: Session, account_id: int, person_id: int | None) -> None:
     """Make the person own the account, or make it Joint when person_id is None."""
     stmt = select(AccountOwnerRow).where(AccountOwnerRow.account_id == account_id)
     row = session.scalars(stmt).first()
+    if row is not None and row.person_id == person_id:
+        session.flush()
+        return
+    before = (
+        None
+        if row is None
+        else (JOINT if row.person_id is None else _person_name(session, row.person_id))
+    )
     if row is None:
         session.add(AccountOwnerRow(account_id=account_id, person_id=person_id))
     else:
         row.person_id = person_id
     session.flush()
+    after = JOINT if person_id is None else _person_name(session, person_id)
+    record_change(
+        session,
+        action="owner_set",
+        kind="account",
+        record_id=account_id,
+        before=before,
+        after=after,
+    )
 
 
 def list_account_owners(session: Session) -> dict[int, int | None]:
@@ -81,11 +105,23 @@ def set_cardholder_alias(session: Session, cardholder: str, person_id: int) -> s
         raise ValueError("a cardholder name must be 1 to 100 characters")
     stmt = select(CardholderAliasRow).where(CardholderAliasRow.cardholder == clean)
     row = session.scalars(stmt).first()
+    if row is not None and row.person_id == person_id:
+        session.flush()
+        return clean
+    before = None if row is None else _person_name(session, row.person_id)
     if row is None:
         session.add(CardholderAliasRow(cardholder=clean, person_id=person_id))
     else:
         row.person_id = person_id
     session.flush()
+    record_change(
+        session,
+        action="cardholder_set",
+        kind="person",
+        record_id=person_id,
+        before=before,
+        after=clean,
+    )
     return clean
 
 

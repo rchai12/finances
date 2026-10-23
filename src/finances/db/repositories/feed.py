@@ -17,7 +17,7 @@ from finances.db.orm import (
     to_feed_pull,
     to_transaction,
 )
-from finances.db.repositories.categories import remove_category
+from finances.db.repositories.assignments import remove_category
 from finances.db.repositories.transactions import _FINGERPRINT_CHUNK
 from finances.db.repositories.transfers import _names
 from finances.domain.models import (

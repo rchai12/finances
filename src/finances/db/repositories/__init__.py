@@ -16,6 +16,21 @@ from finances.db.repositories.accounts import (
     set_account_active,
     set_balance_snapshot,
 )
+from finances.db.repositories.assignments import (
+    assign_by_rule,
+    clear_categories_by_hand,
+    clear_category_by_hand,
+    count_uncategorized,
+    list_category_assignments,
+    list_uncategorized,
+    remove_category,
+    set_categories_by_hand,
+    set_category_by_hand,
+)
+from finances.db.repositories.audit import (
+    list_changes,
+    record_change,
+)
 from finances.db.repositories.budgets import (
     list_budgets,
     remove_budget,
@@ -24,10 +39,6 @@ from finances.db.repositories.budgets import (
 from finances.db.repositories.categories import (
     CategoryDeletion,
     CategoryExistsError,
-    assign_by_rule,
-    clear_categories_by_hand,
-    clear_category_by_hand,
-    count_uncategorized,
     create_category,
     create_rule,
     delete_category,
@@ -35,13 +46,8 @@ from finances.db.repositories.categories import (
     edit_rule,
     get_category_by_name,
     list_categories,
-    list_category_assignments,
     list_rules,
-    list_uncategorized,
-    remove_category,
     rename_category,
-    set_categories_by_hand,
-    set_category_by_hand,
 )
 from finances.db.repositories.feed import (
     confirm_transaction,
@@ -154,6 +160,7 @@ __all__ = [
     "list_cardholder_aliases",
     "list_categories",
     "list_category_assignments",
+    "list_changes",
     "list_feed_accounts",
     "list_feed_links",
     "list_new_feed_accounts",
@@ -172,6 +179,7 @@ __all__ = [
     "list_transfer_rejections",
     "list_uncategorized",
     "map_feed_account",
+    "record_change",
     "record_seen_feed_account",
     "record_sync_failure",
     "reject_transfer",

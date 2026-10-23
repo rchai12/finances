@@ -576,5 +576,15 @@ Template:
 - Deviations: none
 - Follow-ups: none
 
+## Phase 34a: the audit trail (2026-10-22)
+- Tests: 3298 -> 3323 (given 15)
+- New public names: `domain.text`: `AUDIT_TEXT_LIMIT`; `domain.audit`: `PERSON`, `SYSTEM`, `WHO`, `ACTIONS`, `KINDS`, `Change`, `rule_text`, `pair_text`; `db.orm`: `AuditRow`, `to_change`; `db.repositories`: `list_changes`, `record_change`; `views.audit`: `ChangeRow`, `change_rows`; `cli.audit`: `audit_command`
+- Changed files: 24
+- Deviations:
+  - `feed.py` now imports `remove_category` from `assignments` after that function moved; the spec's Scope did not list `feed.py`
+  - extra tests cover `owner_set` from Joint and `change_rows` with no `record_id`
+- Follow-ups:
+  - the longest `rule_text` a stored rule can make is 200 characters, so the extra cut test fits a constructed longer string
+
 
 

@@ -8,6 +8,21 @@ import finances.db.repositories as repositories
 
 PACKAGE = Path(repositories.__file__).parent
 HOMES = {
+    "assignments": [
+        "assign_by_rule",
+        "clear_categories_by_hand",
+        "clear_category_by_hand",
+        "count_uncategorized",
+        "list_category_assignments",
+        "list_uncategorized",
+        "remove_category",
+        "set_categories_by_hand",
+        "set_category_by_hand",
+    ],
+    "audit": [
+        "list_changes",
+        "record_change",
+    ],
     "accounts": [
         "AccountExistsError",
         "account_data_span",
@@ -79,10 +94,6 @@ HOMES = {
     "categories": [
         "CategoryDeletion",
         "CategoryExistsError",
-        "assign_by_rule",
-        "clear_categories_by_hand",
-        "clear_category_by_hand",
-        "count_uncategorized",
         "create_category",
         "create_rule",
         "delete_category",
@@ -90,13 +101,8 @@ HOMES = {
         "edit_rule",
         "get_category_by_name",
         "list_categories",
-        "list_category_assignments",
         "list_rules",
-        "list_uncategorized",
-        "remove_category",
         "rename_category",
-        "set_categories_by_hand",
-        "set_category_by_hand",
     ],
     "budgets": [
         "list_budgets",
@@ -124,7 +130,7 @@ def test_the_package_holds_one_module_per_area() -> None:
 
 def test_the_facade_offers_every_name_and_only_those() -> None:
     expected = sorted(name for names in HOMES.values() for name in names)
-    assert len(expected) == 86
+    assert len(expected) == 88
     assert sorted(repositories.__all__) == expected
     public = sorted(name for name in vars(repositories) if not name.startswith("_"))
     assert sorted(set(public) - set(HOMES)) == expected

@@ -1,9 +1,7 @@
-from collections.abc import Iterable
 from dataclasses import dataclass
 
 from sqlalchemy import (
     delete,
-    exists,
     func,
     select,
     update,
@@ -15,25 +13,14 @@ from finances.db.orm import (
     CategoryRow,
     CategoryRuleRow,
     TransactionCategoryRow,
-    TransactionRow,
-    TransferPairRow,
     to_category,
-    to_category_assignment,
     to_category_rule,
-    to_transaction,
 )
-from finances.db.repositories.transactions import (
-    _distinct_transaction_ids,
-    _require_transaction,
-)
-from finances.db.repositories.transfers import _names
+from finances.db.repositories.audit import record_change
+from finances.domain.audit import rule_text
 from finances.domain.models import (
-    BY_RULE,
-    MANUAL,
     Category,
-    CategoryAssignment,
     CategoryRule,
-    Transaction,
 )
 from finances.domain.rules import (
     MATCHES,
@@ -85,6 +72,9 @@ def create_category(session: Session, name: str, group: str) -> Category:
     )
     session.add(row)
     session.flush()
+    record_change(
+        session, action="category_added", kind="category", record_id=row.id, after=row.name
+    )
     return to_category(row)
 
 
@@ -122,7 +112,19 @@ def create_rule(
     row = CategoryRuleRow(pattern=clean, match=match, priority=priority, category_id=target.id)
     session.add(row)
     session.flush()
+    record_change(
+        session,
+        action="rule_added",
+        kind="rule",
+        record_id=row.id,
+        after=_rule_line(session, row),
+    )
     return to_category_rule(row)
+
+
+def _rule_line(session: Session, row: CategoryRuleRow) -> str:
+    category = session.get(CategoryRow, row.category_id)
+    return rule_text(row.match, row.pattern, category.name, row.priority)
 
 
 def delete_rule(session: Session, rule_id: int) -> None:
@@ -130,9 +132,11 @@ def delete_rule(session: Session, rule_id: int) -> None:
     row = session.get(CategoryRuleRow, rule_id)
     if row is None:
         raise ValueError("rule not found")
+    before = _rule_line(session, row)
     session.execute(delete(TransactionCategoryRow).where(TransactionCategoryRow.rule_id == rule_id))
     session.delete(row)
     session.flush()
+    record_change(session, action="rule_deleted", kind="rule", record_id=rule_id, before=before)
 
 
 @dataclass(frozen=True)
@@ -158,6 +162,15 @@ def rename_category(session: Session, name: str, new_name: str) -> tuple[str, Ca
     old = row.name
     row.name = clean
     session.flush()
+    if old != clean:
+        record_change(
+            session,
+            action="category_renamed",
+            kind="category",
+            record_id=row.id,
+            before=old,
+            after=clean,
+        )
     return old, to_category(row)
 
 
@@ -183,6 +196,13 @@ def delete_category(session: Session, name: str, move_to: str = "") -> CategoryD
         _delete_budget_for(session, row.id)
         session.delete(row)
         session.flush()
+        record_change(
+            session,
+            action="category_deleted",
+            kind="category",
+            record_id=row.id,
+            before=deleted.name,
+        )
         return deleted
 
     target = None
@@ -231,6 +251,14 @@ def delete_category(session: Session, name: str, move_to: str = "") -> CategoryD
     _delete_budget_for(session, row.id)
     session.delete(row)
     session.flush()
+    record_change(
+        session,
+        action="category_deleted",
+        kind="category",
+        record_id=row.id,
+        before=deleted.name,
+        after=deleted.moved_to,
+    )
     return deleted
 
 
@@ -264,112 +292,20 @@ def edit_rule(
     )
     if session.scalars(taken).first() is not None:
         raise ValueError("a rule with this pattern and match already exists")
+    before = _rule_line(session, row)
     row.pattern = clean
     row.match = chosen_match
     row.priority = row.priority if priority is None else priority
     row.category_id = category_id
     session.flush()
-    return to_category_rule(row)
-
-
-def list_category_assignments(session: Session) -> dict[int, CategoryAssignment]:
-    """Map each categorized transaction's id to its assignment."""
-    rows = session.scalars(select(TransactionCategoryRow)).all()
-    return {row.transaction_id: to_category_assignment(row) for row in rows}
-
-
-def _assignment_row(session: Session, transaction_id: int) -> TransactionCategoryRow | None:
-    stmt = select(TransactionCategoryRow).where(
-        TransactionCategoryRow.transaction_id == transaction_id
-    )
-    return session.scalars(stmt).first()
-
-
-def _assign(
-    session: Session, transaction_id: int, category_id: int, source: str, rule_id: int | None
-) -> None:
-    row = _assignment_row(session, transaction_id)
-    if row is None:
-        row = TransactionCategoryRow(transaction_id=transaction_id)
-        session.add(row)
-    row.category_id = category_id
-    row.source = source
-    row.rule_id = rule_id
-    session.flush()
-
-
-def assign_by_rule(session: Session, transaction_id: int, rule: CategoryRule) -> None:
-    """Store, or replace, the transaction's category as set by the rule. The caller commits."""
-    _assign(session, transaction_id, rule.category_id, BY_RULE, rule.id)
-
-
-def remove_category(session: Session, transaction_id: int) -> None:
-    """Remove the transaction's category, if it has one. The caller commits."""
-    row = _assignment_row(session, transaction_id)
-    if row is not None:
-        session.delete(row)
-        session.flush()
-
-
-def set_categories_by_hand(
-    session: Session, transaction_ids: Iterable[int], category: str
-) -> tuple[int, Category]:
-    """Set each transaction's category by hand. The caller commits."""
-    ids = _distinct_transaction_ids(transaction_ids)
-    for transaction_id in ids:
-        _require_transaction(session, transaction_id)
-    target = _leaf_category(session, category)
-    for transaction_id in ids:
-        _assign(session, transaction_id, target.id, MANUAL, None)
-    return len(ids), to_category(target)
-
-
-def clear_categories_by_hand(session: Session, transaction_ids: Iterable[int]) -> int:
-    """Remove each transaction's category. The caller commits and runs categorize."""
-    ids = _distinct_transaction_ids(transaction_ids)
-    for transaction_id in ids:
-        _require_transaction(session, transaction_id)
-    for transaction_id in ids:
-        remove_category(session, transaction_id)
-    return len(ids)
-
-
-def set_category_by_hand(session: Session, transaction_id: int, category: str) -> Category:
-    """Set the transaction's category by hand, so rules leave it alone. The caller commits."""
-    _require_transaction(session, transaction_id)
-    target = _leaf_category(session, category)
-    _assign(session, transaction_id, target.id, MANUAL, None)
-    return to_category(target)
-
-
-def clear_category_by_hand(session: Session, transaction_id: int) -> None:
-    """Remove the transaction's category, leaving it to the rules. The caller commits."""
-    _require_transaction(session, transaction_id)
-    remove_category(session, transaction_id)
-
-
-def list_uncategorized(session: Session, limit: int) -> list[Transaction]:
-    """Return transactions without a category, latest posted date first, at most limit."""
-    if limit < 1:
-        raise ValueError("limit must be at least 1")
-    categorized = exists().where(TransactionCategoryRow.transaction_id == TransactionRow.id)
-    paired = exists().where(_names(TransferPairRow, TransactionRow.id))
-    stmt = (
-        select(TransactionRow)
-        .where(~categorized, ~paired)
-        .order_by(TransactionRow.posted_date.desc(), TransactionRow.id.desc())
-        .limit(limit)
-    )
-    return [to_transaction(row) for row in session.scalars(stmt).all()]
-
-
-def count_uncategorized(session: Session) -> int:
-    """How many transactions have no category and are in no transfer pair."""
-    categorized = exists().where(TransactionCategoryRow.transaction_id == TransactionRow.id)
-    paired = exists().where(_names(TransferPairRow, TransactionRow.id))
-    return (
-        session.scalar(
-            select(func.count()).select_from(TransactionRow).where(~categorized, ~paired)
+    after = _rule_line(session, row)
+    if before != after:
+        record_change(
+            session,
+            action="rule_edited",
+            kind="rule",
+            record_id=rule_id,
+            before=before,
+            after=after,
         )
-        or 0
-    )
+    return to_category_rule(row)

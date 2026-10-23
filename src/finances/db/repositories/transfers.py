@@ -13,6 +13,8 @@ from finances.db.orm import (
     TransferRejectionRow,
     to_transfer_pair,
 )
+from finances.db.repositories.audit import record_change
+from finances.domain.audit import pair_text
 from finances.domain.models import (
     AUTO,
     CONFIRMED,
@@ -104,6 +106,14 @@ def create_transfer_pair(session: Session, out_id: int, in_id: int, status: str)
     row = TransferPairRow(out_transaction_id=out_id, in_transaction_id=in_id, status=status)
     session.add(row)
     session.flush()
+    if status == CONFIRMED:
+        record_change(
+            session,
+            action="transfer_confirmed",
+            kind="transfer",
+            record_id=row.id,
+            after=pair_text(out_id, in_id),
+        )
     return to_transfer_pair(row)
 
 
@@ -117,6 +127,13 @@ def reject_transfer(session: Session, out_id: int, in_id: int) -> None:
         )
     )
     _store_rejection(session, out_id, in_id)
+    record_change(
+        session,
+        action="transfer_rejected",
+        kind="transaction",
+        record_id=out_id,
+        after=pair_text(out_id, in_id),
+    )
 
 
 def unpair_transfer(session: Session, pair_id: int) -> TransferPair:
@@ -128,4 +145,11 @@ def unpair_transfer(session: Session, pair_id: int) -> TransferPair:
     session.delete(row)
     session.flush()
     _store_rejection(session, pair.out_transaction_id, pair.in_transaction_id)
+    record_change(
+        session,
+        action="transfer_unpaired",
+        kind="transfer",
+        record_id=pair.id,
+        before=pair_text(pair.out_transaction_id, pair.in_transaction_id),
+    )
     return pair

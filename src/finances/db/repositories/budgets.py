@@ -5,9 +5,11 @@ from finances.db.orm import (
     BudgetRow,
     to_budget,
 )
+from finances.db.repositories.audit import record_change
 from finances.db.repositories.categories import _category_row
 from finances.domain.budgets import AMOUNT_MESSAGE
 from finances.domain.models import Budget
+from finances.domain.money import format_cents
 
 _BUDGET_MIN = 1
 
@@ -23,12 +25,24 @@ def set_budget(session: Session, name: str, amount_cents: int) -> tuple[str, Bud
     if not _BUDGET_MIN <= amount_cents <= _BUDGET_MAX:
         raise ValueError(AMOUNT_MESSAGE)
     found = session.scalars(select(BudgetRow).where(BudgetRow.category_id == row.id)).first()
+    previous = None if found is None else found.amount_cents
+    if previous == amount_cents:
+        session.flush()
+        return row.name, to_budget(found)
     if found is None:
         found = BudgetRow(category_id=row.id, amount_cents=amount_cents)
         session.add(found)
     else:
         found.amount_cents = amount_cents
     session.flush()
+    record_change(
+        session,
+        action="budget_set",
+        kind="category",
+        record_id=row.id,
+        before=None if previous is None else format_cents(previous),
+        after=format_cents(amount_cents),
+    )
     return row.name, to_budget(found)
 
 
@@ -40,8 +54,16 @@ def remove_budget(session: Session, name: str) -> str:
     found = session.scalars(select(BudgetRow).where(BudgetRow.category_id == row.id)).first()
     if found is None:
         raise ValueError(f"there is no budget for {row.name}")
+    before = format_cents(found.amount_cents)
     session.delete(found)
     session.flush()
+    record_change(
+        session,
+        action="budget_removed",
+        kind="category",
+        record_id=row.id,
+        before=before,
+    )
     return row.name
 
 

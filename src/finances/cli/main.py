@@ -6,6 +6,7 @@ from rich.table import Table
 
 from finances import __version__
 from finances.cli.accounts import app as accounts_app
+from finances.cli.audit import audit_command
 from finances.cli.backup import app as backup_app
 from finances.cli.budgets import app as budgets_app
 from finances.cli.categories import (
@@ -64,6 +65,7 @@ app.command("forecast")(forecast_command)
 app.command("insights")(insights_command)
 app.command("merchants")(merchants_command)
 app.command("health")(health_command)
+app.command("audit")(audit_command)
 
 
 @app.callback(invoke_without_command=True)
