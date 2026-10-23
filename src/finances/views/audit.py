@@ -27,3 +27,17 @@ def change_rows(changes: list[Change]) -> list[ChangeRow]:
         )
         for item in changes
     ]
+
+
+def change_link(change: Change) -> str:
+    if change.kind == "transaction":
+        return f"/transactions/{change.record_id}"
+    return {
+        "account": "/accounts",
+        "person": "/people",
+        "category": "/categories",
+        "rule": "/categories",
+        "transfer": "/transfers",
+        "statement": "/statements",
+        "backup": "/backups",
+    }[change.kind]

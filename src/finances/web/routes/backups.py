@@ -17,6 +17,7 @@ from finances.db.backup import (
     make_backup,
     restore_backup,
 )
+from finances.db.backup_records import note_backup_deleted, note_backup_restored
 from finances.views.backups import backup_rows, taken_text
 from finances.web import app as web_app
 from finances.web.forms import _Field, forged, refused
@@ -94,10 +95,12 @@ def delete(request: Request, csrf: _Field = "", name: _Field = "") -> Response:
     stopped = forged(request, csrf)
     if stopped is not None:
         return stopped
+    settings = get_settings()
     try:
-        delete_backup(get_settings().effective_backup_dir, name)
+        delete_backup(settings.effective_backup_dir, name)
     except ValueError as error:
         return _backups_page(request, str(error), 400)
+    note_backup_deleted(settings.effective_database_url, name)
     return _done("/backups?notice=deleted")
 
 
@@ -131,6 +134,7 @@ def restore(
     try:
         with web_app._RESTORE_GATE:
             result = restore_backup(settings.effective_database_url, path, folder, web_app._now())
+            note_backup_restored(settings.effective_database_url, path.name)
     except ValueError as error:
         return _backups_page(request, str(error), 400)
     if result.needs_upgrade:

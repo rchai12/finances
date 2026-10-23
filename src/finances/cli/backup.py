@@ -10,6 +10,7 @@ from finances.analysis.backups import backup_files
 from finances.cli.common import fail, print_rows, require_current_schema
 from finances.config import get_settings
 from finances.db.backup import check_backup, list_backups, make_backup, restore_backup
+from finances.db.backup_records import note_backup_restored
 from finances.views.backups import backup_rows
 
 app = typer.Typer(add_completion=False, help="Back up the database and restore a backup.")
@@ -69,6 +70,7 @@ def restore_command(
         )
     except ValueError as error:
         fail(str(error))
+    note_backup_restored(settings.effective_database_url, file.name)
     typer.echo(f"Restored {file.name}.")
     if result.replaced is not None:
         typer.echo(f"The database it replaced is kept as {result.replaced.name}.")

@@ -586,5 +586,12 @@ Template:
 - Follow-ups:
   - the longest `rule_text` a stored rule can make is 200 characters, so the extra cut test fits a constructed longer string
 
+## Phase 34b: the system's events and the History page (2026-10-22)
+- Tests: 3323 -> 3349 (given 21)
+- New public names: `db.backup_records`: `note_backup_deleted`, `note_backup_restored`; `views.audit`: `change_link`; `web.routes.history`: `HISTORY_LIMIT`, `ACTION_REFUSED`, `history`
+- Changed files: 18
+- Deviations: none
+- Follow-ups: none
+
 
 

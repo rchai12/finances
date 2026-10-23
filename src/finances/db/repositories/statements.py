@@ -7,6 +7,8 @@ from finances.db.orm import (
     StatementRow,
     to_statement,
 )
+from finances.db.repositories.audit import record_change
+from finances.domain.audit import SYSTEM
 from finances.domain.models import Statement
 
 
@@ -41,6 +43,14 @@ def create_statement(
     )
     session.add(row)
     session.flush()
+    record_change(
+        session,
+        action="statement_imported",
+        kind="statement",
+        record_id=row.id,
+        after=f"{row.parser_name}, {row.period_start.isoformat()} to {row.period_end.isoformat()}",
+        who=SYSTEM,
+    )
     return to_statement(row)
 
 

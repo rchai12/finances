@@ -1,0 +1,31 @@
+{% extends "layout.html" %}
+{% block title %}History · Finances{% endblock %}
+{% block content %}
+<h1>History</h1>
+{% include "messages.html" %}
+<form method="get" action="/history" class="fields">
+  <label>Action
+    <select name="action">
+      <option value=""{% if not form.action %} selected{% endif %}>Every action</option>
+      {% for name in actions %}<option value="{{ name }}"{% if name == form.action %} selected{% endif %}>{{ name }}</option>
+      {% endfor %}
+    </select>
+  </label>
+  <label>Since <input type="date" name="since" value="{{ form.since }}"></label>
+  <button type="submit">Show</button>
+</form>
+<section class="card">
+<h2>Changes</h2>
+{% if rows %}
+<table>
+<thead><tr><th>When (UTC)</th><th>Who</th><th>Action</th><th>Record</th><th>Before</th><th>After</th></tr></thead>
+<tbody>
+{% for row, link in rows %}<tr><td>{{ row.when }}</td><td>{{ row.who }}</td><td>{{ row.action }}</td><td><a href="{{ link }}">{{ row.record }}</a></td><td>{{ row.before }}</td><td>{{ row.after }}</td></tr>
+{% endfor %}</tbody>
+</table>
+{% if rows|length >= limit %}<p class="hint">Showing the {{ limit }} newest. Choose an action or a day to see others.</p>{% endif %}
+{% else %}
+<p class="empty">No changes recorded.</p>
+{% endif %}
+</section>
+{% endblock %}

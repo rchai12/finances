@@ -27,8 +27,20 @@ ACTIONS = (
     "transfer_confirmed",
     "transfer_rejected",
     "transfer_unpaired",
+    "statement_imported",
+    "backup_deleted",
+    "backup_restored",
 )
-KINDS = ("account", "person", "category", "rule", "transaction", "transfer")
+KINDS = (
+    "account",
+    "person",
+    "category",
+    "rule",
+    "transaction",
+    "transfer",
+    "statement",
+    "backup",
+)
 
 
 @dataclass(frozen=True)
