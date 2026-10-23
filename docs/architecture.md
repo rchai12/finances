@@ -153,7 +153,7 @@ Details are in the phase specs. Core tables:
 - `feed_accounts`: which SimpleFIN account, under which named link, feeds which of ours (Phase 17c).
 - `budgets`: a monthly target per category or group (Phase 26a).
 - `audit_log`: one row per change a person makes (and, from 34b, statement imports and backup restores and deletions): when (UTC), who, the action, the record, and short text before and after; written in the same transaction as the change and never edited (Phase 34a).
-- `proposals` and `advice_log`: the agent's suggestions (a kind, the transaction, the proposed value, its reason, open, accepted, or declined) and its own notes; the only tables an MCP tool writes (Phase 19a).
+- `proposals` and `advice_log`: the agent's suggestions (a kind, the transaction, the second transaction of a transfer proposal, the proposed value, its reason, open, accepted, or declined) and its own notes; the only tables an MCP tool writes (Phases 19a and 19c).
 - `sync_failures`: the last failed sync of each SimpleFIN link, with its time (UTC) and a short message, so `fin health` and the dashboard can say why a sync failed (Phase 33).
 
 Backups are files, not tables: checked SQLite copies in `FIN_BACKUP_DIR` (Phase 24).
