@@ -8,17 +8,26 @@ from finances.db.repositories.assignments import _assignment_row, set_category_b
 from finances.db.repositories.audit import record_change
 from finances.db.repositories.categories import _leaf_category
 from finances.db.repositories.transactions import get_transaction
-from finances.db.repositories.transfers import find_transfer_pair
-from finances.domain.models import MANUAL
+from finances.db.repositories.transfers import (
+    _check_transfer,
+    create_transfer_pair,
+    find_transfer_pair,
+    list_transfer_rejections,
+    reject_transfer,
+)
+from finances.domain.models import CONFIRMED, MANUAL
 from finances.domain.proposals import (
     ACCEPTED,
     CATEGORY,
     DECLINED,
+    NOT_TRANSFER,
     OPEN,
     STATUSES,
+    TRANSFER,
     Advice,
     Proposal,
     out_of_date,
+    pair_out_of_date,
     proposal_text,
 )
 from finances.domain.text import ADVICE_TEXT_LIMIT, NAME_LIMIT, PROPOSAL_TEXT_LIMIT, collapse_ws
@@ -67,6 +76,52 @@ def propose_category(session: Session, transaction_id: int, category: str, reaso
     return to_proposal(row)
 
 
+def _propose_pair(session: Session, kind: str, out_id: int, in_id: int, reason: str) -> Proposal:
+    clean = collapse_ws(reason)
+    if not 1 <= len(clean) <= PROPOSAL_TEXT_LIMIT:
+        raise ValueError("a reason must be 1 to 200 characters")
+    _check_transfer(session, out_id, in_id)
+    if (
+        find_transfer_pair(session, out_id) is not None
+        or find_transfer_pair(session, in_id) is not None
+    ):
+        raise ValueError("a person or the rules already paired one of these transactions")
+    if (out_id, in_id) in list_transfer_rejections(session):
+        raise ValueError("a person said these two are not a transfer")
+    existing = session.scalars(
+        select(ProposalRow).where(
+            ProposalRow.target_id == out_id,
+            ProposalRow.other_id == in_id,
+            ProposalRow.kind.in_((TRANSFER, NOT_TRANSFER)),
+        )
+    ).all()
+    if any(row.status == DECLINED and row.kind == kind for row in existing):
+        raise ValueError("a person declined this proposal already")
+    if any(row.status == OPEN for row in existing):
+        raise ValueError("these two already have an open proposal")
+    row = ProposalRow(
+        kind=kind,
+        target_id=out_id,
+        value="",
+        reason=clean,
+        status=OPEN,
+        created_at=_now(),
+        decided_at=None,
+        other_id=in_id,
+    )
+    session.add(row)
+    session.flush()
+    return to_proposal(row)
+
+
+def propose_transfer(session: Session, out_id: int, in_id: int, reason: str) -> Proposal:
+    return _propose_pair(session, TRANSFER, out_id, in_id, reason)
+
+
+def propose_not_transfer(session: Session, out_id: int, in_id: int, reason: str) -> Proposal:
+    return _propose_pair(session, NOT_TRANSFER, out_id, in_id, reason)
+
+
 def list_proposals(
     session: Session, *, status: str | None = None, limit: int = 50
 ) -> list[Proposal]:
@@ -82,6 +137,20 @@ def list_proposals(
 
 
 def proposal_out_of_date(session: Session, proposal: Proposal) -> bool:
+    if proposal.kind != CATEGORY:
+        in_id = proposal.other_id
+        exists = (
+            get_transaction(session, proposal.target_id) is not None
+            and in_id is not None
+            and get_transaction(session, in_id) is not None
+        )
+        paired = find_transfer_pair(session, proposal.target_id) is not None or (
+            in_id is not None and find_transfer_pair(session, in_id) is not None
+        )
+        rejected = in_id is not None and (proposal.target_id, in_id) in list_transfer_rejections(
+            session
+        )
+        return pair_out_of_date(exists=exists, paired=paired, rejected=rejected)
     row = _assignment_row(session, proposal.target_id)
     return out_of_date(
         exists=get_transaction(session, proposal.target_id) is not None,
@@ -102,10 +171,19 @@ def _open_row(session: Session, proposal_id: int) -> ProposalRow:
 def accept_proposal(session: Session, proposal_id: int) -> Proposal:
     row = _open_row(session, proposal_id)
     if proposal_out_of_date(session, to_proposal(row)):
+        if row.kind == CATEGORY:
+            raise ValueError(
+                f"proposal {proposal_id} is out of date: the transaction was decided since"
+            )
         raise ValueError(
-            f"proposal {proposal_id} is out of date: the transaction was decided since"
+            f"proposal {proposal_id} is out of date: the transactions were decided since"
         )
-    set_category_by_hand(session, row.target_id, row.value)
+    if row.kind == TRANSFER:
+        create_transfer_pair(session, row.target_id, row.other_id, CONFIRMED)
+    elif row.kind == NOT_TRANSFER:
+        reject_transfer(session, row.target_id, row.other_id)
+    else:
+        set_category_by_hand(session, row.target_id, row.value)
     row.status = ACCEPTED
     row.decided_at = _now()
     session.flush()

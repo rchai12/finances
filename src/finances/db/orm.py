@@ -577,6 +577,7 @@ class ProposalRow(Base):
     status: Mapped[str] = mapped_column(String(10), nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     decided_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    other_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
 
 def to_proposal(row: ProposalRow) -> Proposal:
@@ -590,6 +591,7 @@ def to_proposal(row: ProposalRow) -> Proposal:
         status=row.status,
         created_at=_as_utc(row.created_at),
         decided_at=None if row.decided_at is None else _as_utc(row.decided_at),
+        other_id=row.other_id,
     )
 
 

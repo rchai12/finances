@@ -13,8 +13,9 @@ from finances.db.migrate import upgrade_to_head
 from finances.db.orm import TransactionRow
 from finances.db.repositories import create_account, list_category_assignments, set_category_by_hand
 from finances.mcp_server.server import build_server
+from tests.support import MCP_WRITERS
 
-WRITERS = {"propose_category", "log_advice"}
+WRITERS = set(MCP_WRITERS)
 FROM_REPOSITORIES = {
     "account_names",
     "count_uncategorized",
@@ -31,6 +32,8 @@ FROM_REPOSITORIES = {
     "log_advice",
     "proposal_out_of_date",
     "propose_category",
+    "propose_not_transfer",
+    "propose_transfer",
 }
 
 
@@ -97,6 +100,7 @@ def test_a_proposal_and_its_listing(one: Settings) -> None:
         "id": 1,
         "kind": "category",
         "transaction_id": 1,
+        "in_id": None,
         "category": "Coffee & Dessert",
         "reason": "a cafe",
         "status": "open",

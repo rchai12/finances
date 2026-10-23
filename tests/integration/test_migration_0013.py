@@ -70,7 +70,9 @@ def test_the_tables_and_their_row_classes(
     assert shown == columns
     assert (primary["name"], primary["constrained_columns"]) == (key, ["id"])
     assert extras == ([], [], [])
-    assert [(c.name, str(c.type), c.nullable) for c in row.__table__.columns] == columns
+    assert [(c.name, str(c.type), c.nullable) for c in row.__table__.columns][
+        : len(columns)
+    ] == columns
 
 
 def test_down_and_up_again(url: str) -> None:

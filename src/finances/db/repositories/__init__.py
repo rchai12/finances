@@ -94,6 +94,8 @@ from finances.db.repositories.proposals import (
     log_advice,
     proposal_out_of_date,
     propose_category,
+    propose_not_transfer,
+    propose_transfer,
 )
 from finances.db.repositories.statements import (
     create_statement,
@@ -197,6 +199,8 @@ __all__ = [
     "map_feed_account",
     "proposal_out_of_date",
     "propose_category",
+    "propose_not_transfer",
+    "propose_transfer",
     "record_change",
     "record_seen_feed_account",
     "record_sync_failure",

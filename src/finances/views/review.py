@@ -2,7 +2,7 @@ from dataclasses import dataclass
 
 from finances.analysis.review import ReviewItem
 from finances.domain.money import format_cents
-from finances.domain.proposals import Advice, Proposal
+from finances.domain.proposals import NOT_TRANSFER, TRANSFER, Advice, Proposal
 
 
 @dataclass(frozen=True)
@@ -30,7 +30,7 @@ def review_rows(items: list[ReviewItem]) -> list[ReviewRow]:
                 description="" if transaction is None else transaction.description,
                 amount="" if transaction is None else format_cents(transaction.amount_cents),
                 now="" if item.current is None else item.current,
-                proposed=item.proposal.value,
+                proposed=proposed_text(item.proposal),
                 reason=item.proposal.reason,
                 state="out of date" if item.out_of_date else item.proposal.status,
             )
@@ -38,7 +38,25 @@ def review_rows(items: list[ReviewItem]) -> list[ReviewRow]:
     return rows
 
 
+def proposed_text(proposal: Proposal) -> str:
+    if proposal.kind == TRANSFER:
+        return f"a transfer with transaction {proposal.other_id}"
+    if proposal.kind == NOT_TRANSFER:
+        return f"not a transfer with transaction {proposal.other_id}"
+    return proposal.value
+
+
 def accepted_text(proposal: Proposal) -> str:
+    if proposal.kind == TRANSFER:
+        return (
+            f"Accepted proposal {proposal.id}: transactions {proposal.target_id} and "
+            f"{proposal.other_id} are a transfer."
+        )
+    if proposal.kind == NOT_TRANSFER:
+        return (
+            f"Accepted proposal {proposal.id}: transactions {proposal.target_id} and "
+            f"{proposal.other_id} are not a transfer."
+        )
     return (
         f"Accepted proposal {proposal.id}: {proposal.value} for transaction {proposal.target_id}."
     )

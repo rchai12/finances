@@ -11,7 +11,7 @@ from finances.db.repositories import (
     proposal_out_of_date,
 )
 from finances.domain.models import Transaction
-from finances.domain.proposals import OPEN, Proposal
+from finances.domain.proposals import CATEGORY, OPEN, Proposal
 
 
 @dataclass(frozen=True)
@@ -46,6 +46,6 @@ def review_items(session: Session, *, status: str = OPEN, limit: int = 50) -> li
 def open_suggestions(session: Session) -> dict[int, str]:
     found: dict[int, str] = {}
     for proposal in list_proposals(session, status=OPEN, limit=10_000):
-        if not proposal_out_of_date(session, proposal):
+        if proposal.kind == CATEGORY and not proposal_out_of_date(session, proposal):
             found[proposal.target_id] = proposal.value
     return found

@@ -128,6 +128,17 @@ PROPOSE_CATEGORY_DESCRIPTION = (
     "review. Refused when a person already decided the transaction, declined this same "
     "proposal, or another proposal for it is open."
 )
+PROPOSE_TRANSFER_DESCRIPTION = (
+    "Propose that money out (out_id) and money in (in_id) on another account, of the same "
+    "amount, are one transfer, with a one-line reason a person will read. It changes nothing "
+    "until a person accepts it. Refused when either is already in a pair, a person said they "
+    "are not a transfer, declined this proposal, or another proposal for the two is open."
+)
+PROPOSE_NOT_TRANSFER_DESCRIPTION = (
+    "Propose that money out (out_id) and money in (in_id) are not one transfer though they "
+    "look like one, with a one-line reason. It changes nothing until a person accepts it; the "
+    "same refusals as propose_transfer apply."
+)
 LIST_PROPOSALS_DESCRIPTION = (
     "Your proposals, newest first, of one status (open by default, accepted, or declined), at "
     "most limit (1 to 200, default 50): the transaction, the category, your reason, when it was "
@@ -142,7 +153,7 @@ LOG_ADVICE_DESCRIPTION = (
 LIST_ADVICE_DESCRIPTION = (
     "Your notes, newest first, at most limit (1 to 200, default 20), with when each was kept."
 )
-_WRITES = ("propose_category", "log_advice")
+_WRITES = ("propose_category", "propose_transfer", "propose_not_transfer", "log_advice")
 _TOOLS = (
     (tools.list_accounts, LIST_ACCOUNTS_DESCRIPTION),
     (tools.get_balances, GET_BALANCES_DESCRIPTION),
@@ -171,6 +182,8 @@ def build_server() -> MCPServer:
         server.add_tool(fn, description=description, annotations=READ_ONLY, structured_output=True)
     for fn, description in (
         (tools.propose_category, PROPOSE_CATEGORY_DESCRIPTION),
+        (tools.propose_transfer, PROPOSE_TRANSFER_DESCRIPTION),
+        (tools.propose_not_transfer, PROPOSE_NOT_TRANSFER_DESCRIPTION),
         (tools.list_proposals, LIST_PROPOSALS_DESCRIPTION),
         (tools.log_advice, LOG_ADVICE_DESCRIPTION),
         (tools.list_advice, LIST_ADVICE_DESCRIPTION),

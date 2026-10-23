@@ -610,5 +610,12 @@ Template:
   - `open_suggestions` lists with limit 10_000 because `list_proposals` always takes a limit
 - Follow-ups: none
 
+## Phase 19c: the agent proposes transfers (2026-10-22)
+- Tests: 3417 -> 3450 (given 27)
+- New public names: `domain.proposals`: `TRANSFER`, `NOT_TRANSFER`, `pair_out_of_date`; `Proposal.other_id`; `db.orm`: `ProposalRow.other_id`; `db.repositories`: `propose_transfer`, `propose_not_transfer`; `views.review`: `proposed_text`; `mcp_server.tools`: `propose_transfer`, `propose_not_transfer`
+- Changed files: 26
+- Deviations: None
+- Follow-ups: None
+
 
 

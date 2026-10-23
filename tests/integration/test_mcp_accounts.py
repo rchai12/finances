@@ -19,6 +19,7 @@ from finances.db.repositories import (
 from finances.domain.models import DataSource
 from finances.mcp_server.access import reading
 from finances.mcp_server.server import INSTRUCTIONS, build_server
+from tests.support import MCP_TOOLS, MCP_WRITERS
 
 NO_AMOUNTS = (
     "list_accounts",
@@ -28,6 +29,8 @@ NO_AMOUNTS = (
     "propose_category",
     "list_proposals",
     "list_advice",
+    "propose_transfer",
+    "propose_not_transfer",
 )
 READ_ONLY = {
     "read_only_hint": True,
@@ -80,32 +83,9 @@ def test_the_server_and_its_tools(tmp_settings: Settings) -> None:
 
     name, instructions, tools = anyio.run(go)
     assert (name, instructions) == ("finances", INSTRUCTIONS)
-    assert sorted(tool.name for tool in tools) == [
-        "data_coverage",
-        "find_merchants",
-        "get_balances",
-        "get_budgets",
-        "get_forecast",
-        "get_insights",
-        "get_net_worth",
-        "get_recurring",
-        "get_spending",
-        "get_upcoming",
-        "list_accounts",
-        "list_advice",
-        "list_categories",
-        "list_proposals",
-        "list_rules",
-        "list_transactions",
-        "list_transfer_suggestions",
-        "list_transfers",
-        "list_uncategorized",
-        "log_advice",
-        "month_over_month",
-        "propose_category",
-    ]
+    assert sorted(tool.name for tool in tools) == MCP_TOOLS
     for tool in tools:
-        if tool.name not in ("propose_category", "log_advice"):
+        if tool.name not in MCP_WRITERS:
             assert tool.annotations.model_dump(include=set(READ_ONLY)) == READ_ONLY, tool.name
         assert "cents" in tool.description or tool.name in NO_AMOUNTS, tool.name
 

@@ -12,31 +12,9 @@ from finances.db.migrate import upgrade_to_head
 from finances.db.orm import TransactionRow
 from finances.db.repositories import create_account, create_person, create_rule, set_account_owner
 from finances.mcp_server.server import build_server
+from tests.support import MCP_TOOLS, MCP_WRITERS
 
-TOOLS = [
-    "data_coverage",
-    "find_merchants",
-    "get_balances",
-    "get_budgets",
-    "get_forecast",
-    "get_insights",
-    "get_net_worth",
-    "get_recurring",
-    "get_spending",
-    "get_upcoming",
-    "list_accounts",
-    "list_advice",
-    "list_categories",
-    "list_proposals",
-    "list_rules",
-    "list_transactions",
-    "list_transfer_suggestions",
-    "list_transfers",
-    "list_uncategorized",
-    "log_advice",
-    "month_over_month",
-    "propose_category",
-]
+TOOLS = MCP_TOOLS
 REFUND = {
     "id": 2,
     "day": "2026-05-10",
@@ -120,9 +98,7 @@ def test_the_read_only_tools(tmp_settings: Settings) -> None:
     found = anyio.run(go)
     assert sorted(tool.name for tool in found) == TOOLS
     for tool in found:
-        assert tool.annotations.read_only_hint is (
-            tool.name not in ("propose_category", "log_advice")
-        ), tool.name
+        assert tool.annotations.read_only_hint is (tool.name not in MCP_WRITERS), tool.name
 
 
 def test_every_transaction_latest_first(money: Settings) -> None:

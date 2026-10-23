@@ -4,7 +4,9 @@ from dataclasses import dataclass
 from datetime import datetime
 
 CATEGORY = "category"
-KINDS = (CATEGORY,)
+TRANSFER = "transfer"
+NOT_TRANSFER = "not_transfer"
+KINDS = (CATEGORY, TRANSFER, NOT_TRANSFER)
 OPEN = "open"
 ACCEPTED = "accepted"
 DECLINED = "declined"
@@ -21,6 +23,7 @@ class Proposal:
     status: str
     created_at: datetime
     decided_at: datetime | None
+    other_id: int | None = None
 
 
 @dataclass(frozen=True)
@@ -35,5 +38,13 @@ def out_of_date(*, exists: bool, set_by_hand: bool, paired: bool) -> bool:
     return (not exists) or set_by_hand or paired
 
 
+def pair_out_of_date(*, exists: bool, paired: bool, rejected: bool) -> bool:
+    return (not exists) or paired or rejected
+
+
 def proposal_text(proposal: Proposal) -> str:
+    if proposal.kind == TRANSFER:
+        return f"{proposal.target_id} -> {proposal.other_id}: a transfer"
+    if proposal.kind == NOT_TRANSFER:
+        return f"{proposal.target_id} -> {proposal.other_id}: not a transfer"
     return f"transaction {proposal.target_id}: {proposal.value}"

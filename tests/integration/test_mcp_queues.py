@@ -13,31 +13,9 @@ from finances.db.orm import TransactionRow
 from finances.db.repositories import create_account, create_rule, create_transfer_pair
 from finances.domain.models import CONFIRMED
 from finances.mcp_server.server import build_server
+from tests.support import MCP_TOOLS, MCP_WRITERS
 
-TOOLS = [
-    "data_coverage",
-    "find_merchants",
-    "get_balances",
-    "get_budgets",
-    "get_forecast",
-    "get_insights",
-    "get_net_worth",
-    "get_recurring",
-    "get_spending",
-    "get_upcoming",
-    "list_accounts",
-    "list_advice",
-    "list_categories",
-    "list_proposals",
-    "list_rules",
-    "list_transactions",
-    "list_transfer_suggestions",
-    "list_transfers",
-    "list_uncategorized",
-    "log_advice",
-    "month_over_month",
-    "propose_category",
-]
+TOOLS = MCP_TOOLS
 TO_SAVINGS = {
     "id": 4,
     "posted": "2026-05-05",
@@ -145,11 +123,7 @@ def test_the_read_only_tools(tmp_settings: Settings) -> None:
 
     found = anyio.run(go)
     assert sorted(tool.name for tool in found) == TOOLS
-    assert all(
-        tool.annotations.read_only_hint
-        for tool in found
-        if tool.name not in ("propose_category", "log_advice")
-    )
+    assert all(tool.annotations.read_only_hint for tool in found if tool.name not in MCP_WRITERS)
 
 
 def test_uncategorized_latest_first_with_the_total(queues: Settings) -> None:

@@ -40,9 +40,11 @@ from finances.db.repositories import list_rules as load_rules
 from finances.db.repositories import list_uncategorized as load_uncategorized
 from finances.db.repositories import log_advice as keep_advice
 from finances.db.repositories import propose_category as store_category_proposal
+from finances.db.repositories import propose_not_transfer as store_not_transfer
+from finances.db.repositories import propose_transfer as store_transfer
 from finances.domain.merchants import clean_merchant
 from finances.domain.models import Transaction
-from finances.domain.proposals import Proposal
+from finances.domain.proposals import CATEGORY, Proposal
 from finances.domain.spending import UNASSIGNED, UNCATEGORIZED, is_refund, month_bounds, month_range
 from finances.mcp_server.access import reading, writing
 
@@ -555,7 +557,8 @@ def _proposal_item(session: Session, proposal: Proposal) -> dict[str, Any]:
         "id": proposal.id,
         "kind": proposal.kind,
         "transaction_id": proposal.target_id,
-        "category": proposal.value,
+        "in_id": proposal.other_id,
+        "category": proposal.value if proposal.kind == CATEGORY else None,
         "reason": proposal.reason,
         "status": proposal.status,
         "created_at": proposal.created_at.isoformat(),
@@ -575,6 +578,24 @@ def propose_category(transaction_id: int, category: str, reason: str) -> dict[st
     def work() -> dict[str, Any]:
         with writing() as session:
             found = store_category_proposal(session, transaction_id, category, reason)
+            return {"proposal": _proposal_item(session, found)}
+
+    return _as_tool(work)
+
+
+def propose_transfer(out_id: int, in_id: int, reason: str) -> dict[str, Any]:
+    def work() -> dict[str, Any]:
+        with writing() as session:
+            found = store_transfer(session, out_id, in_id, reason)
+            return {"proposal": _proposal_item(session, found)}
+
+    return _as_tool(work)
+
+
+def propose_not_transfer(out_id: int, in_id: int, reason: str) -> dict[str, Any]:
+    def work() -> dict[str, Any]:
+        with writing() as session:
+            found = store_not_transfer(session, out_id, in_id, reason)
             return {"proposal": _proposal_item(session, found)}
 
     return _as_tool(work)

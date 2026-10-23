@@ -147,3 +147,33 @@ def post(client: TestClient, path: str, **fields: str):
 def texts(found: Page, kind: str) -> list[str]:
     """The texts of the page's paragraphs of this class, in order."""
     return [text for name, text in found.paragraphs if name == kind]
+
+
+# Every MCP tool, and the ones that write (proposals and the advice log only).
+MCP_TOOLS = [
+    "data_coverage",
+    "find_merchants",
+    "get_balances",
+    "get_budgets",
+    "get_forecast",
+    "get_insights",
+    "get_net_worth",
+    "get_recurring",
+    "get_spending",
+    "get_upcoming",
+    "list_accounts",
+    "list_advice",
+    "list_categories",
+    "list_proposals",
+    "list_rules",
+    "list_transactions",
+    "list_transfer_suggestions",
+    "list_transfers",
+    "list_uncategorized",
+    "log_advice",
+    "month_over_month",
+    "propose_category",
+    "propose_not_transfer",
+    "propose_transfer",
+]
+MCP_WRITERS = ("propose_category", "propose_transfer", "propose_not_transfer", "log_advice")
