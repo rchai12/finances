@@ -601,5 +601,14 @@ Template:
   - extra tests also cover a declined proposal decided again, a rule-set category that is not out of date, and pairing after a proposal
 - Follow-ups: none
 
+## Phase 19b: the review queue on the web (2026-10-22)
+- Tests: 3397 -> 3417 (given 12)
+- New public names: `analysis.review`: `open_suggestions`; `views.review`: `AdviceRow`, `advice_rows`; `web.routes.review`: `NONE_CHOSEN`, `review`, `decide`
+- Changed files: 14
+- Deviations:
+  - extra tests also cover a current open proposal kept in `open_suggestions`
+  - `open_suggestions` lists with limit 10_000 because `list_proposals` always takes a limit
+- Follow-ups: none
+
 
 

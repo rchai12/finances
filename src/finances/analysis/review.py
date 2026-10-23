@@ -41,3 +41,11 @@ def review_items(session: Session, *, status: str = OPEN, limit: int = 50) -> li
             )
         )
     return items
+
+
+def open_suggestions(session: Session) -> dict[int, str]:
+    found: dict[int, str] = {}
+    for proposal in list_proposals(session, status=OPEN, limit=10_000):
+        if not proposal_out_of_date(session, proposal):
+            found[proposal.target_id] = proposal.value
+    return found

@@ -1,0 +1,37 @@
+{% extends "layout.html" %}
+{% block title %}Review · Finances{% endblock %}
+{% block content %}
+<h1>Review</h1>
+{% include "messages.html" %}
+<section class="card">
+<h2>The agent's proposals</h2>
+{% if rows %}
+<form method="post" action="/review" class="bulk">
+<input type="hidden" name="csrf" value="{{ csrf }}">
+<table>
+<thead><tr><th>ID</th><th>Date</th><th>Account</th><th>Description</th><th class="amount">Amount</th><th>Now</th><th>Proposed</th><th>Reason</th><th>State</th></tr></thead>
+<tbody>
+{% for row in rows %}<tr><td><input type="checkbox" name="id" value="{{ row.id }}"> {{ row.id }}</td><td>{{ row.date }}</td><td>{{ row.account }}</td><td>{{ row.description }}</td><td class="{{ row.amount|amount_class }}">{{ row.amount }}</td><td>{{ row.now }}</td><td>{{ row.proposed }}</td><td>{{ row.reason }}</td><td>{{ row.state }}</td></tr>
+{% endfor %}</tbody>
+</table>
+<p class="fields"><button type="submit" name="decision" value="accept">Accept chosen</button> <button type="submit" name="decision" value="decline">Decline chosen</button></p>
+</form>
+<p class="hint">Accepting sets the category as your choice. Declining changes nothing, and the agent will not propose the same again. An out of date proposal can only be declined.</p>
+{% else %}
+<p class="empty">No open proposals.</p>
+{% endif %}
+</section>
+<section class="card">
+<h2>The agent's notes</h2>
+{% if notes %}
+<table>
+<thead><tr><th>When (UTC)</th><th>Subject</th><th>Note</th></tr></thead>
+<tbody>
+{% for row in notes %}<tr><td>{{ row.when }}</td><td>{{ row.subject }}</td><td>{{ row.text }}</td></tr>
+{% endfor %}</tbody>
+</table>
+{% else %}
+<p class="empty">No notes yet.</p>
+{% endif %}
+</section>
+{% endblock %}

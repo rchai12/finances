@@ -53,6 +53,8 @@ NOTICES = {
     ),
     "budget-set": "Budget saved.",
     "budget-removed": "Budget removed.",
+    "proposals-accepted": "Proposals accepted, as your choice.",
+    "proposals-declined": "Proposals declined. The agent will not propose them again.",
 }
 
 _TEMPLATES = Jinja2Templates(directory=Path(__file__).parent / "templates")

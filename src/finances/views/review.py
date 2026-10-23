@@ -2,7 +2,7 @@ from dataclasses import dataclass
 
 from finances.analysis.review import ReviewItem
 from finances.domain.money import format_cents
-from finances.domain.proposals import Proposal
+from finances.domain.proposals import Advice, Proposal
 
 
 @dataclass(frozen=True)
@@ -46,3 +46,17 @@ def accepted_text(proposal: Proposal) -> str:
 
 def declined_text(proposal: Proposal) -> str:
     return f"Declined proposal {proposal.id}."
+
+
+@dataclass(frozen=True)
+class AdviceRow:
+    when: str
+    subject: str
+    text: str
+
+
+def advice_rows(notes: list[Advice]) -> list[AdviceRow]:
+    return [
+        AdviceRow(item.created_at.strftime("%Y-%m-%d %H:%M"), item.subject, item.text)
+        for item in notes
+    ]

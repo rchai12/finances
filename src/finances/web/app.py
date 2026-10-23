@@ -88,6 +88,7 @@ def create_app(port: int) -> ASGIApp:
         home,
         people,
         reports,
+        review,
         statements,
         sync,
         transactions,
@@ -110,6 +111,7 @@ def create_app(port: int) -> ASGIApp:
         sync,
         backups,
         history,
+        review,
     ):
         api.router.routes.extend(area.router.routes)
     return _Guard(api, port)

@@ -7,9 +7,9 @@
 <h2>Uncategorized</h2>
 {% if uncategorized %}
 <table>
-<thead><tr><th>ID</th><th>Date</th><th>Account</th><th>Merchant</th><th class="amount">Amount</th></tr></thead>
+<thead><tr><th>ID</th><th>Date</th><th>Account</th><th>Merchant</th><th class="amount">Amount</th><th>Suggested</th></tr></thead>
 <tbody>
-{% for row in uncategorized %}<tr><td><a href="/transactions/{{ row.id }}">{{ row.id }}</a></td><td>{{ row.date }}</td><td>{{ row.account }}</td><td>{{ row.merchant }}</td><td class="{{ row.amount|amount_class }}">{{ row.amount }}</td></tr>
+{% for row in uncategorized %}<tr><td><a href="/transactions/{{ row.id }}">{{ row.id }}</a></td><td>{{ row.date }}</td><td>{{ row.account }}</td><td>{{ row.merchant }}</td><td class="{{ row.amount|amount_class }}">{{ row.amount }}</td><td>{% if row.id in suggestions %}<a href="/review">{{ suggestions[row.id] }}</a>{% endif %}</td></tr>
 {% endfor %}</tbody>
 </table>
 {% if card_note %}<p class="hint">{{ card_note }}</p>{% endif %}

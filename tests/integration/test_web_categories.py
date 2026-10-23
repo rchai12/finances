@@ -161,13 +161,13 @@ def page(client: TestClient, path: str) -> Page:
 
 
 def uncategorized_ids(client: TestClient) -> list[str]:
-    """The ids in the Uncategorized table, which is the page's first and has five columns."""
+    """The ids in the Uncategorized table, which is the page's first and has six columns."""
     rows = page(client, "/categories").rows
-    if rows[0] != ["ID", "Date", "Account", "Merchant", "Amount"]:
+    if rows[0] != ["ID", "Date", "Account", "Merchant", "Amount", "Suggested"]:
         return []
     ids = []
     for row in rows[1:]:
-        if len(row) != 5:
+        if len(row) != 6 or row[0] == "ID":
             break
         ids.append(row[0])
     return ids
@@ -193,8 +193,8 @@ def test_the_menu_has_categories(home: TestClient) -> None:
 def test_the_categories_page(home: TestClient) -> None:
     found = page(home, "/categories")
     assert found.rows[:2] == [
-        ["ID", "Date", "Account", "Merchant", "Amount"],
-        ["4", "2026-05-04", "Test Card", "PAYCHECK EXAMPLE CORP", "$3,000.00"],
+        ["ID", "Date", "Account", "Merchant", "Amount", "Suggested"],
+        ["4", "2026-05-04", "Test Card", "PAYCHECK EXAMPLE CORP", "$3,000.00", ""],
     ]
     assert [f"/transactions/{n}" for n in (4, 3, 2, 1)] == [
         link for link in found.links if link.startswith("/transactions/")

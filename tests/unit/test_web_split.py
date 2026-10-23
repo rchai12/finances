@@ -20,6 +20,7 @@ AREAS = [
     "home",
     "people",
     "reports",
+    "review",
     "statements",
     "sync",
     "transactions",
@@ -78,6 +79,8 @@ ROUTES = {
     ("GET", "/backups/restore"),
     ("POST", "/backups/restore"),
     ("GET", "/history"),
+    ("GET", "/review"),
+    ("POST", "/review"),
 }
 
 

@@ -11,6 +11,7 @@ from finances.analysis.categories import (
     rule_listing,
     uncategorized_items,
 )
+from finances.analysis.review import open_suggestions
 from finances.categorize.service import categorize
 from finances.db.repositories import (
     create_category,
@@ -64,6 +65,7 @@ def _categories_page(
         choices = category_choices(tree)
         context = {
             "uncategorized": uncategorized_lines(items),
+            "suggestions": {str(key): value for key, value in open_suggestions(session).items()},
             "card_note": card_credits_note(card_credit_count(items)),
             "limit": _UNCATEGORIZED_LIMIT,
             "rules": rule_lines(rule_listing(session)),
