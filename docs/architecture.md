@@ -152,6 +152,7 @@ Details are in the phase specs. Core tables:
 - `people`, `account_owners`, `cardholder_aliases`: who owns each account and who each statement cardholder name is (Phase 21).
 - `feed_accounts`: which SimpleFIN account, under which named link, feeds which of ours (Phase 17c).
 - `budgets`: a monthly target per category or group (Phase 26a).
+- `audit_log`: one row per change a person makes (and, from 34b, statement imports and backup restores and deletions): when (UTC), who, the action, the record, and short text before and after; written in the same transaction as the change and never edited (Phase 34a).
 - `sync_failures`: the last failed sync of each SimpleFIN link, with its time (UTC) and a short message, so `fin health` and the dashboard can say why a sync failed (Phase 33).
 
 Backups are files, not tables: checked SQLite copies in `FIN_BACKUP_DIR` (Phase 24).
