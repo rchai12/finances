@@ -10,7 +10,7 @@ from finances.analysis.categories import (
     rule_listing,
     uncategorized_items,
 )
-from finances.categorize.service import CategorizeResult, categorize
+from finances.categorize.service import CategorizeResult, categorize, preview_rule
 from finances.categorize.transfers import pair_transfers
 from finances.cli.common import fail, print_rows, require_current_schema
 from finances.cli.listing import transactions_app
@@ -32,6 +32,9 @@ from finances.views.categories import (
     card_credits_note,
     categorized_text,
     category_lines,
+    preview_lines,
+    preview_more,
+    preview_text,
     rule_lines,
     uncategorized_lines,
 )
@@ -127,6 +130,31 @@ def list_rules_command() -> None:
         typer.echo("No rules.")
         return
     print_rows(("ID", "Priority", "Match", "Pattern", "Category"), lines)
+
+
+@rules_app.command("preview")
+def preview_rule_command(
+    pattern: Annotated[str, typer.Option("--pattern", help="Text to look for in the merchant.")],
+    category: Annotated[str, typer.Option("--category", help="The category it gives.")],
+    match: Annotated[
+        str, typer.Option("--match", help="contains, starts_with, or equals.")
+    ] = "contains",
+    priority: Annotated[int, typer.Option("--priority", help="Higher is tried first.")] = 0,
+) -> None:
+    """Show which transactions a rule would put in its category, without adding it."""
+    require_current_schema()
+    with session_scope(get_engine()) as session:
+        try:
+            preview = preview_rule(session, pattern, category, match=match, priority=priority)
+        except ValueError as error:
+            fail(str(error))
+    typer.echo(preview_text(preview))
+    lines = preview_lines(preview)
+    if lines:
+        print_rows(("ID", "Date", "Account", "Merchant", "Amount", "Now"), lines)
+    more = preview_more(preview)
+    if more is not None:
+        typer.echo(more)
 
 
 @rules_app.command("add")

@@ -32,6 +32,8 @@ NOTICES = {
     "category-renamed": "Category renamed.",
     "category-deleted": "Category deleted.",
     "rule-changed": "Rule changed, and the rules were run again.",
+    "merchant-merged": "Merchants merged, and the rules were run again.",
+    "merchant-unmerged": "Merchant alias removed, and the rules were run again.",
     "category-set": "Category saved.",
     "category-cleared": "Category left to the rules.",
     "bulk-set": "Category set by hand on the chosen transactions.",

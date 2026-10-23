@@ -12,22 +12,29 @@ from finances.analysis.categories import (
     uncategorized_items,
 )
 from finances.analysis.review import open_suggestions
-from finances.categorize.service import categorize
+from finances.categorize.service import categorize, preview_rule
 from finances.db.repositories import (
+    add_alias,
     create_category,
     create_rule,
+    delete_alias,
     delete_category,
     delete_rule,
     edit_rule,
+    list_aliases,
     list_categories,
     list_rules,
     rename_category,
 )
 from finances.domain.rules import MATCHES
 from finances.views.categories import (
+    alias_rows,
     card_credits_note,
     category_choices,
     category_lines,
+    preview_lines,
+    preview_more,
+    preview_text,
     rule_lines,
     uncategorized_lines,
 )
@@ -56,6 +63,8 @@ def _categories_page(
     category_form: dict[str, str] | None = None,
     rename_form: dict[str, str] | None = None,
     delete_form: dict[str, str] | None = None,
+    alias_form: dict[str, str] | None = None,
+    preview: dict | None = None,
     error: str | None = None,
     status_code: int = 200,
 ) -> Response:
@@ -77,6 +86,9 @@ def _categories_page(
             "category_form": category_form or {"name": "", "group": ""},
             "rename_form": rename_form or {"name": "", "to": ""},
             "delete_form": delete_form or {"name": "", "move_to": ""},
+            "aliases": alias_rows(list_aliases(session)),
+            "alias_form": alias_form if alias_form is not None else {"source": "", "target": ""},
+            "preview": preview,
             "error": error,
         }
     return _render(request, "categories", context, status_code)
@@ -157,6 +169,66 @@ def add_rule(
     if _WHOLE.fullmatch(back) is not None:
         return _done(f"/transactions/{back}?notice=rule-added")
     return _done("/categories?notice=rule-added")
+
+
+@router.post("/categories/rules/preview")
+def preview_a_rule(
+    request: Request,
+    csrf: _Field = "",
+    pattern: _Field = "",
+    match: _Field = "",
+    priority: _Field = "",
+    category: _Field = "",
+    back: _Field = "",
+) -> Response:
+    stopped = refused(request, csrf)
+    if stopped is not None:
+        return stopped
+    _ = back
+    form = _rule_form(pattern, match, priority, category)
+    try:
+        number = _priority(priority)
+        with _reading() as session:
+            found = preview_rule(session, pattern, category, match=match, priority=number)
+    except _REFUSALS as error:
+        return _categories_page(request, rule_form=form, error=str(error), status_code=400)
+    filled = {
+        "text": preview_text(found),
+        "rows": preview_lines(found),
+        "more": preview_more(found),
+    }
+    return _categories_page(request, rule_form=form, preview=filled)
+
+
+@router.post("/categories/aliases/add")
+def merge_merchants(
+    request: Request, csrf: _Field = "", source: _Field = "", target: _Field = ""
+) -> Response:
+    stopped = refused(request, csrf)
+    if stopped is not None:
+        return stopped
+    try:
+        with _reading() as session:
+            add_alias(session, source, target)
+            categorize(session)
+    except _REFUSALS as error:
+        form = {"source": source, "target": target}
+        return _categories_page(request, alias_form=form, error=str(error), status_code=400)
+    return _done("/categories?notice=merchant-merged")
+
+
+@router.post("/categories/aliases/delete")
+def unmerge_merchants(request: Request, csrf: _Field = "", source: _Field = "") -> Response:
+    stopped = refused(request, csrf)
+    if stopped is not None:
+        return stopped
+    try:
+        with _reading() as session:
+            delete_alias(session, source)
+            categorize(session)
+    except _REFUSALS as error:
+        return _categories_page(request, error=str(error), status_code=400)
+    return _done("/categories?notice=merchant-unmerged")
 
 
 @router.post("/categories/rules/delete")

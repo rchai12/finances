@@ -50,7 +50,10 @@ ROUTES = {
     ("GET", "/categories"),
     ("POST", "/categories/add"),
     ("POST", "/categories/rules/add"),
+    ("POST", "/categories/rules/preview"),
     ("POST", "/categories/rules/delete"),
+    ("POST", "/categories/aliases/add"),
+    ("POST", "/categories/aliases/delete"),
     ("POST", "/categories/rename"),
     ("POST", "/categories/delete"),
     ("GET", "/categories/rules/{rule_id}"),
@@ -107,6 +110,7 @@ def test_the_same_routes_as_before_the_split() -> None:
 def test_fixed_paths_come_before_the_rule_id() -> None:
     order = [route.path for route in inner_routes() if isinstance(route, APIRoute)]
     assert order.index("/categories/rules/add") < order.index("/categories/rules/{rule_id}")
+    assert order.index("/categories/rules/preview") < order.index("/categories/rules/{rule_id}")
     assert order.index("/categories/rules/delete") < order.index("/categories/rules/{rule_id}")
 
 

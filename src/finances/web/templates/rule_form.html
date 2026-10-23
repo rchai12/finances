@@ -13,4 +13,5 @@
     {% with selected = rule_form.category %}{% include "category_select.html" %}{% endwith %}
   </label>
   <button type="submit">Add rule</button>
+  <button type="submit" formaction="/categories/rules/preview">Preview</button>
 </form>

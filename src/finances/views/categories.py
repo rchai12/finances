@@ -7,7 +7,7 @@ from finances.analysis.categories import (
     TransactionFacts,
     UncategorizedItem,
 )
-from finances.categorize.service import CategorizeResult
+from finances.categorize.service import CategorizeResult, RulePreview
 from finances.domain.merchants import MerchantAlias, clean_merchant
 from finances.domain.models import MANUAL, Category, CategoryAssignment
 from finances.domain.money import format_cents
@@ -151,3 +151,43 @@ class AliasRow:
 
 def alias_rows(aliases: list[MerchantAlias]) -> list[AliasRow]:
     return [AliasRow(item.source, item.target) for item in aliases]
+
+
+@dataclass(frozen=True)
+class PreviewLine:
+    id: str
+    date: str
+    account: str
+    merchant: str
+    amount: str
+    now: str
+
+
+def preview_lines(preview: RulePreview) -> list[PreviewLine]:
+    return [
+        PreviewLine(
+            str(item.transaction.id),
+            item.transaction.posted_date.isoformat(),
+            item.account,
+            item.merchant,
+            format_cents(item.transaction.amount_cents),
+            item.now or "",
+        )
+        for item in preview.examples
+    ]
+
+
+def preview_text(preview: RulePreview) -> str:
+    if preview.changes == 0:
+        count = "no transactions"
+    elif preview.changes == 1:
+        count = "1 transaction"
+    else:
+        count = f"{preview.changes} transactions"
+    return f"This rule would put {count} in {preview.category}."
+
+
+def preview_more(preview: RulePreview) -> str | None:
+    if preview.changes <= len(preview.examples):
+        return None
+    return f"Showing the {len(preview.examples)} newest."

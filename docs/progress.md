@@ -634,5 +634,14 @@ Template:
 - Follow-ups:
   - include the `fin audit` UNKNOWN string in a given diff whenever ACTIONS grows
 
+## Phase 28b: aliases on the web and the rule preview (2026-10-23)
+- Tests: 3507 -> 3534 (given 12)
+- New public names: `db.repositories`: `check_rule`; `categorize.service`: `PREVIEW_EXAMPLES`, `RuleChange`, `RulePreview`, `preview_rule`; `views.categories`: `PreviewLine`, `preview_lines`, `preview_text`, `preview_more`; `cli.categories`: `fin rules preview`; `web.routes.categories`: `POST /categories/aliases/add`, `POST /categories/aliases/delete`, `POST /categories/rules/preview`; `web.render`: `merchant-merged`, `merchant-unmerged`
+- Changed files: 15
+- Deviations:
+  - `tests/unit/test_web_split.py` ROUTES (and the fixed-path order check) gained the three new posts; the given diff omitted this pin, as 27c and 19b included it
+- Follow-ups:
+  - include `tests/unit/test_web_split.py` in the given diff whenever a web route is added
+
 
 

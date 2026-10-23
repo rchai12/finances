@@ -35,6 +35,18 @@
 <section class="card">
 <h2>Add a rule</h2>
 {% with back = "" %}{% include "rule_form.html" %}{% endwith %}
+{% if preview %}
+<p class="preview">{{ preview.text }}</p>
+{% if preview.rows %}
+<table>
+<thead><tr><th>ID</th><th>Date</th><th>Account</th><th>Merchant</th><th class="amount">Amount</th><th>Now</th></tr></thead>
+<tbody>
+{% for row in preview.rows %}<tr><td><a href="/transactions/{{ row.id }}">{{ row.id }}</a></td><td>{{ row.date }}</td><td>{{ row.account }}</td><td>{{ row.merchant }}</td><td class="{{ row.amount|amount_class }}">{{ row.amount }}</td><td>{{ row.now }}</td></tr>
+{% endfor %}</tbody>
+</table>
+{% endif %}
+{% if preview.more %}<p class="hint">{{ preview.more }}</p>{% endif %}
+{% endif %}
 </section>
 <section class="card">
 <h2>Categories</h2>
@@ -102,6 +114,26 @@
     </select>
   </label>
   <button type="submit">Delete</button>
+</form>
+</section>
+<section class="card">
+<h2>Merchant aliases</h2>
+<p class="hint">Merge one merchant into another so reports count them as one; a rule matches either name. Adding or deleting an alias runs the rules again.</p>
+{% if aliases %}
+<table>
+<thead><tr><th>From</th><th>To</th><th></th></tr></thead>
+<tbody>
+{% for row in aliases %}<tr><td>{{ row.source }}</td><td>{{ row.target }}</td><td><form method="post" action="/categories/aliases/delete" class="inline"><input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="source" value="{{ row.source }}"><button type="submit">Delete</button></form></td></tr>
+{% endfor %}</tbody>
+</table>
+{% else %}
+<p class="empty">No merchant aliases.</p>
+{% endif %}
+<form method="post" action="/categories/aliases/add" class="fields">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <label>Merchant <input name="source" required maxlength="100" value="{{ alias_form.source }}"></label>
+  <label>Merge into <input name="target" required maxlength="100" value="{{ alias_form.target }}"></label>
+  <button type="submit">Merge</button>
 </form>
 </section>
 {% endblock %}

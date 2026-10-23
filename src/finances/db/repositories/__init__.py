@@ -45,6 +45,7 @@ from finances.db.repositories.budgets import (
 from finances.db.repositories.categories import (
     CategoryDeletion,
     CategoryExistsError,
+    check_rule,
     create_category,
     create_rule,
     delete_category,
@@ -142,6 +143,7 @@ __all__ = [
     "add_balance_snapshot",
     "alias_map",
     "assign_by_rule",
+    "check_rule",
     "clear_categories_by_hand",
     "clear_category_by_hand",
     "clear_sync_failure",

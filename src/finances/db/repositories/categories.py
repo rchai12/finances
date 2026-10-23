@@ -94,10 +94,10 @@ def list_rules(session: Session) -> list[CategoryRule]:
     return [to_category_rule(row) for row in session.scalars(stmt).all()]
 
 
-def create_rule(
-    session: Session, pattern: str, category: str, match: str = "contains", priority: int = 0
-) -> CategoryRule:
-    """Add a rule with its pattern normalized and return it. The caller commits."""
+def check_rule(
+    session: Session, pattern: str, category: str, match: str = "contains"
+) -> tuple[str, Category]:
+    """Return the normalized pattern and the category, or raise create_rule's ValueError."""
     clean = normalize_pattern(pattern)
     if not 1 <= len(clean) <= RULE_PATTERN_LIMIT:
         raise ValueError(f"a rule pattern must be 1 to {RULE_PATTERN_LIMIT} characters")
@@ -109,6 +109,14 @@ def create_rule(
     )
     if session.scalars(taken).first() is not None:
         raise ValueError("a rule with this pattern and match already exists")
+    return (clean, to_category(target))
+
+
+def create_rule(
+    session: Session, pattern: str, category: str, match: str = "contains", priority: int = 0
+) -> CategoryRule:
+    """Add a rule with its pattern normalized and return it. The caller commits."""
+    clean, target = check_rule(session, pattern, category, match)
     row = CategoryRuleRow(pattern=clean, match=match, priority=priority, category_id=target.id)
     session.add(row)
     session.flush()
