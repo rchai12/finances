@@ -7,10 +7,12 @@ import typer
 from sqlalchemy.orm import Session
 
 from finances.analysis.review import review_items
+from finances.categorize.service import accept_proposals
 from finances.cli.common import fail, print_rows, require_current_schema
 from finances.db.engine import get_engine, session_scope
-from finances.db.repositories import accept_proposal, decline_proposal
+from finances.db.repositories import decline_proposal
 from finances.domain.proposals import Proposal
+from finances.views.categories import categorized_text
 from finances.views.review import accepted_text, declined_text, review_rows
 
 app = typer.Typer(help="Review the agent's proposals.", no_args_is_help=True)
@@ -67,7 +69,16 @@ def accept_command(
     ],
 ) -> None:
     """Do what the proposal says, as the person's choice."""
-    _decide(proposal_ids, accept_proposal, accepted_text)
+    require_current_schema()
+    with session_scope(get_engine()) as session:
+        try:
+            found = accept_proposals(session, proposal_ids)
+        except ValueError as error:
+            fail(str(error))
+    for proposal in found.proposals:
+        typer.echo(accepted_text(proposal))
+    if found.categorized is not None:
+        typer.echo(categorized_text(found.categorized))
 
 
 @app.command("decline")

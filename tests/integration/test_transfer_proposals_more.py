@@ -35,6 +35,7 @@ PAIR = {
     "transaction_id": 1,
     "in_id": 2,
     "category": None,
+    "rule": None,
     "reason": "interest, not a transfer",
     "status": "open",
     "created_at": "2026-05-25T12:00:00+00:00",

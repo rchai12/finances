@@ -174,6 +174,13 @@ MCP_TOOLS = [
     "month_over_month",
     "propose_category",
     "propose_not_transfer",
+    "propose_rule",
     "propose_transfer",
 ]
-MCP_WRITERS = ("propose_category", "propose_transfer", "propose_not_transfer", "log_advice")
+MCP_WRITERS = (
+    "propose_category",
+    "propose_transfer",
+    "propose_not_transfer",
+    "propose_rule",
+    "log_advice",
+)

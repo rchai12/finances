@@ -33,6 +33,7 @@ FROM_REPOSITORIES = {
     "proposal_out_of_date",
     "propose_category",
     "propose_not_transfer",
+    "propose_rule",
     "propose_transfer",
 }
 
@@ -102,6 +103,7 @@ def test_a_proposal_and_its_listing(one: Settings) -> None:
         "transaction_id": 1,
         "in_id": None,
         "category": "Coffee & Dessert",
+        "rule": None,
         "reason": "a cafe",
         "status": "open",
         "created_at": "2026-05-25T12:00:00+00:00",

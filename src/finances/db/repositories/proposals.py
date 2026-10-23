@@ -3,10 +3,10 @@ from datetime import UTC, datetime
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from finances.db.orm import AdviceRow, ProposalRow, to_advice, to_proposal
+from finances.db.orm import AdviceRow, CategoryRuleRow, ProposalRow, to_advice, to_proposal
 from finances.db.repositories.assignments import _assignment_row, set_category_by_hand
 from finances.db.repositories.audit import record_change
-from finances.db.repositories.categories import _leaf_category
+from finances.db.repositories.categories import _category_row, _leaf_category, create_rule
 from finances.db.repositories.transactions import get_transaction
 from finances.db.repositories.transfers import (
     _check_transfer,
@@ -15,13 +15,15 @@ from finances.db.repositories.transfers import (
     list_transfer_rejections,
     reject_transfer,
 )
-from finances.domain.models import CONFIRMED, MANUAL
+from finances.domain.merchants import clean_merchant
+from finances.domain.models import CONFIRMED, MANUAL, CategoryRule
 from finances.domain.proposals import (
     ACCEPTED,
     CATEGORY,
     DECLINED,
     NOT_TRANSFER,
     OPEN,
+    RULE,
     STATUSES,
     TRANSFER,
     Advice,
@@ -29,8 +31,16 @@ from finances.domain.proposals import (
     out_of_date,
     pair_out_of_date,
     proposal_text,
+    rule_out_of_date,
 )
-from finances.domain.text import ADVICE_TEXT_LIMIT, NAME_LIMIT, PROPOSAL_TEXT_LIMIT, collapse_ws
+from finances.domain.rules import MATCHES, normalize_pattern, rule_matches
+from finances.domain.text import (
+    ADVICE_TEXT_LIMIT,
+    NAME_LIMIT,
+    PROPOSAL_TEXT_LIMIT,
+    RULE_PATTERN_LIMIT,
+    collapse_ws,
+)
 
 
 def _now() -> datetime:
@@ -122,6 +132,70 @@ def propose_not_transfer(session: Session, out_id: int, in_id: int, reason: str)
     return _propose_pair(session, NOT_TRANSFER, out_id, in_id, reason)
 
 
+def _rule_exists(session: Session, match: str, pattern: str) -> bool:
+    clean = normalize_pattern(pattern)
+    stmt = select(CategoryRuleRow.id).where(
+        CategoryRuleRow.match == match, CategoryRuleRow.pattern == clean
+    )
+    return session.scalars(stmt).first() is not None
+
+
+def propose_rule(
+    session: Session,
+    example_id: int,
+    pattern: str,
+    category: str,
+    reason: str,
+    *,
+    match: str = "contains",
+    priority: int = 0,
+) -> Proposal:
+    clean = collapse_ws(reason)
+    if not 1 <= len(clean) <= PROPOSAL_TEXT_LIMIT:
+        raise ValueError("a reason must be 1 to 200 characters")
+    stored = normalize_pattern(pattern)
+    if not 1 <= len(stored) <= RULE_PATTERN_LIMIT:
+        raise ValueError(f"a rule pattern must be 1 to {RULE_PATTERN_LIMIT} characters")
+    if match not in MATCHES:
+        raise ValueError(f"match must be one of: {', '.join(MATCHES)}")
+    example = get_transaction(session, example_id)
+    if example is None:
+        raise ValueError("transaction not found")
+    target = _leaf_category(session, category)
+    probe = CategoryRule(0, stored, match, priority, target.id)
+    if not rule_matches(probe, clean_merchant(example.description)):
+        raise ValueError("the rule does not match the example transaction")
+    if _rule_exists(session, match, stored):
+        raise ValueError("a rule with this pattern and match already exists")
+    existing = session.scalars(
+        select(ProposalRow).where(
+            ProposalRow.kind == RULE,
+            ProposalRow.match == match,
+            ProposalRow.pattern == stored,
+        )
+    ).all()
+    if any(row.status == DECLINED and row.value == target.name for row in existing):
+        raise ValueError("a person declined this proposal already")
+    if any(row.status == OPEN for row in existing):
+        raise ValueError("this rule already has an open proposal")
+    row = ProposalRow(
+        kind=RULE,
+        target_id=example_id,
+        value=target.name,
+        reason=clean,
+        status=OPEN,
+        created_at=_now(),
+        decided_at=None,
+        other_id=None,
+        pattern=stored,
+        match=match,
+        priority=priority,
+    )
+    session.add(row)
+    session.flush()
+    return to_proposal(row)
+
+
 def list_proposals(
     session: Session, *, status: str | None = None, limit: int = 50
 ) -> list[Proposal]:
@@ -137,6 +211,12 @@ def list_proposals(
 
 
 def proposal_out_of_date(session: Session, proposal: Proposal) -> bool:
+    if proposal.kind == RULE:
+        found = _category_row(session, proposal.value)
+        return rule_out_of_date(
+            category_found=found is not None and found.parent_id is not None,
+            rule_exists=_rule_exists(session, proposal.match or "", proposal.pattern or ""),
+        )
     if proposal.kind != CATEGORY:
         in_id = proposal.other_id
         exists = (
@@ -175,6 +255,10 @@ def accept_proposal(session: Session, proposal_id: int) -> Proposal:
             raise ValueError(
                 f"proposal {proposal_id} is out of date: the transaction was decided since"
             )
+        if row.kind == RULE:
+            raise ValueError(
+                f"proposal {proposal_id} is out of date: the rules or categories changed since"
+            )
         raise ValueError(
             f"proposal {proposal_id} is out of date: the transactions were decided since"
         )
@@ -182,6 +266,8 @@ def accept_proposal(session: Session, proposal_id: int) -> Proposal:
         create_transfer_pair(session, row.target_id, row.other_id, CONFIRMED)
     elif row.kind == NOT_TRANSFER:
         reject_transfer(session, row.target_id, row.other_id)
+    elif row.kind == RULE:
+        create_rule(session, row.pattern, row.value, row.match, row.priority)
     else:
         set_category_by_hand(session, row.target_id, row.value)
     row.status = ACCEPTED

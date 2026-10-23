@@ -31,6 +31,7 @@ NO_AMOUNTS = (
     "list_advice",
     "propose_transfer",
     "propose_not_transfer",
+    "propose_rule",
 )
 READ_ONLY = {
     "read_only_hint": True,

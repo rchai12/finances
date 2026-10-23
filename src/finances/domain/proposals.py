@@ -3,10 +3,13 @@
 from dataclasses import dataclass
 from datetime import datetime
 
+from finances.domain.audit import rule_text
+
 CATEGORY = "category"
 TRANSFER = "transfer"
 NOT_TRANSFER = "not_transfer"
-KINDS = (CATEGORY, TRANSFER, NOT_TRANSFER)
+RULE = "rule"
+KINDS = (CATEGORY, TRANSFER, NOT_TRANSFER, RULE)
 OPEN = "open"
 ACCEPTED = "accepted"
 DECLINED = "declined"
@@ -24,6 +27,9 @@ class Proposal:
     created_at: datetime
     decided_at: datetime | None
     other_id: int | None = None
+    pattern: str | None = None
+    match: str | None = None
+    priority: int | None = None
 
 
 @dataclass(frozen=True)
@@ -42,9 +48,20 @@ def pair_out_of_date(*, exists: bool, paired: bool, rejected: bool) -> bool:
     return (not exists) or paired or rejected
 
 
+def rule_out_of_date(*, category_found: bool, rule_exists: bool) -> bool:
+    return (not category_found) or rule_exists
+
+
 def proposal_text(proposal: Proposal) -> str:
     if proposal.kind == TRANSFER:
         return f"{proposal.target_id} -> {proposal.other_id}: a transfer"
     if proposal.kind == NOT_TRANSFER:
         return f"{proposal.target_id} -> {proposal.other_id}: not a transfer"
+    if proposal.kind == RULE:
+        return "rule: " + rule_text(
+            proposal.match or "",
+            proposal.pattern or "",
+            proposal.value,
+            0 if proposal.priority is None else proposal.priority,
+        )
     return f"transaction {proposal.target_id}: {proposal.value}"

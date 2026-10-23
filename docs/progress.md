@@ -617,5 +617,12 @@ Template:
 - Deviations: None
 - Follow-ups: None
 
+## Phase 19d: the agent proposes rules (2026-10-23)
+- Tests: 3450 -> 3482 (given 5)
+- New public names: `domain.proposals`: `RULE`, `rule_out_of_date`; `Proposal.pattern`, `match`, `priority`; `db.orm`: `ProposalRow.pattern`, `match`, `priority`; `db.repositories`: `propose_rule`; `categorize.service`: `Accepted`, `accept_proposals`; `mcp_server.tools`: `propose_rule`
+- Changed files: 25
+- Deviations: None
+- Follow-ups: None
+
 
 

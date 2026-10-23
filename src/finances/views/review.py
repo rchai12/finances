@@ -1,8 +1,9 @@
 from dataclasses import dataclass
 
 from finances.analysis.review import ReviewItem
+from finances.domain.audit import rule_text
 from finances.domain.money import format_cents
-from finances.domain.proposals import NOT_TRANSFER, TRANSFER, Advice, Proposal
+from finances.domain.proposals import NOT_TRANSFER, RULE, TRANSFER, Advice, Proposal
 
 
 @dataclass(frozen=True)
@@ -38,11 +39,22 @@ def review_rows(items: list[ReviewItem]) -> list[ReviewRow]:
     return rows
 
 
+def _rule_line(proposal: Proposal) -> str:
+    return rule_text(
+        proposal.match or "",
+        proposal.pattern or "",
+        proposal.value,
+        0 if proposal.priority is None else proposal.priority,
+    )
+
+
 def proposed_text(proposal: Proposal) -> str:
     if proposal.kind == TRANSFER:
         return f"a transfer with transaction {proposal.other_id}"
     if proposal.kind == NOT_TRANSFER:
         return f"not a transfer with transaction {proposal.other_id}"
+    if proposal.kind == RULE:
+        return f"a rule: {_rule_line(proposal)}"
     return proposal.value
 
 
@@ -57,6 +69,8 @@ def accepted_text(proposal: Proposal) -> str:
             f"Accepted proposal {proposal.id}: transactions {proposal.target_id} and "
             f"{proposal.other_id} are not a transfer."
         )
+    if proposal.kind == RULE:
+        return f"Accepted proposal {proposal.id}: a rule, {_rule_line(proposal)}."
     return (
         f"Accepted proposal {proposal.id}: {proposal.value} for transaction {proposal.target_id}."
     )

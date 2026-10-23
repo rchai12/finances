@@ -36,6 +36,7 @@ from finances.mcp_server.server import (
     MONTH_OVER_MONTH_DESCRIPTION,
     PROPOSE_CATEGORY_DESCRIPTION,
     PROPOSE_NOT_TRANSFER_DESCRIPTION,
+    PROPOSE_RULE_DESCRIPTION,
     PROPOSE_TRANSFER_DESCRIPTION,
     build_server,
 )
@@ -159,6 +160,7 @@ def test_each_tool_description_matches_the_table(tmp_settings: Settings) -> None
         "propose_category": PROPOSE_CATEGORY_DESCRIPTION,
         "propose_transfer": PROPOSE_TRANSFER_DESCRIPTION,
         "propose_not_transfer": PROPOSE_NOT_TRANSFER_DESCRIPTION,
+        "propose_rule": PROPOSE_RULE_DESCRIPTION,
         "list_proposals": LIST_PROPOSALS_DESCRIPTION,
         "log_advice": LOG_ADVICE_DESCRIPTION,
         "list_advice": LIST_ADVICE_DESCRIPTION,

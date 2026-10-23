@@ -4,7 +4,8 @@ from fastapi import APIRouter, Request
 from fastapi.responses import Response
 
 from finances.analysis.review import review_items
-from finances.db.repositories import accept_proposal, decline_proposal, list_advice
+from finances.categorize.service import accept_proposals
+from finances.db.repositories import decline_proposal, list_advice
 from finances.views.review import advice_rows, review_rows
 from finances.web.access import _reading
 from finances.web.forms import refused
@@ -13,7 +14,7 @@ from finances.web.render import _done, _not_migrated, _render
 
 router = APIRouter()
 NONE_CHOSEN = "choose at least one proposal"
-_DECISIONS = {"accept": accept_proposal, "decline": decline_proposal}
+_DECISIONS = {"accept", "decline"}
 
 
 def _page(request: Request, *, error: str | None = None, status_code: int = 200) -> Response:
@@ -47,11 +48,13 @@ async def decide(request: Request) -> Response:
     if decision not in _DECISIONS or not chosen or bad_id:
         return _page(request, error=NONE_CHOSEN, status_code=400)
     ids = [int(text) for text in chosen]
-    apply = _DECISIONS[decision]
     try:
         with _reading() as session:
-            for proposal_id in ids:
-                apply(session, proposal_id)
+            if decision == "accept":
+                accept_proposals(session, ids)
+            else:
+                for proposal_id in ids:
+                    decline_proposal(session, proposal_id)
     except ValueError as error:
         return _page(request, error=str(error), status_code=400)
     notice = "proposals-accepted" if decision == "accept" else "proposals-declined"

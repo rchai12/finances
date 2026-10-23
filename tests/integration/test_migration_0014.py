@@ -38,9 +38,9 @@ def test_other_id_comes_and_goes(tmp_path: Path) -> None:
     config = make_config(url)
     command.upgrade(config, "0014")
     assert columns(url)[-1] == ("other_id", "INTEGER", True)
-    assert [(c.name, str(c.type), c.nullable) for c in ProposalRow.__table__.columns] == columns(
-        url
-    )
+    found = columns(url)
+    orm = [(c.name, str(c.type), c.nullable) for c in ProposalRow.__table__.columns]
+    assert orm[: len(found)] == found
     command.downgrade(config, "0013")
     assert "other_id" not in [name for name, _, _ in columns(url)]
     command.upgrade(config, "0014")

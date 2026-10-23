@@ -41,10 +41,11 @@ from finances.db.repositories import list_uncategorized as load_uncategorized
 from finances.db.repositories import log_advice as keep_advice
 from finances.db.repositories import propose_category as store_category_proposal
 from finances.db.repositories import propose_not_transfer as store_not_transfer
+from finances.db.repositories import propose_rule as store_rule
 from finances.db.repositories import propose_transfer as store_transfer
 from finances.domain.merchants import clean_merchant
 from finances.domain.models import Transaction
-from finances.domain.proposals import CATEGORY, Proposal
+from finances.domain.proposals import CATEGORY, RULE, Proposal
 from finances.domain.spending import UNASSIGNED, UNCATEGORIZED, is_refund, month_bounds, month_range
 from finances.mcp_server.access import reading, writing
 
@@ -558,7 +559,16 @@ def _proposal_item(session: Session, proposal: Proposal) -> dict[str, Any]:
         "kind": proposal.kind,
         "transaction_id": proposal.target_id,
         "in_id": proposal.other_id,
-        "category": proposal.value if proposal.kind == CATEGORY else None,
+        "category": proposal.value if proposal.kind in (CATEGORY, RULE) else None,
+        "rule": (
+            None
+            if proposal.kind != RULE
+            else {
+                "match": proposal.match,
+                "pattern": proposal.pattern,
+                "priority": proposal.priority,
+            }
+        ),
         "reason": proposal.reason,
         "status": proposal.status,
         "created_at": proposal.created_at.isoformat(),
@@ -596,6 +606,24 @@ def propose_not_transfer(out_id: int, in_id: int, reason: str) -> dict[str, Any]
     def work() -> dict[str, Any]:
         with writing() as session:
             found = store_not_transfer(session, out_id, in_id, reason)
+            return {"proposal": _proposal_item(session, found)}
+
+    return _as_tool(work)
+
+
+def propose_rule(
+    example_id: int,
+    pattern: str,
+    category: str,
+    reason: str,
+    match: Literal["contains", "starts_with", "equals"] = "contains",
+    priority: Annotated[int, Field(ge=-1000, le=1000)] = 0,
+) -> dict[str, Any]:
+    def work() -> dict[str, Any]:
+        with writing() as session:
+            found = store_rule(
+                session, example_id, pattern, category, reason, match=match, priority=priority
+            )
             return {"proposal": _proposal_item(session, found)}
 
     return _as_tool(work)

@@ -95,6 +95,7 @@ from finances.db.repositories.proposals import (
     proposal_out_of_date,
     propose_category,
     propose_not_transfer,
+    propose_rule,
     propose_transfer,
 )
 from finances.db.repositories.statements import (
@@ -200,6 +201,7 @@ __all__ = [
     "proposal_out_of_date",
     "propose_category",
     "propose_not_transfer",
+    "propose_rule",
     "propose_transfer",
     "record_change",
     "record_seen_feed_account",

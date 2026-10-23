@@ -139,6 +139,14 @@ PROPOSE_NOT_TRANSFER_DESCRIPTION = (
     "look like one, with a one-line reason. It changes nothing until a person accepts it; the "
     "same refusals as propose_transfer apply."
 )
+PROPOSE_RULE_DESCRIPTION = (
+    "Propose a rule that puts every transaction whose merchant matches pattern in a category "
+    "(match: contains, starts_with, or equals; priority -1000 to 1000, higher tried first), "
+    "with an example transaction it matches and a one-line reason a person will read. It "
+    "changes nothing until a person accepts it; then the rules run over every transaction. "
+    "Refused when it does not match the example, a rule with this pattern and match exists, a "
+    "person declined it, or another proposal for it is open. No amounts."
+)
 LIST_PROPOSALS_DESCRIPTION = (
     "Your proposals, newest first, of one status (open by default, accepted, or declined), at "
     "most limit (1 to 200, default 50): the transaction, the category, your reason, when it was "
@@ -153,7 +161,13 @@ LOG_ADVICE_DESCRIPTION = (
 LIST_ADVICE_DESCRIPTION = (
     "Your notes, newest first, at most limit (1 to 200, default 20), with when each was kept."
 )
-_WRITES = ("propose_category", "propose_transfer", "propose_not_transfer", "log_advice")
+_WRITES = (
+    "propose_category",
+    "propose_transfer",
+    "propose_not_transfer",
+    "propose_rule",
+    "log_advice",
+)
 _TOOLS = (
     (tools.list_accounts, LIST_ACCOUNTS_DESCRIPTION),
     (tools.get_balances, GET_BALANCES_DESCRIPTION),
@@ -184,6 +198,7 @@ def build_server() -> MCPServer:
         (tools.propose_category, PROPOSE_CATEGORY_DESCRIPTION),
         (tools.propose_transfer, PROPOSE_TRANSFER_DESCRIPTION),
         (tools.propose_not_transfer, PROPOSE_NOT_TRANSFER_DESCRIPTION),
+        (tools.propose_rule, PROPOSE_RULE_DESCRIPTION),
         (tools.list_proposals, LIST_PROPOSALS_DESCRIPTION),
         (tools.log_advice, LOG_ADVICE_DESCRIPTION),
         (tools.list_advice, LIST_ADVICE_DESCRIPTION),

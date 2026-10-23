@@ -17,7 +17,7 @@ from finances.domain.text import ADVICE_TEXT_LIMIT, PROPOSAL_TEXT_LIMIT
 
 
 def test_the_lists_and_limits() -> None:
-    assert (CATEGORY, KINDS) == ("category", ("category", "transfer", "not_transfer"))
+    assert (CATEGORY, KINDS) == ("category", ("category", "transfer", "not_transfer", "rule"))
     assert (OPEN, ACCEPTED, DECLINED, STATUSES) == (
         "open",
         "accepted",

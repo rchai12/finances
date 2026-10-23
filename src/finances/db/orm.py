@@ -578,6 +578,9 @@ class ProposalRow(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     decided_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     other_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    pattern: Mapped[str | None] = mapped_column(String(RULE_PATTERN_LIMIT), nullable=True)
+    match: Mapped[str | None] = mapped_column(String(12), nullable=True)
+    priority: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
 
 def to_proposal(row: ProposalRow) -> Proposal:
@@ -592,6 +595,9 @@ def to_proposal(row: ProposalRow) -> Proposal:
         created_at=_as_utc(row.created_at),
         decided_at=None if row.decided_at is None else _as_utc(row.decided_at),
         other_id=row.other_id,
+        pattern=row.pattern,
+        match=row.match,
+        priority=row.priority,
     )
 
 
