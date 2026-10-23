@@ -4,7 +4,7 @@ Each phase is sized for one focused coding session: a few modules, their tests, 
 
 **Input decision:** a third-party **aggregator** is the daily feed. Its rows are provisional. Monthly **PDF statements** are the audit and the record (see `docs/statement-formats.md`): each is reconciled against its own opening and closing balances, then upgrades the matching provisional rows in place. Statements also supply what the feed lacks, such as the cardholder on shared cards.
 
-Status (2026-10-22): built and verified, in the build order below, up to and including Phase 34b (3349 tests). Each phase's spec is in `docs/phases/`, its verification guide in `docs/verification/`, its review in `docs/reviews/`, and its result in `docs/progress.md`. Phases after 34b are outlines until specified.
+Status (2026-10-22): built and verified, in the build order below, up to and including Phase 19a (3397 tests). Each phase's spec is in `docs/phases/`, its verification guide in `docs/verification/`, its review in `docs/reviews/`, and its result in `docs/progress.md`. Phases after 19a are outlines until specified.
 
 **Build order:** 2 → 3 → 4 → 17a → 8 → 17b → 17c → 21 → 16a → 16b → 9 → 16c → 16d → 10 → 22 → 23 → 11 → 12 → 13 → 16e → 24 → 24b → 16f → 16j → 16g → 25 → 16h → 16i → 16k → 13d → 26a → 26b → 31 → 32 → 33 → 27a → 27b → 27c → 27d → 14a → 16l → 16m → 16n → 35a → 35b → 14b → 14c → 14d → 14e → 36a → 36b → 36c → 34a → 34b → 19a → 19b → 19c → 28 → 29 → 30 → 16 → 20. Phases 5 and 6 (more statement parsers) can be built any time after 4, when audit coverage for those banks is wanted.
 
@@ -28,7 +28,7 @@ Status (2026-10-22): built and verified, in the build order below, up to and inc
 | 16 | Local web UI | FastAPI dashboard on 127.0.0.1, statement upload, review of agent writes | 16a to 16n built (sub-phases listed below); a login (Phase 20) is not built |
 | 17 | Aggregator sync | Daily pull of transactions and balances into provisional rows; the only network code | [phase-17a](phases/phase-17a-feed-core.md) (feed core), [phase-17b](phases/phase-17b-simplefin-sync.md) (SimpleFIN client and sync), [phase-17c](phases/phase-17c-sync-commands.md) (links, commands, Keychain), [phase-17d](phases/phase-17d-user-agent.md) (a user agent Cloudflare accepts) |
 | 18 | *Removed* | Was "Azure deployment". The app stays on the household's machine | |
-| 19 | Agent write tools | MCP tools that write the interpretation layer only, tagged, reversible, with `fin review` | [phase-19a](phases/phase-19a-proposals-and-advice.md) (category proposals, the advice log, `fin review`); 19b and 19c outline below |
+| 19 | Agent write tools | MCP tools that write the interpretation layer only, tagged, reversible, with `fin review` | [phase-19a](phases/phase-19a-proposals-and-advice.md) (category proposals, the advice log, `fin review`), [phase-19b](phases/phase-19b-review-on-the-web.md) (the Review page and the Suggested column); 19c outline below |
 | 20 | Remote access | Web UI login and hardening so the app can sit behind a private VPN | outline below |
 | 21 | People and ownership | The household's people; each account owned by one person or joint; statement cardholder names mapped to people; every view filterable by person, bank, and card | [phase-21](phases/phase-21-people-and-ownership.md) |
 | 22 | Shared view rows | A clean-up with no behaviour change: `finances.views` builds each view's rows once for the command line and the web; `fin sync run` uses `run_links`; setup offers move out of the web page | [phase-22](phases/phase-22-shared-view-rows.md) |
