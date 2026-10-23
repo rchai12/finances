@@ -1,5 +1,7 @@
 """Which rule puts a merchant in a category. Imports only from finances.domain."""
 
+from collections.abc import Sequence
+
 from finances.domain.models import CategoryRule
 from finances.domain.text import collapse_ws
 
@@ -23,7 +25,12 @@ def rule_matches(rule: CategoryRule, merchant: str) -> bool:
     return False
 
 
+def pick_rule_for(names: Sequence[str], rules: list[CategoryRule]) -> CategoryRule | None:
+    """Return the matching rule with the highest priority, the oldest among equals, or None."""
+    matching = [rule for rule in rules if any(rule_matches(rule, name) for name in names)]
+    return min(matching, key=lambda rule: (-rule.priority, rule.id), default=None)
+
+
 def pick_rule(merchant: str, rules: list[CategoryRule]) -> CategoryRule | None:
     """Return the matching rule with the highest priority, the oldest among equals, or None."""
-    matching = [rule for rule in rules if rule_matches(rule, merchant)]
-    return min(matching, key=lambda rule: (-rule.priority, rule.id), default=None)
+    return pick_rule_for((merchant,), rules)

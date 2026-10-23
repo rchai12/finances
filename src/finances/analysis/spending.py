@@ -8,13 +8,14 @@ from sqlalchemy.orm import Session
 
 from finances.analysis.people import load_attribution
 from finances.db.repositories import (
+    alias_map,
     list_accounts,
     list_categories,
     list_category_assignments,
     list_transactions_between,
     list_transfer_pairs,
 )
-from finances.domain.merchants import clean_merchant
+from finances.domain.merchants import merchant_name
 from finances.domain.models import Transaction
 from finances.domain.spending import (
     NO_CARD,
@@ -51,6 +52,7 @@ def flows_for(session: Session, transactions: Iterable[Transaction]) -> list[Flo
     }
     accounts = {account.id: account for account in list_accounts(session, include_inactive=True)}
     attribution = load_attribution(session)
+    aliases = alias_map(session)
     flows = []
     for item in transactions:
         assignment = assignments.get(item.id)
@@ -65,7 +67,7 @@ def flows_for(session: Session, transactions: Iterable[Transaction]) -> list[Flo
                 else flow_kind(item.amount_cents, paired=item.id in paired, category=category),
                 category=UNCATEGORIZED if category is None else category.name,
                 group=UNCATEGORIZED if category is None else categories[category.group_id].name,
-                merchant=clean_merchant(item.description),
+                merchant=merchant_name(item.description, aliases),
                 person=attribution.person(item) or UNASSIGNED,
                 account=account.name,
                 bank=account.institution,

@@ -4,6 +4,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from finances.db.orm import AdviceRow, CategoryRuleRow, ProposalRow, to_advice, to_proposal
+from finances.db.repositories.aliases import alias_map
 from finances.db.repositories.assignments import _assignment_row, set_category_by_hand
 from finances.db.repositories.audit import record_change
 from finances.db.repositories.categories import _category_row, _leaf_category, create_rule
@@ -15,7 +16,7 @@ from finances.db.repositories.transfers import (
     list_transfer_rejections,
     reject_transfer,
 )
-from finances.domain.merchants import clean_merchant
+from finances.domain.merchants import merchant_names
 from finances.domain.models import CONFIRMED, MANUAL, CategoryRule
 from finances.domain.proposals import (
     ACCEPTED,
@@ -163,7 +164,8 @@ def propose_rule(
         raise ValueError("transaction not found")
     target = _leaf_category(session, category)
     probe = CategoryRule(0, stored, match, priority, target.id)
-    if not rule_matches(probe, clean_merchant(example.description)):
+    names = merchant_names(example.description, alias_map(session))
+    if not any(rule_matches(probe, name) for name in names):
         raise ValueError("the rule does not match the example transaction")
     if _rule_exists(session, match, stored):
         raise ValueError("a rule with this pattern and match already exists")

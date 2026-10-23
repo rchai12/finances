@@ -32,6 +32,8 @@ ACTIONS = (
     "backup_restored",
     "proposal_accepted",
     "proposal_declined",
+    "alias_added",
+    "alias_deleted",
 )
 KINDS = (
     "account",
@@ -43,6 +45,7 @@ KINDS = (
     "statement",
     "backup",
     "proposal",
+    "alias",
 )
 
 

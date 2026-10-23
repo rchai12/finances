@@ -6,8 +6,8 @@ from datetime import timedelta
 from sqlalchemy.orm import Session
 
 from finances.analysis.spending import flows_for
-from finances.db.repositories import get_transaction, list_transactions_by_day
-from finances.domain.merchants import clean_merchant
+from finances.db.repositories import alias_map, get_transaction, list_transactions_by_day
+from finances.domain.merchants import merchant_name
 from finances.domain.models import Transaction
 from finances.domain.refunds import REFUND_WINDOW_DAYS, Purchase, likely_purchase
 from finances.domain.spending import SPENDING, is_refund
@@ -34,8 +34,9 @@ def refund_facts(session: Session, transaction_id: int) -> RefundFacts:
         for found in list_transactions_by_day(session, start, end)
         if found.account_id == item.account_id
     ]
+    aliases = alias_map(session)
     flows = flows_for(session, loaded)
-    merchant = clean_merchant(item.description)
+    merchant = merchant_name(item.description, aliases)
     pairs = [
         (found, flow)
         for found, flow in zip(loaded, flows, strict=True)

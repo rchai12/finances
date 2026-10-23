@@ -6,6 +6,7 @@ from rich.table import Table
 
 from finances import __version__
 from finances.cli.accounts import app as accounts_app
+from finances.cli.aliases import aliases_app
 from finances.cli.audit import audit_command
 from finances.cli.backup import app as backup_app
 from finances.cli.budgets import app as budgets_app
@@ -52,6 +53,7 @@ app.add_typer(web_app, name="web")
 app.add_typer(mcp_app, name="mcp")
 app.add_typer(categories_app, name="categories")
 app.add_typer(rules_app, name="rules")
+app.add_typer(aliases_app, name="aliases")
 app.add_typer(transfers_app, name="transfers")
 app.add_typer(backup_app, name="backup")
 app.add_typer(budgets_app, name="budgets")

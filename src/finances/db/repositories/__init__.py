@@ -16,6 +16,12 @@ from finances.db.repositories.accounts import (
     set_account_active,
     set_balance_snapshot,
 )
+from finances.db.repositories.aliases import (
+    add_alias,
+    alias_map,
+    delete_alias,
+    list_aliases,
+)
 from finances.db.repositories.assignments import (
     assign_by_rule,
     clear_categories_by_hand,
@@ -132,7 +138,9 @@ __all__ = [
     "accept_proposal",
     "account_data_span",
     "account_names",
+    "add_alias",
     "add_balance_snapshot",
+    "alias_map",
     "assign_by_rule",
     "clear_categories_by_hand",
     "clear_category_by_hand",
@@ -148,6 +156,7 @@ __all__ = [
     "create_transfer_pair",
     "decided_by_a_person",
     "decline_proposal",
+    "delete_alias",
     "delete_category",
     "delete_feed_transaction",
     "delete_rule",
@@ -172,6 +181,7 @@ __all__ = [
     "list_account_owners",
     "list_accounts",
     "list_advice",
+    "list_aliases",
     "list_balance_snapshots",
     "list_budgets",
     "list_cardholder_aliases",

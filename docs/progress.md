@@ -624,5 +624,15 @@ Template:
 - Deviations: None
 - Follow-ups: None
 
+## Phase 28a: merchant aliases (2026-10-23)
+- Tests: 3482 -> 3507 (given 10)
+- New public names: `domain.text`: `MERCHANT_NAME_LIMIT`; `domain.merchants`: `MerchantAlias`, `normalize_merchant`, `merchant_name`, `merchant_names`, `check_alias`; `domain.rules`: `pick_rule_for`; `db.orm`: `MerchantAliasRow`, `to_merchant_alias`; `db.repositories`: `add_alias`, `alias_map`, `delete_alias`, `list_aliases`; `views.categories`: `AliasRow`, `alias_rows`; `cli.aliases`: `aliases_app`
+- Changed files: 23
+- Deviations:
+  - `tests/e2e/test_cli_audit.py` UNKNOWN extended with `alias_added, alias_deleted` (the given diff omitted this 19a pin of ACTIONS)
+  - extra `test_refund_facts_when_the_refund_uses_the_source_name` so a refund under the source name also finds the target
+- Follow-ups:
+  - include the `fin audit` UNKNOWN string in a given diff whenever ACTIONS grows
+
 
 

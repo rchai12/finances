@@ -8,7 +8,7 @@ from finances.analysis.categories import (
     UncategorizedItem,
 )
 from finances.categorize.service import CategorizeResult
-from finances.domain.merchants import clean_merchant
+from finances.domain.merchants import MerchantAlias, clean_merchant
 from finances.domain.models import MANUAL, Category, CategoryAssignment
 from finances.domain.money import format_cents
 from finances.views.format import mask_last4
@@ -141,3 +141,13 @@ def categorized_text(result: CategorizeResult) -> str:
         f"Categorized {result.total} {noun}: {result.changed} changed, "
         f"{result.uncategorized} without a category."
     )
+
+
+@dataclass(frozen=True)
+class AliasRow:
+    source: str
+    target: str
+
+
+def alias_rows(aliases: list[MerchantAlias]) -> list[AliasRow]:
+    return [AliasRow(item.source, item.target) for item in aliases]

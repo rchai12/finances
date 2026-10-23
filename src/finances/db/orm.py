@@ -16,6 +16,7 @@ from sqlalchemy import (
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 from finances.domain.audit import Change
+from finances.domain.merchants import MerchantAlias
 from finances.domain.models import (
     DEFAULT_LINK,
     Account,
@@ -42,6 +43,7 @@ from finances.domain.text import (
     CATEGORY_NAME_LIMIT,
     DESCRIPTION_LIMIT,
     FEED_ID_LIMIT,
+    MERCHANT_NAME_LIMIT,
     NAME_LIMIT,
     PROPOSAL_TEXT_LIMIT,
     PROVIDER_ACCOUNT_ID_LIMIT,
@@ -385,6 +387,21 @@ class CardholderAliasRow(Base):
 def to_person(row: PersonRow) -> Person:
     """Return the domain Person for a row of the people table."""
     return Person(id=row.id, name=row.name)
+
+
+class MerchantAliasRow(Base):
+    """One row of the merchant_aliases table: a cleaned name merged into another."""
+
+    __tablename__ = "merchant_aliases"
+    __table_args__ = (UniqueConstraint("source", name="uq_merchant_aliases_source"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    source: Mapped[str] = mapped_column(String(MERCHANT_NAME_LIMIT), nullable=False)
+    target: Mapped[str] = mapped_column(String(MERCHANT_NAME_LIMIT), nullable=False)
+
+
+def to_merchant_alias(row: MerchantAliasRow) -> MerchantAlias:
+    return MerchantAlias(id=row.id, source=row.source, target=row.target)
 
 
 class CategoryRow(Base):

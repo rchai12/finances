@@ -1,6 +1,7 @@
 """How stored text is tidied, and how wide its columns are. Imports nothing from the project."""
 
 NAME_LIMIT = 100
+MERCHANT_NAME_LIMIT = 100
 DESCRIPTION_LIMIT = 500
 FEED_ID_LIMIT = 100
 PROVIDER_ACCOUNT_ID_LIMIT = 200

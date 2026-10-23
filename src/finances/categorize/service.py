@@ -6,16 +6,17 @@ from sqlalchemy.orm import Session
 
 from finances.db.repositories import (
     accept_proposal,
+    alias_map,
     assign_by_rule,
     list_category_assignments,
     list_rules,
     list_transaction_descriptions,
     remove_category,
 )
-from finances.domain.merchants import clean_merchant
+from finances.domain.merchants import merchant_names
 from finances.domain.models import BY_RULE, MANUAL, CategoryAssignment
 from finances.domain.proposals import RULE, Proposal
-from finances.domain.rules import pick_rule
+from finances.domain.rules import pick_rule_for
 
 
 @dataclass(frozen=True)
@@ -31,6 +32,7 @@ def categorize(session: Session) -> CategorizeResult:
     A transaction counts as changed when its category, or lack of one, differs afterwards.
     """
     rules = list_rules(session)
+    aliases = alias_map(session)
     held = list_category_assignments(session)
     total = changed = uncategorized = 0
     for transaction_id, description in list_transaction_descriptions(session):
@@ -38,7 +40,7 @@ def categorize(session: Session) -> CategorizeResult:
         before = held.get(transaction_id)
         if before is not None and before.source == MANUAL:
             continue
-        rule = pick_rule(clean_merchant(description), rules)
+        rule = pick_rule_for(merchant_names(description, aliases), rules)
         after = (
             None
             if rule is None
