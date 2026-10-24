@@ -722,3 +722,10 @@ Template:
 - Deviations: None
 - Follow-ups: None
 
+## Phase 30c: CSV export from the terminal (2026-10-24)
+- Tests: 3802 -> 3828 (given 17)
+- New public names: `domain.money`: `decimal_text`; `config`: `export_dir`, `effective_export_dir`; `analysis.export`: `ExportLine`, `transactions_for_export`; `views.export`: `transactions_csv`, `year_csv`, `spending_csv`; `export.files`: `EXISTS`, `write_csv`; `cli.export`: `export_app`
+- Changed files: 14
+- Deviations: None
+- Follow-ups: None
+

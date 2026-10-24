@@ -57,3 +57,15 @@ def parse_money(text: str) -> int:
     cents = int(Decimal(s) * 100)
 
     return -cents if negative else cents
+
+
+def decimal_text(cents: int) -> str:
+    """Plain signed dollars from integer cents: -1234 -> "-12.34"; 0 -> "0.00"."""
+    if cents < 0:
+        sign = "-"
+        abs_cents = -cents
+    else:
+        sign = ""
+        abs_cents = cents
+    dollars, cents_part = divmod(abs_cents, 100)
+    return f"{sign}{dollars}.{cents_part:02d}"

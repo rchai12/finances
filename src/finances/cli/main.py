@@ -18,6 +18,7 @@ from finances.cli.categories import (
 )
 from finances.cli.common import print_table
 from finances.cli.db import app as db_app
+from finances.cli.export import export_app
 from finances.cli.health import health_command
 from finances.cli.importing import app as import_app
 from finances.cli.listing import statements_app, transactions_app
@@ -64,6 +65,7 @@ app.add_typer(backup_app, name="backup")
 app.add_typer(budgets_app, name="budgets")
 app.add_typer(shared_app, name="shared")
 app.add_typer(review_app, name="review")
+app.add_typer(export_app, name="export")
 app.command("categorize")(categorize_command)
 app.command("uncategorized")(uncategorized_command)
 app.command("spending")(spending_command)
