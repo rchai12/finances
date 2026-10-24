@@ -27,6 +27,7 @@ from finances.db.repositories import (
     list_categories,
     rename_category,
     set_categories_by_hand,
+    set_tax_relevant,
 )
 from finances.views.categories import (
     card_credits_note,
@@ -118,6 +119,24 @@ def delete_category_command(
         )
     else:
         typer.echo(f'Deleted category "{deleted.name}".')
+
+
+@categories_app.command("tax")
+def tax_command(
+    name: Annotated[str, typer.Option("--name", help="The category.")],
+    off: Annotated[bool, typer.Option("--off", help="Turn the flag off.")] = False,
+) -> None:
+    """Mark a category as tax-relevant, or turn that off."""
+    require_current_schema()
+    with session_scope(get_engine()) as session:
+        try:
+            found = set_tax_relevant(session, name, not off)
+        except ValueError as error:
+            fail(str(error))
+    if off:
+        typer.echo(f"{found.name} is not tax-relevant.")
+    else:
+        typer.echo(f"{found.name} is tax-relevant.")
 
 
 @rules_app.command("list")

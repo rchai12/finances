@@ -708,3 +708,10 @@ Template:
 - Deviations: None
 - Follow-ups: None
 
+## Phase 30a: tax categories and the year's totals (2026-10-24)
+- Tests: 3765 -> 3782 (given 9)
+- New public names: `domain.models`: `Category.is_tax`; `db.orm`: `CategoryRow.is_tax`; `db.repositories`: `set_tax_relevant`; `analysis.yearend`: `YearReport`, `year_report`; `views.spending`: `line_rows`, `summary_lines`; `views.yearend`: `year_heading`; `cli.reports`: `year_command`; `cli.categories`: `tax_command`
+- Changed files: 20
+- Deviations: None
+- Follow-ups: None
+

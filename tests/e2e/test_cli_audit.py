@@ -62,7 +62,7 @@ UNKNOWN = (
     "transfer_unpaired, statement_imported, backup_deleted, backup_restored, proposal"
     "_accepted, proposal_declined, alias_added, alias_deleted, tag_added, tag_removed, "
     "note_set, note_cleared, split_set, split_cleared, share_set, share_cleared, settlement_a"
-    "dded, settlement_deleted"
+    "dded, settlement_deleted, category_tax_set"
 )
 
 

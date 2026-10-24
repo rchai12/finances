@@ -113,6 +113,30 @@ def check_rule(
     return (clean, to_category(target))
 
 
+def set_tax_relevant(session: Session, name: str, tax: bool) -> Category:
+    """Set whether a category is tax-relevant. The caller commits."""
+    row = _category_row(session, name)
+    if row is None:
+        raise ValueError("category not found")
+    if row.parent_id is None:
+        raise ValueError("a group cannot be tax-relevant; mark its categories")
+    before = "tax" if row.is_tax else "not tax"
+    after = "tax" if tax else "not tax"
+    if before == after:
+        return to_category(row)
+    row.is_tax = tax
+    session.flush()
+    record_change(
+        session,
+        action="category_tax_set",
+        kind="category",
+        record_id=row.id,
+        before=before,
+        after=after,
+    )
+    return to_category(row)
+
+
 def create_rule(
     session: Session, pattern: str, category: str, match: str = "contains", priority: int = 0
 ) -> CategoryRule:

@@ -32,6 +32,7 @@ from finances.cli.reports import (
     recurring_command,
     spending_command,
     upcoming_command,
+    year_command,
 )
 from finances.cli.review import app as review_app
 from finances.cli.shared import shared_app
@@ -73,6 +74,7 @@ app.command("upcoming")(upcoming_command)
 app.command("forecast")(forecast_command)
 app.command("insights")(insights_command)
 app.command("merchants")(merchants_command)
+app.command("year")(year_command)
 app.command("health")(health_command)
 app.command("audit")(audit_command)
 

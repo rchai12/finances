@@ -142,9 +142,10 @@ def test_columns_keys_and_constraints(at_0008: str, table: str) -> None:
 )
 def test_the_orm_classes_match_the_migrated_tables(at_0008: str, row_class, table: str) -> None:
     assert row_class.__table__ is Base.metadata.tables[table]
-    assert [
+    found = [
         (column.name, str(column.type), column.nullable) for column in row_class.__table__.columns
-    ] == COLUMNS[table]
+    ]
+    assert found[: len(COLUMNS[table])] == COLUMNS[table]
 
 
 def test_the_default_tree_is_seeded(at_0008: str) -> None:

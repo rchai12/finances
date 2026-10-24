@@ -55,6 +55,7 @@ from finances.db.repositories.categories import (
     list_categories,
     list_rules,
     rename_category,
+    set_tax_relevant,
 )
 from finances.db.repositories.feed import (
     confirm_transaction,
@@ -269,6 +270,7 @@ __all__ = [
     "set_feed_account_ignored",
     "set_note",
     "set_split",
+    "set_tax_relevant",
     "share_of",
     "share_transaction",
     "split_by_sizes",

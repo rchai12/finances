@@ -12,6 +12,7 @@ from sqlalchemy import (
     MetaData,
     String,
     UniqueConstraint,
+    false,
 )
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
@@ -419,6 +420,9 @@ class CategoryRow(Base):
     is_transfer: Mapped[bool] = mapped_column(Boolean, nullable=False)
     is_income: Mapped[bool] = mapped_column(Boolean, nullable=False)
     is_sensitive: Mapped[bool] = mapped_column(Boolean, nullable=False)
+    is_tax: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False, server_default=false()
+    )
 
 
 class CategoryRuleRow(Base):
@@ -458,6 +462,7 @@ def to_category(row: CategoryRow) -> Category:
         is_transfer=row.is_transfer,
         is_income=row.is_income,
         is_sensitive=row.is_sensitive,
+        is_tax=row.is_tax,
     )
 
 

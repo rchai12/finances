@@ -13,10 +13,11 @@ from finances.analysis.months import month_report
 from finances.analysis.recurring import recurring_charges, recurring_income
 from finances.analysis.spending import spending_report
 from finances.analysis.upcoming import upcoming_report
+from finances.analysis.yearend import year_report
 from finances.cli.common import fail, print_rows, require_current_schema
 from finances.db.engine import get_engine, session_scope
 from finances.domain.periods import MONTHS_MAX
-from finances.domain.spending import month_bounds, month_range
+from finances.domain.spending import SpendingLine, month_bounds, month_range
 from finances.views.balances import balance_rows, balance_summary
 from finances.views.forecast import (
     account_heading,
@@ -35,8 +36,15 @@ from finances.views.insights import (
 )
 from finances.views.months import month_heading, month_notes, month_rows
 from finances.views.recurring import recurring_income_summary, recurring_rows, recurring_summary
-from finances.views.spending import spending_heading, spending_rows, spending_summary
+from finances.views.spending import (
+    line_rows,
+    spending_heading,
+    spending_rows,
+    spending_summary,
+    summary_lines,
+)
 from finances.views.upcoming import upcoming_heading, upcoming_rows, upcoming_summary
+from finances.views.yearend import year_heading
 
 
 def _range(month: str | None, start: datetime | None, end: datetime | None) -> tuple[date, date]:
@@ -272,3 +280,39 @@ def merchants_command(month: Annotated[str | None, _MONTH_OPTION] = None) -> Non
         return
     headings = ("Merchant", "Visits", "Spent", "Average", "Baseline", "Change", "Weekend")
     print_rows(headings, rows)
+
+
+def year_command(
+    year: Annotated[
+        int | None,
+        typer.Option("--year", min=1, max=9999, help="A calendar year."),
+    ] = None,
+) -> None:
+    """Show a calendar year's spending, and the tax-relevant categories."""
+    require_current_schema()
+    chosen = clock.today().year if year is None else year
+    with session_scope(get_engine()) as session:
+        try:
+            report = year_report(session, chosen)
+        except ValueError as error:
+            fail(str(error))
+    typer.echo(year_heading(report))
+    _year_section("By group:", "Group", report.groups)
+    _year_section("By category:", "Category", report.categories)
+    _year_section("Tax-relevant:", "Category", report.tax, empty="No tax-relevant categories.")
+    for line in summary_lines(report.summary):
+        typer.echo(line)
+
+
+def _year_section(
+    title: str,
+    heading: str,
+    lines: list[SpendingLine],
+    empty: str = "No spending.",
+) -> None:
+    typer.echo(title)
+    rows = line_rows(lines)
+    if rows:
+        print_rows((heading, "Spent", "Refunds", "Net", "Count"), rows)
+    else:
+        typer.echo(empty)

@@ -44,6 +44,7 @@ ACTIONS = (
     "share_cleared",
     "settlement_added",
     "settlement_deleted",
+    "category_tax_set",
 )
 KINDS = (
     "account",

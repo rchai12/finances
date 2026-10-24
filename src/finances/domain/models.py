@@ -199,6 +199,7 @@ class Category:
     is_transfer: bool
     is_income: bool
     is_sensitive: bool
+    is_tax: bool = False
 
 
 @dataclass(frozen=True)
