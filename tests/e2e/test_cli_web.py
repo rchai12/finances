@@ -4,13 +4,16 @@ from typer.testing import CliRunner
 from finances.cli import web as web_module
 from finances.cli.main import app
 from finances.config import Settings, get_settings
+from finances.web.login import set_password
 
 runner = CliRunner(env={"COLUMNS": "200"})
 
 
 @pytest.fixture
 def served(monkeypatch: pytest.MonkeyPatch) -> list[tuple[object, dict]]:
-    """Replace uvicorn.run so that no server starts; remember how it was called."""
+    """Replace uvicorn.run so that no server starts; remember how it was called. A password
+    is set, since serving needs one."""
+    set_password("correct horse battery", None)
     calls: list[tuple[object, dict]] = []
 
     def fake_run(app: object, **options: object) -> None:

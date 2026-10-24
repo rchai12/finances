@@ -736,3 +736,11 @@ Template:
 - Deviations: None
 - Follow-ups: None
 
+## Phase 20a: the household password and the lockout (2026-10-24)
+- Tests: 3847 -> 3887 (given 35)
+- New public names: `domain.login`: `PASSWORD_MIN`, `PASSWORD_MAX`, `check_new_password`, `hash_password`, `verify_password`, `lock_for`; `web.login`: `KEYCHAIN_SERVICE`, `Attempt`, `has_password`, `check_password`, `set_password`, `attempt`, `unlock`, `session_key`; `cli.web`: `password_command`, `unlock_command`
+- Changed files: 9
+- Deviations:
+  - Lockout state in the Keychain item is `count` or `count <ISO datetime>` (the spec left the text form open)
+- Follow-ups: None
+
