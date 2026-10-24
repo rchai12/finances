@@ -150,7 +150,7 @@ Details are in the phase specs. Core tables:
 - `categories` (groups and categories in one table, with transfer, income, and sensitive flags), `category_rules`, `transaction_categories` (each transaction's category and whether a rule or a person set it) (Phase 11a).
 - `transaction_tags` and `transaction_notes`: a person's labels on a transaction (many) and one note; deleted with a feed transaction (Phase 28c); shown on a transaction's page, and search filters by tag (Phase 28f).
 - `transaction_splits`: the parts of a split transaction, each with signed cents and a category, adding up to it exactly (`domain/splits.py`, critical); a split transaction counts as decided by a person (Phase 28d); reports grouped by category and search count its parts, analyses of charges at a merchant the whole transaction (Phase 28e); split and shown on a transaction's page (Phase 28g).
-- `shared_expenses` and `settlements`: who owes the payer for a transaction, and money paid back; netted into who owes whom by `domain/shared.py` (critical) (Phase 29a).
+- `shared_expenses` and `settlements`: who owes the payer for a transaction, and money paid back; netted into who owes whom by `domain/shared.py` (critical) (Phase 29a); `fin shared` (29b) and the Shared page (29c).
 - `merchant_aliases`: a cleaned merchant name merged into another, one step long; reports group by the merged name and a rule matches either name (Phase 28a).
 - `transfer_pairs` and `transfer_rejections`: an outflow and an inflow that are one transfer, and pairs the household said are not (Phase 11c).
 - `people`, `account_owners`, `cardholder_aliases`: who owns each account and who each statement cardholder name is (Phase 21).
