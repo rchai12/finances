@@ -35,8 +35,8 @@ def transaction_row(item: Transaction, person: str | None, names: dict[int, str]
 
 def found_rows(
     found: list[FoundTransaction], names: dict[int, str]
-) -> list[tuple[int, TransactionRow, str, bool]]:
-    """Each found transaction as its id, its row, its category, and whether it is a refund."""
+) -> list[tuple[int, TransactionRow, str, bool, int | None]]:
+    """Each found transaction as its id, row, category, refund flag, and part."""
     return [
         (
             item.transaction.id,
@@ -50,6 +50,7 @@ def found_rows(
             ),
             "" if item.flow.category == UNCATEGORIZED else item.flow.category,
             is_refund(item.flow),
+            item.part,
         )
         for item in found
     ]

@@ -18,7 +18,9 @@ from finances.db.repositories import (
     add_tags,
     clear_categories_by_hand,
     clear_category_by_hand,
+    clear_split,
     get_transaction,
+    list_categories,
     list_people,
     list_tags,
     note_of,
@@ -26,12 +28,15 @@ from finances.db.repositories import (
     set_categories_by_hand,
     set_category_by_hand,
     set_note,
+    split_by_sizes,
+    splits_for,
     tags_for,
 )
 from finances.domain.rules import MATCHES
+from finances.domain.splits import parse_parts
 from finances.views.categories import category_choices, transaction_detail
 from finances.views.refunds import refund_view, refunded_lines
-from finances.views.transactions import found_rows
+from finances.views.transactions import found_rows, part_lines
 from finances.views.transfers import transfer_line
 from finances.web.access import _reading
 from finances.web.forms import _REFUSALS, _Field, refused
@@ -133,7 +138,12 @@ def _missing_transaction(request: Request) -> Response:
 
 
 def _transaction_page(
-    request: Request, text: str, *, error: str | None = None, status_code: int = 200
+    request: Request,
+    text: str,
+    *,
+    error: str | None = None,
+    status_code: int = 200,
+    split_form: str = "",
 ) -> Response:
     transaction_id = _id(text)
     with _reading() as session:
@@ -145,6 +155,9 @@ def _transaction_page(
         facts = None if detail is None else refund_facts(session, detail.id)
         tags = [] if detail is None else tags_for(session, [detail.id]).get(detail.id, [])
         note = None if detail is None else note_of(session, detail.id)
+        names = {item.id: item.name for item in list_categories(session)}
+        stored = [] if detail is None else splits_for(session, [detail.id]).get(detail.id, [])
+        parts = part_lines(stored, names)
     if detail is None or facts is None:
         return _missing_transaction(request)
     refund = refund_view(facts, detail.amount)
@@ -160,6 +173,8 @@ def _transaction_page(
         "refunded": refunded,
         "tags": tags,
         "note": note,
+        "parts": parts,
+        "split_form": split_form,
     }
     return _render(request, "transactions_one", context, status_code)
 
@@ -262,7 +277,12 @@ def clear_category(request: Request, transaction_id: str, csrf: _Field = "") -> 
 
 
 def _write_on_transaction(
-    request: Request, transaction_id: str, csrf: str, apply: Callable[[int], str]
+    request: Request,
+    transaction_id: str,
+    csrf: str,
+    apply: Callable[[int], str],
+    *,
+    split_form: str = "",
 ) -> Response:
     stopped = refused(request, csrf)
     if stopped is not None:
@@ -273,7 +293,9 @@ def _write_on_transaction(
     try:
         notice = apply(found)
     except _REFUSALS as error:
-        return _transaction_page(request, transaction_id, error=str(error), status_code=400)
+        return _transaction_page(
+            request, transaction_id, error=str(error), status_code=400, split_form=split_form
+        )
     return _done(f"/transactions/{found}?notice={notice}")
 
 
@@ -306,5 +328,28 @@ def save_note(
     def apply(found: int) -> str:
         with _reading() as session:
             return "note-removed" if set_note(session, found, text) is None else "note-saved"
+
+    return _write_on_transaction(request, transaction_id, csrf, apply)
+
+
+@router.post("/transactions/{transaction_id}/split")
+def split_transaction(
+    request: Request, transaction_id: str, csrf: _Field = "", parts: _Field = ""
+) -> Response:
+    def apply(found: int) -> str:
+        with _reading() as session:
+            split_by_sizes(session, found, parse_parts(parts))
+        return "split-saved"
+
+    return _write_on_transaction(request, transaction_id, csrf, apply, split_form=parts)
+
+
+@router.post("/transactions/{transaction_id}/split/clear")
+def remove_split(request: Request, transaction_id: str, csrf: _Field = "") -> Response:
+    def apply(found: int) -> str:
+        with _reading() as session:
+            clear_split(session, found)
+            categorize(session)
+        return "split-removed"
 
     return _write_on_transaction(request, transaction_id, csrf, apply)

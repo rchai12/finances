@@ -61,6 +61,8 @@ NOTICES = {
     "tag-removed": "Tag removed.",
     "note-saved": "Note saved.",
     "note-removed": "Note removed.",
+    "split-saved": "Split saved.",
+    "split-removed": "Split removed, and the rules were run again.",
 }
 
 _TEMPLATES = Jinja2Templates(directory=Path(__file__).parent / "templates")

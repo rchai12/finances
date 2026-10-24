@@ -42,3 +42,7 @@ def parse_part(text: str) -> tuple[int, str]:
     if len(found) < 2:
         raise ValueError("a part is a size and a category, such as 12.00 Groceries")
     return parse_money(found[0]), found[1].strip()
+
+
+def parse_parts(text: str) -> list[tuple[int, str]]:
+    return [parse_part(line) for line in text.splitlines() if line.strip()]

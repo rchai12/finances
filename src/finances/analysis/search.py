@@ -41,6 +41,7 @@ class TransactionQuery:
 class FoundTransaction:
     transaction: Transaction
     flow: Flow
+    part: int | None = None
 
 
 def _check(session: Session, query: TransactionQuery) -> None:
@@ -88,9 +89,11 @@ def search_transactions(session: Session, query: TransactionQuery) -> list[Found
     found = []
     index = 0
     for transaction in transactions:
-        count = len(split[transaction.id]) if transaction.id in split else 1
-        for _ in range(count):
-            item = FoundTransaction(transaction, flows[index])
+        stored = split.get(transaction.id)
+        count = len(stored) if stored else 1
+        for offset in range(count):
+            part = None if not stored else stored[offset].position
+            item = FoundTransaction(transaction, flows[index], part)
             index += 1
             if _matches(item, wanted):
                 found.append(item)

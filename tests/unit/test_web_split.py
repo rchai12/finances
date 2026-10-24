@@ -48,6 +48,8 @@ ROUTES = {
     ("POST", "/transactions/{transaction_id}/tags/add"),
     ("POST", "/transactions/{transaction_id}/tags/remove"),
     ("POST", "/transactions/{transaction_id}/note"),
+    ("POST", "/transactions/{transaction_id}/split"),
+    ("POST", "/transactions/{transaction_id}/split/clear"),
     ("GET", "/statements"),
     ("POST", "/statements/upload"),
     ("GET", "/categories"),

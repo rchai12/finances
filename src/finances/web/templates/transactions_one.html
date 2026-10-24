@@ -41,6 +41,7 @@
 </form>
 </section>
 {% endif %}
+{% if not parts %}
 <section class="card">
 <h2>Set the category</h2>
 <form method="post" action="/transactions/{{ detail.id }}/category" class="fields">
@@ -54,6 +55,30 @@
 <form method="post" action="/transactions/{{ detail.id }}/category/clear" class="fields">
   <input type="hidden" name="csrf" value="{{ csrf }}">
   <button type="submit">Leave it to the rules</button>
+</form>
+{% endif %}
+</section>
+{% endif %}
+<section class="card">
+{% if parts %}
+<h2>Parts</h2>
+<table>
+<thead><tr><th>Part</th><th class="amount">Amount</th><th>Category</th></tr></thead>
+<tbody>
+{% for line in parts %}<tr><td>{{ line.part }}</td><td class="{{ line.amount|amount_class }}">{{ line.amount }}</td><td>{{ line.category }}</td></tr>
+{% endfor %}</tbody>
+</table>
+<form method="post" action="/transactions/{{ detail.id }}/split/clear" class="fields">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <button type="submit">Remove the split</button>
+</form>
+{% else %}
+<h2>Split</h2>
+<p class="hint">One part per line: its size and its category, such as 12.00 Groceries. The sizes add up to the amount.</p>
+<form method="post" action="/transactions/{{ detail.id }}/split" class="fields">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <label>Parts <textarea name="parts" rows="4">{{ split_form }}</textarea></label>
+  <button type="submit">Split</button>
 </form>
 {% endif %}
 </section>
