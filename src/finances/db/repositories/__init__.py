@@ -125,6 +125,7 @@ from finances.db.repositories.tags import (
     note_of,
     remove_tags,
     set_note,
+    tagged_with,
     tags_for,
 )
 from finances.db.repositories.transactions import (
@@ -259,6 +260,7 @@ __all__ = [
     "splits_for",
     "statement_covers",
     "statement_periods",
+    "tagged_with",
     "tags_for",
     "unpair_transfer",
     "update_feed_transaction",

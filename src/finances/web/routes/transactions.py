@@ -1,5 +1,6 @@
 """The Transactions pages, the bulk form, and the per-transaction category forms."""
 
+from collections.abc import Callable
 from urllib.parse import parse_qsl, urlencode
 
 from fastapi import APIRouter, Request
@@ -14,12 +15,18 @@ from finances.analysis.transfers import pair_of
 from finances.categorize.service import categorize
 from finances.db.repositories import (
     account_names,
+    add_tags,
     clear_categories_by_hand,
     clear_category_by_hand,
     get_transaction,
     list_people,
+    list_tags,
+    note_of,
+    remove_tags,
     set_categories_by_hand,
     set_category_by_hand,
+    set_note,
+    tags_for,
 )
 from finances.domain.rules import MATCHES
 from finances.views.categories import category_choices, transaction_detail
@@ -35,7 +42,17 @@ router = APIRouter()
 _DEFAULT_LIMIT = "50"
 _LIMIT_MAX = 1000
 TRANSACTION_NOT_FOUND = "transaction not found"
-_SEARCH_FIELDS = ("text", "account", "person", "category", "merchant", "group", "bank", "card")
+_SEARCH_FIELDS = (
+    "text",
+    "account",
+    "person",
+    "category",
+    "merchant",
+    "group",
+    "bank",
+    "card",
+    "tag",
+)
 _FILTER_FIELDS = (*_SEARCH_FIELDS, "kind", "from", "to", "limit")
 _KEPT = ("group", "bank", "card", "kind")
 
@@ -89,6 +106,7 @@ def _transactions_page(
             "people": [person.name for person in list_people(session)],
             "categories": category_choices(category_tree(session)),
         }
+        tag_choices = [item.tag for item in list_tags(session)]
         try:
             found = search_transactions(session, _search_query(chosen))
         except ValueError as refusal:
@@ -96,6 +114,7 @@ def _transactions_page(
             status_code = 400
     context = {
         "choices": choices,
+        "tag_choices": tag_choices,
         "special": (JOINT_FILTER, UNASSIGNED_FILTER),
         "chosen": chosen,
         "kept": [key for key in _KEPT if chosen[key]],
@@ -124,6 +143,8 @@ def _transaction_page(
         found = None if detail is None else pair_of(session, detail.id)
         transfer = None if found is None else transfer_line(found)
         facts = None if detail is None else refund_facts(session, detail.id)
+        tags = [] if detail is None else tags_for(session, [detail.id]).get(detail.id, [])
+        note = None if detail is None else note_of(session, detail.id)
     if detail is None or facts is None:
         return _missing_transaction(request)
     refund = refund_view(facts, detail.amount)
@@ -137,6 +158,8 @@ def _transaction_page(
         "error": error,
         "refund": refund,
         "refunded": refunded,
+        "tags": tags,
+        "note": note,
     }
     return _render(request, "transactions_one", context, status_code)
 
@@ -236,3 +259,52 @@ def clear_category(request: Request, transaction_id: str, csrf: _Field = "") -> 
         clear_category_by_hand(session, found)
         categorize(session)
     return _done(f"/transactions/{found}?notice=category-cleared")
+
+
+def _write_on_transaction(
+    request: Request, transaction_id: str, csrf: str, apply: Callable[[int], str]
+) -> Response:
+    stopped = refused(request, csrf)
+    if stopped is not None:
+        return stopped
+    found = _known_transaction(transaction_id)
+    if found is None:
+        return _missing_transaction(request)
+    try:
+        notice = apply(found)
+    except _REFUSALS as error:
+        return _transaction_page(request, transaction_id, error=str(error), status_code=400)
+    return _done(f"/transactions/{found}?notice={notice}")
+
+
+@router.post("/transactions/{transaction_id}/tags/add")
+def add_tag(request: Request, transaction_id: str, csrf: _Field = "", tag: _Field = "") -> Response:
+    def apply(found: int) -> str:
+        with _reading() as session:
+            add_tags(session, [found], tag)
+        return "tag-added"
+
+    return _write_on_transaction(request, transaction_id, csrf, apply)
+
+
+@router.post("/transactions/{transaction_id}/tags/remove")
+def remove_tag(
+    request: Request, transaction_id: str, csrf: _Field = "", tag: _Field = ""
+) -> Response:
+    def apply(found: int) -> str:
+        with _reading() as session:
+            remove_tags(session, [found], tag)
+        return "tag-removed"
+
+    return _write_on_transaction(request, transaction_id, csrf, apply)
+
+
+@router.post("/transactions/{transaction_id}/note")
+def save_note(
+    request: Request, transaction_id: str, csrf: _Field = "", text: _Field = ""
+) -> Response:
+    def apply(found: int) -> str:
+        with _reading() as session:
+            return "note-removed" if set_note(session, found, text) is None else "note-saved"
+
+    return _write_on_transaction(request, transaction_id, csrf, apply)

@@ -673,3 +673,10 @@ Template:
 - Deviations: None
 - Follow-ups: None
 
+## Phase 28f: tags and notes on the web (2026-10-23)
+- Tests: 3640 -> 3657 (given 9)
+- New public names: `db.repositories`: `tagged_with`; `analysis.search`: `TransactionQuery.tag`; `web.routes.transactions`: `POST /transactions/{id}/tags/add`, `.../tags/remove`, `.../note`
+- Changed files: 12
+- Deviations: None
+- Follow-ups: None
+

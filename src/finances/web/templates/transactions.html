@@ -31,6 +31,13 @@
       {% endfor %}
     </select>
   </label>
+  <label>Tag
+    <select name="tag">
+      <option value=""{% if not chosen.tag %} selected{% endif %}>Any tag</option>
+      {% for tag in tag_choices %}<option value="{{ tag }}"{% if tag == chosen.tag %} selected{% endif %}>{{ tag }}</option>
+      {% endfor %}
+    </select>
+  </label>
   <label>Merchant <input name="merchant" value="{{ chosen.merchant }}"></label>
   <label>From <input type="date" name="from" value="{{ chosen['from'] }}"></label>
   <label>To <input type="date" name="to" value="{{ chosen['to'] }}"></label>

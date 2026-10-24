@@ -58,6 +58,28 @@
 {% endif %}
 </section>
 <section class="card">
+<h2>Tags</h2>
+{% if tags %}<p class="tags">{% for tag in tags %}<a href="/transactions?tag={{ tag|urlencode }}">{{ tag }}</a>{% if not loop.last %}, {% endif %}{% endfor %}</p>
+{% for tag in tags %}<form method="post" action="/transactions/{{ detail.id }}/tags/remove" class="inline"><input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="tag" value="{{ tag }}"><button type="submit">Remove {{ tag }}</button></form>
+{% endfor %}
+{% else %}<p class="tags">No tags.</p>
+{% endif %}
+<form method="post" action="/transactions/{{ detail.id }}/tags/add" class="fields">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <label>Tag <input name="tag" required maxlength="30"></label>
+  <button type="submit">Add tag</button>
+</form>
+</section>
+<section class="card">
+<h2>Note</h2>
+{% if note %}<p class="note">{{ note }}</p>{% endif %}
+<form method="post" action="/transactions/{{ detail.id }}/note" class="fields">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <label>Note <textarea name="text" maxlength="500">{{ note or "" }}</textarea></label>
+  <button type="submit">Save note</button>
+</form>
+</section>
+<section class="card">
 <h2>Make a rule from this merchant</h2>
 {% with back = detail.id %}{% include "rule_form.html" %}{% endwith %}
 </section>

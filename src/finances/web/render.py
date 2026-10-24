@@ -57,6 +57,10 @@ NOTICES = {
     "budget-removed": "Budget removed.",
     "proposals-accepted": "Proposals accepted, as your choice.",
     "proposals-declined": "Proposals declined. The agent will not propose them again.",
+    "tag-added": "Tag added.",
+    "tag-removed": "Tag removed.",
+    "note-saved": "Note saved.",
+    "note-removed": "Note removed.",
 }
 
 _TEMPLATES = Jinja2Templates(directory=Path(__file__).parent / "templates")

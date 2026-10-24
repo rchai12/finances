@@ -12,6 +12,7 @@ from finances.db.repositories import (
     get_person_by_name,
     list_transactions_by_day,
     splits_for,
+    tagged_with,
 )
 from finances.domain.models import Transaction
 from finances.domain.spending import REFUND, SEARCH_KINDS, Flow, is_refund
@@ -33,6 +34,7 @@ class TransactionQuery:
     start: date | None = None
     end: date | None = None
     limit: int = 50
+    tag: str = ""
 
 
 @dataclass(frozen=True)
@@ -78,6 +80,9 @@ def search_transactions(session: Session, query: TransactionQuery) -> list[Found
     given = {name: getattr(query, name).strip() for name in ("text", "kind", *_LABELS)}
     wanted = {name: value for name, value in given.items() if value}
     transactions = list_transactions_by_day(session, query.start, query.end)
+    if query.tag.strip():
+        allowed = tagged_with(session, query.tag)
+        transactions = [item for item in transactions if item.id in allowed]
     split = splits_for(session, [item.id for item in transactions])
     flows = flows_for(session, transactions, parts=True)
     found = []

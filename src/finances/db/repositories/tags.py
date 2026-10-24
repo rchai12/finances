@@ -51,6 +51,13 @@ def remove_tags(session: Session, transaction_ids: Iterable[int], tag: str) -> t
     return len(ids), stored
 
 
+def tagged_with(session: Session, tag: str) -> set[int]:
+    """The ids of the transactions that carry this tag."""
+    stored = normalize_tag(tag)
+    stmt = select(TransactionTagRow.transaction_id).where(TransactionTagRow.tag == stored)
+    return set(session.scalars(stmt))
+
+
 def tags_for(session: Session, transaction_ids: Iterable[int]) -> dict[int, list[str]]:
     ids = list(transaction_ids)
     if not ids:
