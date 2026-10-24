@@ -185,4 +185,4 @@ Each person may have their own SimpleFIN subscription, since one person's bank l
 ## Open decisions
 
 - **Aggregator provider: decided, SimpleFIN Bridge** (Phase 17b). Still to confirm by linking: that all five banks connect, and the sign SimpleFIN gives a card balance (the drift check of Phase 17a will show a wrong sign). SimpleFIN reports pending transactions but no per-card identifier, so the cardholder on shared cards still comes from statements. As understood, SimpleFIN Bridge gets its bank connections from a larger aggregator, so two companies see the transactions.
-- **Remote access method.** The default above is a mesh VPN with the app on loopback. Confirm before Phase 20.
+- **Remote access method: decided, Tailscale Serve** (the owner, 2026-10-24): HTTPS ends on the Mac, which forwards to the app on 127.0.0.1; one household password behind it (Phase 20).
