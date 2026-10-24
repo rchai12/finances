@@ -34,6 +34,7 @@ from finances.cli.reports import (
     upcoming_command,
 )
 from finances.cli.review import app as review_app
+from finances.cli.shared import shared_app
 from finances.cli.splits import split_command as _register_split_commands  # noqa: F401
 from finances.cli.sync import app as sync_app
 from finances.cli.tags import tag_command as _register_tag_commands  # noqa: F401
@@ -60,6 +61,7 @@ app.add_typer(aliases_app, name="aliases")
 app.add_typer(transfers_app, name="transfers")
 app.add_typer(backup_app, name="backup")
 app.add_typer(budgets_app, name="budgets")
+app.add_typer(shared_app, name="shared")
 app.add_typer(review_app, name="review")
 app.command("categorize")(categorize_command)
 app.command("uncategorized")(uncategorized_command)

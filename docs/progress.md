@@ -694,3 +694,10 @@ Template:
 - Deviations: None
 - Follow-ups: None
 
+## Phase 29b: shared expenses in the terminal (2026-10-23)
+- Tests: 3713 -> 3736 (given 14)
+- New public names: `views.shared`: `ShareRow`, `SettlementRow`, `share_text`, `share_rows`, `owed_text`, `settlement_text`, `settlement_rows`; `cli.shared`: `shared_app`
+- Changed files: 7
+- Deviations: None
+- Follow-ups: None
+
