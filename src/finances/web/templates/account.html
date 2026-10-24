@@ -64,7 +64,7 @@
 <table>
 <thead><tr><th>Date</th><th>Description</th><th>Category</th><th class="amount">Amount</th><th>Card</th><th>Person</th></tr></thead>
 <tbody>
-{% for id, row, category, refund in transactions %}<tr><td><a href="/transactions/{{ id }}">{{ row.date }}</a></td><td>{{ row.description }}</td><td>{{ category }}{% if refund %} <span class="badge">refund</span>{% endif %}</td><td class="{{ row.amount|amount_class }}">{{ row.amount }}</td><td>{{ row.card }}</td><td>{{ row.person }}</td></tr>
+{% for id, row, category, refund, part in transactions %}<tr><td><a href="/transactions/{{ id }}">{{ row.date }}</a></td><td>{{ row.description }}</td><td>{{ category }}{% if refund %} <span class="badge">refund</span>{% endif %}</td><td class="{{ row.amount|amount_class }}">{{ row.amount }}</td><td>{{ row.card }}</td><td>{{ row.person }}</td></tr>
 {% endfor %}</tbody>
 </table>
 {% else %}

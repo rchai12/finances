@@ -680,3 +680,10 @@ Template:
 - Deviations: None
 - Follow-ups: None
 
+## Phase 28g: splits on the web (2026-10-23)
+- Tests: 3657 -> 3678 (given 13)
+- New public names: `domain.splits`: `parse_parts`; `analysis.search`: `FoundTransaction.part`; `views.transactions`: fifth value of `found_rows`; `web.routes.transactions`: `POST /transactions/{id}/split`, `.../split/clear`
+- Changed files: 13
+- Deviations: None
+- Follow-ups: None
+
