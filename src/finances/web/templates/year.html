@@ -10,6 +10,7 @@
 {% if report %}
 <p class="years">{% if report.previous %}<a href="/year?year={{ report.previous }}">{{ report.previous }}</a>{% endif %}{% if report.previous and report.next %} · {% endif %}{% if report.next %}<a href="/year?year={{ report.next }}">{{ report.next }}</a>{% endif %}</p>
 <p class="summary">{{ report.heading }}</p>
+<p class="download"><a href="/export/year?year={{ chosen }}">Download CSV</a></p>
 {% for title, by, rows, empty in report.sections %}
 <section class="card">
 <h2>{{ title }}</h2>

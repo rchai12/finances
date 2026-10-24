@@ -729,3 +729,10 @@ Template:
 - Deviations: None
 - Follow-ups: None
 
+## Phase 30d: export from the web (2026-10-24)
+- Tests: 3828 -> 3847 (given 10)
+- New public names: `analysis.export`: `export_lines`; `web.routes.export`: `GET /export/transactions`, `GET /export/year`, `GET /export/spending`
+- Changed files: 10
+- Deviations: None
+- Follow-ups: None
+

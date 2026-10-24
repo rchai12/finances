@@ -64,6 +64,7 @@
 <p class="year-link"><a href="/year">The year's totals</a></p>
 {% if spending %}
 <p class="summary">{{ spending.heading }}</p>
+<p class="download"><a href="/export/spending?from={{ spending.start }}&amp;to={{ spending.end }}&amp;by={{ spending.by }}">Download CSV</a></p>
 {% if spending.rows %}
 <table>
 <thead><tr><th>{{ spending.by|capitalize }}</th><th class="amount">Spent</th><th class="amount">Refunds</th><th class="amount">Net</th><th class="amount">Count</th></tr></thead>

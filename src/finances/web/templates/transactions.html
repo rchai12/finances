@@ -46,6 +46,7 @@
   {% endfor %}<button type="submit">Show</button>
 </form>
 <p class="quick"><a href="/transactions?kind=refund">Only refunds</a></p>
+<p class="download"><a href="/export/transactions{% if back %}?{{ back }}{% endif %}">Download these as CSV</a></p>
 {% if kept %}<p class="hint">Also filtered by: {% for key in kept %}{{ key }} {{ chosen[key] }}{% if not loop.last %}, {% endif %}{% endfor %}. <a href="/transactions">Clear all filters</a></p>{% endif %}
 {% if rows %}
 <p class="selection"><a href="/transactions?{{ select_all_query }}">Select all shown</a> <a href="/transactions?{{ back }}">Clear the selection</a></p>

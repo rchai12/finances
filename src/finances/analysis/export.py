@@ -1,6 +1,6 @@
 """Transactions gathered for a CSV export, one line per flow."""
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import date
 
 from sqlalchemy.orm import Session
@@ -20,10 +20,8 @@ class ExportLine:
     note: str | None
 
 
-def transactions_for_export(session: Session, start: date, end: date) -> list[ExportLine]:
-    if start > end:
-        raise ValueError("the start date is after the end date")
-    found = search_transactions(session, TransactionQuery(start=start, end=end, limit=_ALL))
+def export_lines(session: Session, query: TransactionQuery) -> list[ExportLine]:
+    found = search_transactions(session, replace(query, limit=_ALL))
     found.sort(
         key=lambda item: (
             item.transaction.posted_date,
@@ -49,3 +47,9 @@ def transactions_for_export(session: Session, start: date, end: date) -> list[Ex
         )
         for item in found
     ]
+
+
+def transactions_for_export(session: Session, start: date, end: date) -> list[ExportLine]:
+    if start > end:
+        raise ValueError("the start date is after the end date")
+    return export_lines(session, TransactionQuery(start=start, end=end))
