@@ -161,6 +161,14 @@ def list_shares(session: Session) -> list[Share]:
     return [_to_share(row, names) for row in session.scalars(stmt).all()]
 
 
+def share_of(session: Session, transaction_id: int) -> Share | None:
+    """Return the transaction's share, or None."""
+    row = _share_row(session, transaction_id)
+    if row is None:
+        return None
+    return _to_share(row, _people_names(session))
+
+
 def record_settlement(
     session: Session, payer: str, payee: str, amount_cents: int, day: date
 ) -> Settlement:

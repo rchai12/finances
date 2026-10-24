@@ -111,6 +111,7 @@ from finances.db.repositories.shared import (
     list_settlements,
     list_shares,
     record_settlement,
+    share_of,
     share_transaction,
     unshare_transaction,
 )
@@ -268,6 +269,7 @@ __all__ = [
     "set_feed_account_ignored",
     "set_note",
     "set_split",
+    "share_of",
     "share_transaction",
     "split_by_sizes",
     "splits_for",

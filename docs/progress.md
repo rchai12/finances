@@ -701,3 +701,10 @@ Template:
 - Deviations: None
 - Follow-ups: None
 
+## Phase 29c: shared expenses on the web (2026-10-23)
+- Tests: 3736 -> 3765 (given 10)
+- New public names: `db.repositories`: `share_of`; `web.routes.shared`: `GET /shared`, `POST /shared/settle`, `POST /shared/settlements/delete`, `POST /transactions/{id}/share`, `POST /transactions/{id}/share/clear`
+- Changed files: 14
+- Deviations: None
+- Follow-ups: None
+

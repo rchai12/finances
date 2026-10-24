@@ -28,6 +28,7 @@ from finances.db.repositories import (
     set_categories_by_hand,
     set_category_by_hand,
     set_note,
+    share_of,
     split_by_sizes,
     splits_for,
     tags_for,
@@ -36,6 +37,7 @@ from finances.domain.rules import MATCHES
 from finances.domain.splits import parse_parts
 from finances.views.categories import category_choices, transaction_detail
 from finances.views.refunds import refund_view, refunded_lines
+from finances.views.shared import share_text
 from finances.views.transactions import found_rows, part_lines
 from finances.views.transfers import transfer_line
 from finances.web.access import _reading
@@ -144,6 +146,7 @@ def _transaction_page(
     error: str | None = None,
     status_code: int = 200,
     split_form: str = "",
+    share_form: dict[str, str] | None = None,
 ) -> Response:
     transaction_id = _id(text)
     with _reading() as session:
@@ -158,6 +161,9 @@ def _transaction_page(
         names = {item.id: item.name for item in list_categories(session)}
         stored = [] if detail is None else splits_for(session, [detail.id]).get(detail.id, [])
         parts = part_lines(stored, names)
+        people = [person.name for person in list_people(session)]
+        stored_share = None if detail is None else share_of(session, detail.id)
+        share = None if stored_share is None else share_text(stored_share)
     if detail is None or facts is None:
         return _missing_transaction(request)
     refund = refund_view(facts, detail.amount)
@@ -175,6 +181,11 @@ def _transaction_page(
         "note": note,
         "parts": parts,
         "split_form": split_form,
+        "share": share,
+        "people": people,
+        "share_form": share_form
+        if share_form is not None
+        else {"debtor": "", "payer": "", "share": ""},
     }
     return _render(request, "transactions_one", context, status_code)
 

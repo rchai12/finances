@@ -1,0 +1,59 @@
+{% extends "layout.html" %}
+{% block title %}Shared · Finances{% endblock %}
+{% block content %}
+<h1>Shared</h1>
+{% include "messages.html" %}
+<section class="card">
+<h2>Who owes whom</h2>
+{% for line in owed %}<p class="owed">{{ line }}</p>
+{% else %}<p class="owed">Nobody owes anybody.</p>
+{% endfor %}
+</section>
+<section class="card">
+<h2>Shared transactions</h2>
+{% if shares %}
+<table>
+<thead><tr><th>ID</th><th>Paid by</th><th>Owes</th><th class="amount">Owed</th></tr></thead>
+<tbody>
+{% for row in shares %}<tr><td><a href="/transactions/{{ row.id }}">{{ row.id }}</a></td><td>{{ row.paid_by }}</td><td>{{ row.owes }}</td><td class="{{ row.owed|amount_class }}">{{ row.owed }}</td></tr>
+{% endfor %}</tbody>
+</table>
+{% else %}
+<p class="empty">No shared transactions. Share one from its page.</p>
+{% endif %}
+</section>
+<section class="card">
+<h2>Settlements</h2>
+{% if settlements %}
+<table>
+<thead><tr><th>ID</th><th>Date</th><th>From</th><th>To</th><th class="amount">Amount</th><th></th></tr></thead>
+<tbody>
+{% for row in settlements %}<tr><td>{{ row.id }}</td><td>{{ row.date }}</td><td>{{ row.payer }}</td><td>{{ row.payee }}</td><td class="{{ row.amount|amount_class }}">{{ row.amount }}</td><td><form method="post" action="/shared/settlements/delete" class="inline"><input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="settlement" value="{{ row.id }}"><button type="submit">Delete</button></form></td></tr>
+{% endfor %}</tbody>
+</table>
+{% else %}
+<p class="empty">No settlements.</p>
+{% endif %}
+</section>
+<section class="card">
+<h2>Record a settlement</h2>
+<form method="post" action="/shared/settle" class="fields">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <label>From
+    <select name="payer">
+      {% for name in people %}<option value="{{ name }}"{% if name == settle_form.payer %} selected{% endif %}>{{ name }}</option>
+      {% endfor %}
+    </select>
+  </label>
+  <label>To
+    <select name="payee">
+      {% for name in people %}<option value="{{ name }}"{% if name == settle_form.payee %} selected{% endif %}>{{ name }}</option>
+      {% endfor %}
+    </select>
+  </label>
+  <label>Amount <input name="amount" required inputmode="decimal" value="{{ settle_form.amount }}"></label>
+  <label>Date <input type="date" name="day" value="{{ settle_form.day }}"></label>
+  <button type="submit">Record</button>
+</form>
+</section>
+{% endblock %}
