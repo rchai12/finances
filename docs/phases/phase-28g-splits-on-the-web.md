@@ -18,13 +18,13 @@
 
 ## Starting state
 
-N is `3657` when Phase 28f is the last phase built. The newest migration is `0019`; this phase adds none. `found_rows` gives four values per row today; the given Transactions template takes five, so every earlier test that shows a row of that page fails until R7 is built (70 of them, all for that one reason). With today's Transactions template, every earlier integration and end-to-end test passes against the given transaction page (2036).
+N is `3657` when Phase 28f is the last phase built. The newest migration is `0019`; this phase adds none. `found_rows` gives four values per row today; the given Transactions template takes five, so every earlier test that shows a row of that page fails until R7 is built (70 of them, all for that one reason). With today's Transactions template, every earlier integration and end-to-end test passes against the given transaction page (2036). `found_rows` has two callers: the Transactions page and the account page (`web/routes/accounts.py`, whose `account.html` unpacks its rows too); the given diff changes both templates. **Amended after the first build:** the first version of this spec left `account.html` out, so five account-page tests failed with the new rows; the given diff now unpacks the fifth value there and ignores it.
 
 ## Scope
 
 | Path | What changes |
 |---|---|
-| `src/finances/web/templates/transactions_one.html`, `transactions.html` | the given diff (R1, R7) |
+| `src/finances/web/templates/transactions_one.html`, `transactions.html`, `account.html` | the given diff (R1, R7) |
 | `src/finances/web/routes/transactions.py` | the page's new context, two routes (R1 to R4) |
 | `src/finances/web/render.py` | two notices (R5) |
 | `src/finances/domain/splits.py` | `parse_parts` (R6) |
@@ -92,7 +92,7 @@ New context of a transaction's page, on every render:
 ### The rule and the Transactions page
 
 - **R6.** `parse_parts` as designed; it is covered 100% by `tests/unit/test_split_lines.py`, and `domain/splits.py` stays critical.
-- **R7.** `search_transactions` sets `part` to each part's position on the items it gives for a split transaction, and leaves it None otherwise. `found_rows` gives it as each row's fifth value. Nothing else in search, its rows, or the `list_transactions` tool changes.
+- **R7.** `search_transactions` sets `part` to each part's position on the items it gives for a split transaction, and leaves it None otherwise. `found_rows` gives it as each row's fifth value; the account page takes the five values and shows no badge (the given diff). Nothing else in search, its rows, or the `list_transactions` tool changes.
 - **R8.** Apply the given diff to `tests/unit/test_web_split.py`. No other earlier test changes.
 
 ## Given template diff
@@ -100,6 +100,19 @@ New context of a transaction's page, on every render:
 Applied to `src/finances/web/templates/` (do not change).
 
 ```text
+diff --git a/src/finances/web/templates/account.html b/src/finances/web/templates/account.html
+index cc8ed0b..d11ee75 100644
+--- a/src/finances/web/templates/account.html
++++ b/src/finances/web/templates/account.html
+@@ -64,7 +64,7 @@
+ <table>
+ <thead><tr><th>Date</th><th>Description</th><th>Category</th><th class="amount">Amount</th><th>Card</th><th>Person</th></tr></thead>
+ <tbody>
+-{% for id, row, category, refund in transactions %}<tr><td><a href="/transactions/{{ id }}">{{ row.date }}</a></td><td>{{ row.description }}</td><td>{{ category }}{% if refund %} <span class="badge">refund</span>{% endif %}</td><td class="{{ row.amount|amount_class }}">{{ row.amount }}</td><td>{{ row.card }}</td><td>{{ row.person }}</td></tr>
++{% for id, row, category, refund, part in transactions %}<tr><td><a href="/transactions/{{ id }}">{{ row.date }}</a></td><td>{{ row.description }}</td><td>{{ category }}{% if refund %} <span class="badge">refund</span>{% endif %}</td><td class="{{ row.amount|amount_class }}">{{ row.amount }}</td><td>{{ row.card }}</td><td>{{ row.person }}</td></tr>
+ {% endfor %}</tbody>
+ </table>
+ {% else %}
 diff --git a/src/finances/web/templates/transactions.html b/src/finances/web/templates/transactions.html
 index 7a69459..ee5bd9e 100644
 --- a/src/finances/web/templates/transactions.html

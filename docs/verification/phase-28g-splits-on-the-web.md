@@ -4,6 +4,8 @@ Spec: `docs/phases/phase-28g-splits-on-the-web.md`. Follow `docs/phase-conventio
 
 The coder put 28e's splits on a transaction's page (a Parts card or a Split card, two form routes, two notices), added `parse_parts` to the critical `domain/splits.py`, and gave search and its rows each part's position so the Transactions page marks parts. A template diff, a diff to one earlier test, and two test files were given.
 
+**28g was committed before verification**, then this spec was amended to add `account.html`. Review the whole phase against the spec's commit: "the diff" is `git diff 092b179` plus `git status --short`, not `git diff HEAD`.
+
 These are correct and must not be reported: the two routes sharing a private helper with 28f's; `part_lines` given the category names from `list_categories` or `category_tree`; `search_transactions` numbering parts by counting or from `SplitPart.position`, as long as a part's number is its position.
 
 ## 1. Gates
@@ -15,7 +17,7 @@ N is `3657` when Phase 28f was the last phase built.
 | `.venv/bin/python scripts/check.py` | last line `All checks passed.` (its critical coverage step includes `domain/splits.py`); at least N + 13 passed, 0 failed, 0 skipped, 0 xfailed |
 | `.venv/bin/python -m pytest tests/unit/test_split_lines.py tests/integration/test_web_splits.py --no-cov` | exactly `13 passed` |
 | `.venv/bin/python -m pytest -o addopts="" --import-mode=importlib --cov=finances.domain.splits --cov=finances.analysis.search --cov=finances.views.transactions --cov=finances.web.routes.transactions --cov-branch --cov-report=term-missing --cov-fail-under=100` | `Required test coverage of 100% reached` |
-| `git diff --stat HEAD -- tests` | only `tests/unit/test_web_split.py` |
+| `git diff --stat 092b179 -- tests` | `tests/unit/test_web_split.py` and the three new test files only |
 
 This search must print nothing:
 
@@ -23,7 +25,7 @@ This search must print nothing:
 
 ## 2. Scope paths
 
-`git status --short` lists `docs/progress.md`, the source files and the two templates of the spec's Scope, `tests/unit/test_web_split.py`, and three new test files. The templates and the test diff equal the spec's.
+`git diff --stat 092b179` and `git status --short` together list `docs/progress.md`, the source files and the three templates of the spec's Scope, `tests/unit/test_web_split.py`, and three new test files. The templates and the test diff equal the spec's.
 
 ## 3. Requirement checklist
 
@@ -53,6 +55,7 @@ Each row below is one change to the named function. The deciding test must fail 
 | 1. `parse_parts`: blank lines not skipped | given `"\n  12.00 Groceries  \r\n\n 8 Dining\n"` | two parts | the size-and-category message |
 | 2. `search_transactions`: parts numbered from 0 | given `test_parts_on_the_transactions_page` | `Dining part 1` | `Dining` (0 shows no badge) |
 | 3. `found_rows`: the part left out | given `test_parts_on_the_transactions_page` | `Groceries part 2` | an unpack error |
+| 7. `account.html`: four values unpacked | earlier `tests/integration/test_web_account_page.py` | pass | too many values to unpack |
 | 4. `_transaction_page`: `parts` left empty | given `test_a_split_transactions_page` | the parts table, no category form | the category form, no table |
 | 5. the split route: the 400 page without the typed text | given `test_a_refused_split_keeps_what_was_typed` | the text in the box | an empty box |
 | 6. the clear route: no categorize run | coder: a split whose merchant a rule matches, removed | the rule's category | none |
