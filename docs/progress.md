@@ -715,3 +715,10 @@ Template:
 - Deviations: None
 - Follow-ups: None
 
+## Phase 30b: the year and the tax flag on the web (2026-10-24)
+- Tests: 3782 -> 3802 (given 14)
+- New public names: `views.yearend`: `year_page`; `web.routes.reports`: `GET /year`; `web.routes.categories`: `POST /categories/tax`
+- Changed files: 11
+- Deviations: None
+- Follow-ups: None
+

@@ -14,6 +14,7 @@ from finances.analysis.networth import net_worth_over_time
 from finances.analysis.recurring import recurring_charges
 from finances.analysis.spending import spending_report
 from finances.analysis.upcoming import upcoming_report
+from finances.analysis.yearend import year_report
 from finances.domain.spending import BY, month_bounds, month_range
 from finances.views.balances import balance_rows, balance_summary
 from finances.views.charts import net_worth_chart
@@ -37,14 +38,16 @@ from finances.views.networth import net_worth_rows
 from finances.views.recurring import recurring_rows, recurring_summary
 from finances.views.spending import spending_heading, spending_rows, spending_summary
 from finances.views.upcoming import upcoming_heading, upcoming_rows, upcoming_summary
+from finances.views.yearend import year_page
 from finances.web import app as web_app
 from finances.web.access import _reading
-from finances.web.helpers import _day
+from finances.web.helpers import _WHOLE, _day
 from finances.web.render import _not_migrated, _render
 
 router = APIRouter()
 _REPORT_MONTHS = 6
 DAYS_REFUSED = "days must be a whole number from 1 to 90"
+YEAR_REFUSED = "year must be from 1 to 9999"
 
 
 def _days(text: str) -> int:
@@ -202,3 +205,27 @@ def ahead(request: Request) -> Response:
             },
         }
         return _render(request, "ahead", context)
+
+
+@router.get("/year")
+def year(request: Request) -> Response:
+    stopped = _not_migrated(request)
+    if stopped is not None:
+        return stopped
+    text = request.query_params.get("year", "")
+    if not text:
+        number = web_app._today().year
+    elif _WHOLE.fullmatch(text) is None:
+        return _render(
+            request, "year", {"report": None, "error": YEAR_REFUSED, "chosen": text}, 400
+        )
+    else:
+        number = int(text)
+    with _reading() as session:
+        try:
+            found = year_report(session, number)
+        except ValueError as error:
+            return _render(
+                request, "year", {"report": None, "error": str(error), "chosen": text}, 400
+            )
+    return _render(request, "year", {"report": year_page(found), "chosen": str(found.year)})

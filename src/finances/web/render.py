@@ -67,6 +67,8 @@ NOTICES = {
     "settlement-deleted": "Settlement deleted.",
     "share-saved": "Share saved.",
     "share-removed": "Share removed.",
+    "tax-set": "Marked tax-relevant.",
+    "tax-cleared": "No longer tax-relevant.",
 }
 
 _TEMPLATES = Jinja2Templates(directory=Path(__file__).parent / "templates")

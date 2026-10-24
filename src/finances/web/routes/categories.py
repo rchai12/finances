@@ -25,6 +25,7 @@ from finances.db.repositories import (
     list_categories,
     list_rules,
     rename_category,
+    set_tax_relevant,
 )
 from finances.domain.rules import MATCHES
 from finances.views.categories import (
@@ -88,6 +89,7 @@ def _categories_page(
             "delete_form": delete_form or {"name": "", "move_to": ""},
             "aliases": alias_rows(list_aliases(session)),
             "alias_form": alias_form if alias_form is not None else {"source": "", "target": ""},
+            "tax_categories": [item.name for item in list_categories(session) if item.is_tax],
             "preview": preview,
             "error": error,
         }
@@ -229,6 +231,24 @@ def unmerge_merchants(request: Request, csrf: _Field = "", source: _Field = "") 
     except _REFUSALS as error:
         return _categories_page(request, error=str(error), status_code=400)
     return _done("/categories?notice=merchant-unmerged")
+
+
+@router.post("/categories/tax")
+def set_tax(
+    request: Request, csrf: _Field = "", category: _Field = "", tax: _Field = ""
+) -> Response:
+    stopped = refused(request, csrf)
+    if stopped is not None:
+        return stopped
+    if tax not in ("on", "off"):
+        return _categories_page(request, error="tax must be on or off", status_code=400)
+    try:
+        with _reading() as session:
+            set_tax_relevant(session, category, tax == "on")
+    except _REFUSALS as error:
+        return _categories_page(request, error=str(error), status_code=400)
+    notice = "tax-set" if tax == "on" else "tax-cleared"
+    return _done(f"/categories?notice={notice}")
 
 
 @router.post("/categories/rules/delete")
