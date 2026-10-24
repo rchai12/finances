@@ -62,6 +62,7 @@ finances/
       parsers/                  one module per statement format (Capital One, BoA, Citi, Truist, Marcus)
     sync/                       SimpleFIN client and daily sync (the ONLY place with network)
     categorize/                 the categorize run and transfer pairing
+    export/                     CSV files written to a local folder (Phase 30c); no network
     analysis/                   reports, search, insights, recurring, upcoming, forecast, net worth, refunds, health, budgets, the dashboard: load through db, apply domain rules
     views/                      display rows (text) built once for cli and web
     cli/                        Typer commands (thin)
