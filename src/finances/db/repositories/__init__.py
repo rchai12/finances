@@ -109,6 +109,7 @@ from finances.db.repositories.proposals import (
 from finances.db.repositories.splits import (
     clear_split,
     set_split,
+    split_by_sizes,
     splits_for,
 )
 from finances.db.repositories.statements import (
@@ -254,9 +255,10 @@ __all__ = [
     "set_feed_account_ignored",
     "set_note",
     "set_split",
+    "split_by_sizes",
+    "splits_for",
     "statement_covers",
     "statement_periods",
-    "splits_for",
     "tags_for",
     "unpair_transfer",
     "update_feed_transaction",

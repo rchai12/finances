@@ -43,7 +43,9 @@ class SpendingReport:
     summary: SpendingSummary
 
 
-def flows_for(session: Session, transactions: Iterable[Transaction]) -> list[Flow]:
+def flows_for(
+    session: Session, transactions: Iterable[Transaction], *, parts: bool = False
+) -> list[Flow]:
     """One flow per transaction, in the order given; a pending one is of the kind PENDING."""
     categories = {category.id: category for category in list_categories(session)}
     assignments = list_category_assignments(session)
@@ -62,12 +64,34 @@ def flows_for(session: Session, transactions: Iterable[Transaction]) -> list[Flo
         assignment = assignments.get(item.id)
         category = None if assignment is None else categories[assignment.category_id]
         account = accounts[item.account_id]
+        merchant = merchant_name(item.description, aliases)
+        person = attribution.person(item) or UNASSIGNED
+        day = item.transaction_date or item.posted_date
+        card = item.card_last4 or NO_CARD
+        if parts and item.id in split:
+            for part in split[item.id]:
+                leaf = categories[part.category_id]
+                flows.append(
+                    Flow(
+                        amount_cents=part.amount_cents,
+                        day=day,
+                        kind=flow_kind(part.amount_cents, paired=False, category=leaf),
+                        category=leaf.name,
+                        group=categories[leaf.group_id].name,
+                        merchant=merchant,
+                        person=person,
+                        account=account.name,
+                        bank=account.institution,
+                        card=card,
+                    )
+                )
+            continue
         labeled = SPLIT if item.id in split else None
         kind_category = None if labeled is not None else category
         flows.append(
             Flow(
                 amount_cents=item.amount_cents,
-                day=item.transaction_date or item.posted_date,
+                day=day,
                 kind=PENDING
                 if item.is_pending
                 else flow_kind(item.amount_cents, paired=item.id in paired, category=kind_category),
@@ -77,19 +101,19 @@ def flows_for(session: Session, transactions: Iterable[Transaction]) -> list[Flo
                 group=labeled
                 if labeled is not None
                 else (UNCATEGORIZED if category is None else categories[category.group_id].name),
-                merchant=merchant_name(item.description, aliases),
-                person=attribution.person(item) or UNASSIGNED,
+                merchant=merchant,
+                person=person,
                 account=account.name,
                 bank=account.institution,
-                card=item.card_last4 or NO_CARD,
+                card=card,
             )
         )
     return flows
 
 
-def load_flows(session: Session, start: date, end: date) -> list[Flow]:
+def load_flows(session: Session, start: date, end: date, *, parts: bool = False) -> list[Flow]:
     """One flow per posted transaction whose day is from start to end."""
-    return flows_for(session, list_transactions_between(session, start, end))
+    return flows_for(session, list_transactions_between(session, start, end), parts=parts)
 
 
 def spending_report(
@@ -98,5 +122,5 @@ def spending_report(
     check_by(by)
     if start > end:
         raise ValueError("the start date is after the end date")
-    flows = load_flows(session, start, end)
+    flows = load_flows(session, start, end, parts=True)
     return SpendingReport(start, end, by, spending_lines(flows, by), summarize(flows))

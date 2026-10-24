@@ -22,7 +22,7 @@ def budget_report(session: Session, start: date, today: date) -> list[BudgetLine
         )
         for budget in list_budgets(session)
     ]
-    flows = load_flows(session, start, end)
+    flows = load_flows(session, start, end, parts=True)
     by_category = {line.label: line.spent_cents for line in spending_lines(flows, "category")}
     by_group = {line.label: line.spent_cents for line in spending_lines(flows, "group")}
     return budget_lines(targets, by_category, by_group, start, end, today)

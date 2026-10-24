@@ -34,6 +34,7 @@ from finances.cli.reports import (
     upcoming_command,
 )
 from finances.cli.review import app as review_app
+from finances.cli.splits import split_command as _register_split_commands  # noqa: F401
 from finances.cli.sync import app as sync_app
 from finances.cli.tags import tag_command as _register_tag_commands  # noqa: F401
 from finances.cli.transfers import transfers_app

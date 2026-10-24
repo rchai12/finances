@@ -7,7 +7,7 @@ from finances.db.orm import CategoryRow, TransactionRow, TransactionSplitRow, to
 from finances.db.repositories.audit import record_change
 from finances.db.repositories.categories import _leaf_category
 from finances.db.repositories.transactions import _require_transaction
-from finances.domain.splits import SplitPart, check_split
+from finances.domain.splits import SplitPart, check_split, signed_parts
 
 
 def _is_split(session: Session, transaction_id: int) -> bool:
@@ -89,6 +89,19 @@ def clear_split(session: Session, transaction_id: int) -> None:
         kind="transaction",
         record_id=transaction_id,
         before=before,
+    )
+
+
+def split_by_sizes(
+    session: Session, transaction_id: int, parts: Sequence[tuple[int, str]]
+) -> list[SplitPart]:
+    """Sign each size as the transaction is, then store the parts. The caller commits."""
+    _require_transaction(session, transaction_id)
+    row = session.get(TransactionRow, transaction_id)
+    assert row is not None
+    signed = signed_parts(row.amount_cents, [size for size, _name in parts])
+    return set_split(
+        session, transaction_id, list(zip(signed, [name for _size, name in parts], strict=True))
     )
 
 

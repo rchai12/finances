@@ -11,6 +11,7 @@ from finances.db.repositories import (
     get_account_by_name,
     get_person_by_name,
     list_transactions_by_day,
+    splits_for,
 )
 from finances.domain.models import Transaction
 from finances.domain.spending import REFUND, SEARCH_KINDS, Flow, is_refund
@@ -77,11 +78,17 @@ def search_transactions(session: Session, query: TransactionQuery) -> list[Found
     given = {name: getattr(query, name).strip() for name in ("text", "kind", *_LABELS)}
     wanted = {name: value for name, value in given.items() if value}
     transactions = list_transactions_by_day(session, query.start, query.end)
+    split = splits_for(session, [item.id for item in transactions])
+    flows = flows_for(session, transactions, parts=True)
     found = []
-    for transaction, flow in zip(transactions, flows_for(session, transactions), strict=True):
-        item = FoundTransaction(transaction, flow)
-        if _matches(item, wanted):
-            found.append(item)
-            if len(found) == query.limit:
-                break
+    index = 0
+    for transaction in transactions:
+        count = len(split[transaction.id]) if transaction.id in split else 1
+        for _ in range(count):
+            item = FoundTransaction(transaction, flows[index])
+            index += 1
+            if _matches(item, wanted):
+                found.append(item)
+                if len(found) == query.limit:
+                    return found
     return found

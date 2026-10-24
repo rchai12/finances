@@ -1,11 +1,12 @@
 """One transaction, as `fin transactions list` and the Transactions page show it."""
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
 from finances.analysis.search import FoundTransaction
 from finances.domain.models import Transaction
 from finances.domain.money import format_cents
 from finances.domain.spending import UNASSIGNED, UNCATEGORIZED, is_refund
+from finances.domain.splits import SplitPart
 from finances.views.format import mask_last4
 
 
@@ -39,13 +40,30 @@ def found_rows(
     return [
         (
             item.transaction.id,
-            transaction_row(
-                item.transaction,
-                None if item.flow.person == UNASSIGNED else item.flow.person,
-                names,
+            replace(
+                transaction_row(
+                    item.transaction,
+                    None if item.flow.person == UNASSIGNED else item.flow.person,
+                    names,
+                ),
+                amount=format_cents(item.flow.amount_cents),
             ),
             "" if item.flow.category == UNCATEGORIZED else item.flow.category,
             is_refund(item.flow),
         )
         for item in found
+    ]
+
+
+@dataclass(frozen=True)
+class PartLine:
+    part: str
+    amount: str
+    category: str
+
+
+def part_lines(parts: list[SplitPart], names: dict[int, str]) -> list[PartLine]:
+    return [
+        PartLine(str(part.position), format_cents(part.amount_cents), names[part.category_id])
+        for part in parts
     ]

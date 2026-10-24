@@ -54,7 +54,9 @@ def account_page(
         raise ValueError("card not found")
     window = months_ending(today, 12)
     flow_end = max(end, month_bounds(today)[1])
-    flows = _for_account(load_flows(session, window[0][0], flow_end), account.name, card)
+    flows = _for_account(
+        load_flows(session, window[0][0], flow_end, parts=True), account.name, card
+    )
     in_month = [flow for flow in flows if start <= flow.day <= end]
     months = []
     for month_start, month_end in window:

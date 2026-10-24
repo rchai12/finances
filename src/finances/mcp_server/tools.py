@@ -125,7 +125,7 @@ def _transaction_item(item: FoundTransaction, names: dict[int, str]) -> dict[str
         "account": names[found.account_id],
         "description": found.description,
         "merchant": flow.merchant,
-        "amount_cents": found.amount_cents,
+        "amount_cents": flow.amount_cents,
         "kind": flow.kind,
         "refund": is_refund(flow),
         "category": None if uncategorized else flow.category,

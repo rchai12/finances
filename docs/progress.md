@@ -666,3 +666,10 @@ Template:
 - Deviations: None
 - Follow-ups: None
 
+## Phase 28e: splits in the reports and the terminal (2026-10-23)
+- Tests: 3605 -> 3640 (given 24)
+- New public names: `domain.splits`: `signed_parts`, `parse_part`; `db.repositories`: `split_by_sizes`; `views.transactions`: `PartLine`, `part_lines`; `analysis.spending`: `parts` on `flows_for` and `load_flows`; `cli.splits`: `fin transactions split`, `unsplit`, `parts`
+- Changed files: 19
+- Deviations: None
+- Follow-ups: None
+

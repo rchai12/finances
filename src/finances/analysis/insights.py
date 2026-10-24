@@ -53,12 +53,16 @@ def insights_report(session: Session, month: date) -> InsightsReport:
     window = months_ending(month, _WINDOW_MONTHS)
     (start, _), (first, last) = window[0], window[-1]
     history = load_flows(session, date.min, last)
+    history_parts = load_flows(session, date.min, last, parts=True)
     flows = [flow for flow in history if flow.day >= start]
     month_flows = [flow for flow in flows if flow.day >= first]
     earlier_flows = [flow for flow in flows if flow.day < first]
+    part_flows = [flow for flow in history_parts if flow.day >= start]
+    month_parts = [flow for flow in part_flows if flow.day >= first]
+    earlier_parts = [flow for flow in part_flows if flow.day < first]
     series = recurring_charges(session, last)
     findings = [
-        *spikes(first, month_flows, earlier_flows),
+        *spikes(first, month_parts, earlier_parts),
         *frequent_small(first, month_flows),
         *overlaps(first, series, _categories(history)),
         *price_increases(first, series),

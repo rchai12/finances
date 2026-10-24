@@ -27,7 +27,7 @@ def month_report(session: Session, day: date, count: int) -> list[MonthLine]:
     }
     lines = []
     for start, end in months:
-        summary = summarize(load_flows(session, start, end))
+        summary = summarize(load_flows(session, start, end, parts=True))
         lines.append(
             MonthLine(
                 start, summary.spent_cents, summary.income_cents, uncovered(spans, start, end)
