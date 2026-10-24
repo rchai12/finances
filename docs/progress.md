@@ -687,3 +687,10 @@ Template:
 - Deviations: None
 - Follow-ups: None
 
+## Phase 29a: shared expenses stored (2026-10-23)
+- Tests: 3678 -> 3713 (given 25)
+- New public names: `domain.shared`: `Share`, `Settlement`, `Owed`, `half_share`, `signed_share`, `balances`; `db.orm`: `SharedExpenseRow`, `SettlementRow`; `db.repositories`: `share_transaction`, `unshare_transaction`, `list_shares`, `record_settlement`, `delete_settlement`, `list_settlements`; `analysis.shared`: `owed_report`
+- Changed files: 19
+- Deviations: None
+- Follow-ups: None
+

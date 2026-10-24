@@ -40,6 +40,10 @@ ACTIONS = (
     "note_cleared",
     "split_set",
     "split_cleared",
+    "share_set",
+    "share_cleared",
+    "settlement_added",
+    "settlement_deleted",
 )
 KINDS = (
     "account",
@@ -52,6 +56,7 @@ KINDS = (
     "backup",
     "proposal",
     "alias",
+    "settlement",
 )
 
 

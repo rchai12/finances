@@ -21,6 +21,7 @@ CRITICAL = [
     "domain/transfers.py",
     "domain/spending.py",
     "domain/splits.py",
+    "domain/shared.py",
 ]
 
 

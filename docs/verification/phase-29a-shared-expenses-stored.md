@@ -8,7 +8,7 @@ These are correct and must not be reported: a private helper that builds a share
 
 ## 1. Gates
 
-N is the count `scripts/check.py` printed before the coder started, from the coder's progress entry.
+N is `3678` when Phase 28g was the last phase built.
 
 | Command | Expected |
 |---|---|

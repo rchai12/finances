@@ -38,6 +38,10 @@ def test_the_lists() -> None:
         "note_cleared",
         "split_set",
         "split_cleared",
+        "share_set",
+        "share_cleared",
+        "settlement_added",
+        "settlement_deleted",
     )
     assert KINDS == (
         "account",
@@ -50,6 +54,7 @@ def test_the_lists() -> None:
         "backup",
         "proposal",
         "alias",
+        "settlement",
     )
     assert AUDIT_TEXT_LIMIT == 200
 

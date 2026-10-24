@@ -21,7 +21,7 @@ There is no command or page yet: 29b adds them.
 
 ## Starting state
 
-Phase 28g is the last phase built. Its progress entry is not in `docs/progress.md`, so take N from `scripts/check.py` before you start, as `docs/phase-conventions.md` says. The newest migration is `0019`. SQLite enforces foreign keys. `_check_transfer` and `list_transfer_movements` already leave split transactions out (28d); `update_feed_transaction` already clears a split when the amount changes.
+N is `3678` when Phase 28g is the last phase built. The newest migration is `0019`. SQLite enforces foreign keys. `_check_transfer` and `list_transfer_movements` already leave split transactions out (28d); `update_feed_transaction` already clears a split when the amount changes.
 
 ## Scope
 

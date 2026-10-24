@@ -41,6 +41,7 @@ Bugs here silently corrupt money data, so every line and every branch of each mu
 - `domain/transfers.py` (transfer candidates and clear pairs; added in Phase 36a)
 - `domain/spending.py` (kinds, spending lines, refunds; added in Phase 36a)
 - `domain/splits.py` (parts that add up to a transaction; added in Phase 28d)
+- `domain/shared.py` (a share in cents and who owes whom; added in Phase 29a)
 
 ## Commands
 

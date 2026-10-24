@@ -8,6 +8,7 @@ from sqlalchemy import (
 from sqlalchemy.orm import Session
 
 from finances.db.orm import (
+    SharedExpenseRow,
     TransactionRow,
     TransactionSplitRow,
     TransferPairRow,
@@ -15,6 +16,7 @@ from finances.db.orm import (
     to_transfer_pair,
 )
 from finances.db.repositories.audit import record_change
+from finances.db.repositories.shared import _is_shared
 from finances.db.repositories.splits import _is_split
 from finances.domain.audit import pair_text
 from finances.domain.models import (
@@ -38,6 +40,7 @@ def list_transfer_movements(session: Session) -> list[Movement]:
     """Return each posted, non-zero transaction that is in no pair, in id order."""
     paired = exists().where(_names(TransferPairRow, TransactionRow.id))
     split = exists().where(TransactionSplitRow.transaction_id == TransactionRow.id)
+    shared = exists().where(SharedExpenseRow.transaction_id == TransactionRow.id)
     stmt = (
         select(
             TransactionRow.id,
@@ -50,6 +53,7 @@ def list_transfer_movements(session: Session) -> list[Movement]:
             TransactionRow.amount_cents != 0,
             ~paired,
             ~split,
+            ~shared,
         )
         .order_by(TransactionRow.id)
     )
@@ -87,6 +91,8 @@ def _check_transfer(session: Session, out_id: int, in_id: int) -> None:
         raise ValueError("a transfer pairs money out with the same amount in")
     if _is_split(session, out_id) or _is_split(session, in_id):
         raise ValueError("a split transaction cannot be in a transfer")
+    if _is_shared(session, out_id) or _is_shared(session, in_id):
+        raise ValueError("a shared transaction cannot be in a transfer")
 
 
 def _drop_rejection(session: Session, out_id: int, in_id: int) -> None:

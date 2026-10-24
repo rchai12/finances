@@ -535,6 +535,31 @@ def to_split_part(row: TransactionSplitRow) -> SplitPart:
     )
 
 
+class SharedExpenseRow(Base):
+    """One row of the shared_expenses table: who owes the payer for a transaction."""
+
+    __tablename__ = "shared_expenses"
+    __table_args__ = (UniqueConstraint("transaction_id", name="uq_shared_expenses_transaction_id"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    transaction_id: Mapped[int] = mapped_column(ForeignKey("transactions.id"), nullable=False)
+    payer_id: Mapped[int] = mapped_column(ForeignKey("people.id"), nullable=False)
+    debtor_id: Mapped[int] = mapped_column(ForeignKey("people.id"), nullable=False)
+    owed_cents: Mapped[int] = mapped_column(Integer, nullable=False)
+
+
+class SettlementRow(Base):
+    """One row of the settlements table: money one person paid another."""
+
+    __tablename__ = "settlements"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    payer_id: Mapped[int] = mapped_column(ForeignKey("people.id"), nullable=False)
+    payee_id: Mapped[int] = mapped_column(ForeignKey("people.id"), nullable=False)
+    amount_cents: Mapped[int] = mapped_column(Integer, nullable=False)
+    day: Mapped[date] = mapped_column(Date, nullable=False)
+
+
 class TransferPairRow(Base):
     """One row of the transfer_pairs table: an outflow and an inflow that are one transfer."""
 

@@ -106,6 +106,14 @@ from finances.db.repositories.proposals import (
     propose_rule,
     propose_transfer,
 )
+from finances.db.repositories.shared import (
+    delete_settlement,
+    list_settlements,
+    list_shares,
+    record_settlement,
+    share_transaction,
+    unshare_transaction,
+)
 from finances.db.repositories.splits import (
     clear_split,
     set_split,
@@ -180,6 +188,7 @@ __all__ = [
     "delete_category",
     "delete_feed_transaction",
     "delete_rule",
+    "delete_settlement",
     "edit_rule",
     "existing_fingerprints",
     "feed_posted_total",
@@ -216,6 +225,8 @@ __all__ = [
     "list_proposals",
     "list_provisional_transactions",
     "list_rules",
+    "list_settlements",
+    "list_shares",
     "list_statements",
     "list_sync_failures",
     "list_tags",
@@ -237,6 +248,7 @@ __all__ = [
     "propose_rule",
     "propose_transfer",
     "record_change",
+    "record_settlement",
     "record_seen_feed_account",
     "record_sync_failure",
     "reject_transfer",
@@ -256,6 +268,7 @@ __all__ = [
     "set_feed_account_ignored",
     "set_note",
     "set_split",
+    "share_transaction",
     "split_by_sizes",
     "splits_for",
     "statement_covers",
@@ -263,5 +276,6 @@ __all__ = [
     "tagged_with",
     "tags_for",
     "unpair_transfer",
+    "unshare_transaction",
     "update_feed_transaction",
 ]

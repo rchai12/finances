@@ -21,6 +21,7 @@ from finances.db.orm import (
 )
 from finances.db.repositories.assignments import remove_category
 from finances.db.repositories.audit import record_change
+from finances.db.repositories.shared import _delete_share, _is_shared, _share_text
 from finances.db.repositories.splits import _delete_parts, _is_split, _split_names
 from finances.db.repositories.transactions import _FINGERPRINT_CHUNK
 from finances.db.repositories.transfers import _names
@@ -109,6 +110,17 @@ def update_feed_transaction(
             before=before,
             who=SYSTEM,
         )
+    if amount_cents != row.amount_cents and _is_shared(session, transaction_id):
+        before = _share_text(session, transaction_id)
+        _delete_share(session, transaction_id)
+        record_change(
+            session,
+            action="share_cleared",
+            kind="transaction",
+            record_id=transaction_id,
+            before=before,
+            who=SYSTEM,
+        )
     row.posted_date = posted_date
     row.transaction_date = transaction_date
     row.amount_cents = amount_cents
@@ -139,6 +151,7 @@ def delete_feed_transaction(session: Session, transaction_id: int) -> bool:
         delete(TransactionNoteRow).where(TransactionNoteRow.transaction_id == transaction_id)
     )
     _delete_parts(session, transaction_id)
+    _delete_share(session, transaction_id)
     session.flush()
     session.delete(session.get(TransactionRow, transaction_id))
     session.flush()
