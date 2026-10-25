@@ -15,6 +15,7 @@ The tests are grouped into the sections of `tests/sections.toml` (migrations, sc
 
 - While you work, run a section alone: `.venv/bin/python scripts/check.py --section web` (no coverage, seconds).
 - Your check is `.venv/bin/python scripts/check.py --first <the spec's sections>`: its sections' tests run first, and the full run, coverage, and gates follow only once they all pass. Fix a failing section before anything else.
+- **When coverage falls short**, a behaviour has no test. Write a test that checks what the uncovered line or branch does, from the spec, not one that only runs it. If the line can never run, or the spec does not need it, remove it and say so in your progress entry. Never add `# pragma: no cover` (unless the spec allows one) and never change a given test to reach the number. Then run `check.py --first …` again from the start.
 - A new test file belongs in the section of the code it tests. If `core` would take it otherwise, add a pattern to `tests/sections.toml`, and list that file in your Scope.
 
 ### Scope
@@ -69,6 +70,7 @@ In your final message give the `Sections:` table and the last ten lines of `scri
 - **Scope audit**: `git status --short` shows only the spec's Scope paths; given files are identical to the blocks in the spec; no existing test, earlier migration, or unlisted module changed.
 - Save the guide's probe script **outside the repository**, run it from the repository root with `.venv/bin/python <path>`, and delete it afterwards. Every line must end in `ok`; the last line must be `FAILURES 0`.
 - Judge code by what it does, never by resemblance to another way of writing it.
+- **Coverage reached the wrong way is a finding**: a test that runs a line but asserts nothing about what it does, a `# pragma: no cover` the spec did not allow, or code the spec requires removed to close a gap.
 
 ### Report and verdict
 
