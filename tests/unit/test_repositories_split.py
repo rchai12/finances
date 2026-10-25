@@ -88,6 +88,7 @@ HOMES = {
     ],
     "proposals": [
         "accept_proposal",
+        "count_open_proposals",
         "decided_by_a_person",
         "decline_proposal",
         "list_advice",
@@ -176,7 +177,7 @@ def test_the_package_holds_one_module_per_area() -> None:
 
 def test_the_facade_offers_every_name_and_only_those() -> None:
     expected = sorted(name for names in HOMES.values() for name in names)
-    assert len(expected) == 124
+    assert len(expected) == 125
     assert sorted(repositories.__all__) == expected
     public = sorted(name for name in vars(repositories) if not name.startswith("_"))
     assert sorted(set(public) - set(HOMES)) == expected

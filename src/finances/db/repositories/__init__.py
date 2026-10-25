@@ -95,6 +95,7 @@ from finances.db.repositories.people import (
 )
 from finances.db.repositories.proposals import (
     accept_proposal,
+    count_open_proposals,
     decided_by_a_person,
     decline_proposal,
     list_advice,
@@ -176,6 +177,7 @@ __all__ = [
     "clear_split",
     "clear_sync_failure",
     "confirm_transaction",
+    "count_open_proposals",
     "count_uncategorized",
     "create_account",
     "create_category",

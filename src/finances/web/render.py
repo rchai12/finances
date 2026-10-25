@@ -8,7 +8,9 @@ from fastapi import Request
 from fastapi.responses import RedirectResponse, Response
 from fastapi.templating import Jinja2Templates
 
+from finances.db.engine import get_engine, session_scope
 from finances.db.migrate import current_revision, head_revision
+from finances.db.repositories import count_open_proposals
 from finances.views.format import amount_class
 from finances.web.session import cookie_flags
 
@@ -77,6 +79,17 @@ _TEMPLATES.env.filters["amount_class"] = amount_class
 _TOKEN = re.compile(r"[A-Za-z0-9_-]{43}")
 
 
+def _review_count(name: str) -> int:
+    if name in ("login", "error") or current_revision() != head_revision():
+        return 0
+    engine = get_engine()
+    try:
+        with session_scope(engine) as session:
+            return count_open_proposals(session)
+    finally:
+        engine.dispose()
+
+
 def _render(request: Request, name: str, context: dict, status_code: int = 200) -> Response:
     cookie = request.cookies.get(CSRF_COOKIE, "")
     fresh = _TOKEN.fullmatch(cookie) is None
@@ -86,6 +99,7 @@ def _render(request: Request, name: str, context: dict, status_code: int = 200) 
         "csrf": token,
         "notice": NOTICES.get(request.query_params.get("notice", "")),
         "error": None,
+        "review_count": _review_count(name),
     }
     response = _TEMPLATES.TemplateResponse(
         request, f"{name}.html", {**shared, **context}, status_code=status_code

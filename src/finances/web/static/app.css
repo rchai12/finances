@@ -29,6 +29,14 @@ nav a { color: var(--muted); padding: .3rem .6rem; border-radius: 6px; }
 nav a:hover { color: var(--fg); background: var(--hover); text-decoration: none; }
 nav a[aria-current="page"] { color: var(--accent); background: var(--accent-tint); font-weight: 600; }
 nav .nav-sync { margin: 0 0 0 auto; }
+nav .menu { position: relative; }
+nav .menu summary { list-style: none; cursor: pointer; color: var(--muted); padding: .3rem .6rem; border-radius: 6px; }
+nav .menu summary::-webkit-details-marker { display: none; }
+nav .menu summary::after { content: " \25BE"; font-size: .75em; }
+nav .menu summary:hover { color: var(--fg); background: var(--hover); }
+nav .menu.current summary { color: var(--accent); font-weight: 600; }
+nav .menu-items { position: absolute; top: calc(100% + .25rem); left: 0; z-index: 6; display: flex; flex-direction: column; min-width: 10rem; padding: .3rem; background: var(--raised); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: 0 6px 18px var(--bg); }
+nav .count { margin-left: -.35rem; padding: 0 .4rem; border-radius: 999px; background: var(--accent); color: var(--bg); font-size: .72rem; font-weight: 650; }
 
 main { max-width: 76rem; margin: 0 auto; padding: 1.25rem 1rem 3rem; overflow-x: auto; }
 h1 { font-size: 1.35rem; font-weight: 650; margin: .25rem 0 1rem; }

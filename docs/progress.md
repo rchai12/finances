@@ -789,3 +789,13 @@ Template:
   - Phase 20d's extra test patched `finances.web.routes.sync.keyring`; R3 removes that import, so `test_the_sync_page_without_a_listable_keychain` now only asserts GET `/sync` is 200
 - Follow-ups: None
 
+## Phase 39: menus in the navigation bar (2026-10-25)
+- Tests: 4010 -> 4028 (given 14)
+- New public names: `db.repositories`: `count_open_proposals`
+- Changed files: 10
+- Deviations:
+  - Menu panel `box-shadow` uses `var(--bg)` instead of the given `rgba(0, 0, 0, .12)` so Phase 16m's colour-token test still passes
+- Follow-ups:
+  - Isolated `--cov=finances.db.repositories.proposals` with `-o addopts=""` makes Alembic raise `TypeError: 'InternalTraversal' object is not callable`; cover those modules through `--cov=finances`
+  - The given `rgba()` shadow fails `test_every_colour_comes_from_a_token`
+

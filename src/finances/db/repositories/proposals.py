@@ -1,6 +1,6 @@
 from datetime import UTC, datetime
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from finances.db.orm import AdviceRow, CategoryRuleRow, ProposalRow, to_advice, to_proposal
@@ -234,6 +234,16 @@ def propose_merchant_alias(session: Session, example_id: int, target: str, reaso
     session.add(row)
     session.flush()
     return to_proposal(row)
+
+
+def count_open_proposals(session: Session) -> int:
+    """How many proposals are waiting for a person."""
+    return (
+        session.scalar(
+            select(func.count()).select_from(ProposalRow).where(ProposalRow.status == OPEN)
+        )
+        or 0
+    )
 
 
 def list_proposals(
