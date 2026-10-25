@@ -30,6 +30,7 @@ NOTICES = {
     "ignored": "That SimpleFIN account will not be tracked.",
     "tracked": "That SimpleFIN account is offered for setup again.",
     "category-added": "Category added.",
+    "group-added": "Group added.",
     "rule-added": "Rule added, and the rules were run again.",
     "rule-deleted": "Rule deleted, and the rules were run again.",
     "category-renamed": "Category renamed.",

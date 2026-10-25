@@ -62,12 +62,15 @@ def _kind(category: Category) -> str:
 
 
 def category_lines(tree: list[tuple[Category, list[Category]]]) -> list[CategoryLine]:
-    """One line per category, groups and the categories in each in name order, ignoring case."""
-    return [
-        CategoryLine(group.name, category.name, _kind(category))
-        for group, categories in tree
-        for category in categories
-    ]
+    """One line per category, or one for an empty group, groups in tree order."""
+    lines: list[CategoryLine] = []
+    for group, categories in tree:
+        if not categories:
+            lines.append(CategoryLine(group.name, "", _kind(group)))
+            continue
+        for category in categories:
+            lines.append(CategoryLine(group.name, category.name, _kind(category)))
+    return lines
 
 
 def category_choices(tree: list[tuple[Category, list[Category]]]) -> list[tuple[str, list[str]]]:

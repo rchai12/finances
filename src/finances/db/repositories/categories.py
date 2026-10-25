@@ -79,6 +79,38 @@ def create_category(session: Session, name: str, group: str) -> Category:
     return to_category(row)
 
 
+def create_group(
+    session: Session,
+    name: str,
+    *,
+    transfer: bool = False,
+    income: bool = False,
+    sensitive: bool = False,
+) -> Category:
+    """Add a group with these flags and return it. The caller commits."""
+    clean = name.strip()
+    if not 1 <= len(clean) <= CATEGORY_NAME_LIMIT:
+        raise ValueError(f"a group name must be 1 to {CATEGORY_NAME_LIMIT} characters")
+    if transfer and income:
+        raise ValueError("a group is for transfers or for income, not both")
+    if _category_row(session, clean) is not None:
+        raise CategoryExistsError("a category with this name already exists")
+    row = CategoryRow(
+        name=clean,
+        parent_id=None,
+        is_transfer=transfer,
+        is_income=income,
+        is_sensitive=sensitive,
+        is_tax=False,
+    )
+    session.add(row)
+    session.flush()
+    record_change(
+        session, action="category_added", kind="category", record_id=row.id, after=row.name
+    )
+    return to_category(row)
+
+
 def _leaf_category(session: Session, name: str) -> CategoryRow:
     """Return the category with this name, refusing a group or an unknown name."""
     row = _category_row(session, name)

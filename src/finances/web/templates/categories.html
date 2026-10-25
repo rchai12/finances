@@ -58,6 +58,22 @@
 </table>
 </section>
 <section class="card">
+<h2>Add a group</h2>
+<p class="hint">A group's kind decides how its categories count: spending, money moved between your own accounts, or income. It is set once, when the group is added.</p>
+<form method="post" action="/categories/groups/add" class="fields">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <label>Name <input name="name" required maxlength="50" value="{{ group_form.name }}"></label>
+  <label>Kind
+    <select name="kind">
+      {% for kind in group_kinds %}<option value="{{ kind }}"{% if kind == group_form.kind %} selected{% endif %}>{{ kind }}</option>
+      {% endfor %}
+    </select>
+  </label>
+  <label><input type="checkbox" name="sensitive" value="on"{% if group_form.sensitive %} checked{% endif %}> Sensitive</label>
+  <button type="submit">Add group</button>
+</form>
+</section>
+<section class="card">
 <h2>Add a category</h2>
 <form method="post" action="/categories/add" class="fields">
   <input type="hidden" name="csrf" value="{{ csrf }}">

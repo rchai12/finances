@@ -19,6 +19,7 @@ from finances.db.repositories import (
     CategoryExistsError,
     clear_categories_by_hand,
     create_category,
+    create_group,
     create_rule,
     delete_category,
     delete_rule,
@@ -75,6 +76,42 @@ def add_category_command(
             fail(str(error))
         parent = get_category_by_name(session, group)
     typer.echo(f'Added category "{made.name}" to {parent.name}.')
+
+
+@categories_app.command("add-group")
+def add_group_command(
+    name: Annotated[str, typer.Option("--name", help="The new group's name.")],
+    transfer: Annotated[
+        bool,
+        typer.Option("--transfer", help="The group is for money moved between your accounts."),
+    ] = False,
+    income: Annotated[bool, typer.Option("--income", help="The group is for income.")] = False,
+    sensitive: Annotated[
+        bool, typer.Option("--sensitive", help="The group's categories are sensitive.")
+    ] = False,
+) -> None:
+    """Add a group. Its kind is set once; its categories copy it."""
+    require_current_schema()
+    with session_scope(get_engine()) as session:
+        try:
+            made = create_group(
+                session, name, transfer=transfer, income=income, sensitive=sensitive
+            )
+        except (CategoryExistsError, ValueError) as error:
+            fail(str(error))
+    extra = ", ".join(
+        word
+        for word, flag in (
+            ("transfer", made.is_transfer),
+            ("income", made.is_income),
+            ("sensitive", made.is_sensitive),
+        )
+        if flag
+    )
+    if extra:
+        typer.echo(f'Added group "{made.name}" ({extra}).')
+    else:
+        typer.echo(f'Added group "{made.name}".')
 
 
 @categories_app.command("rename")

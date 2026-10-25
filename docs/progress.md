@@ -807,4 +807,12 @@ Template:
 - Follow-ups:
   - Update `docs/phase-conventions.md` and the architect skill now that this phase passed
 
+## Phase 41a: adding a group (2026-10-25)
+- Tests: 4069 -> 4092 (given 16)
+- New public names: `finances.db.repositories`: `create_group`
+- Changed files: 13
+- Deviations:
+  - Extra test `test_a_form_without_the_token_is_refused` covers the new route's `refused` branch so the include coverage report stays at 100%
+- Follow-ups: None
+
 

@@ -62,6 +62,7 @@ ROUTES = {
     ("POST", "/statements/upload"),
     ("GET", "/categories"),
     ("POST", "/categories/add"),
+    ("POST", "/categories/groups/add"),
     ("POST", "/categories/rules/add"),
     ("POST", "/categories/rules/preview"),
     ("POST", "/categories/rules/delete"),

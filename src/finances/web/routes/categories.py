@@ -16,6 +16,7 @@ from finances.categorize.service import categorize, preview_rule
 from finances.db.repositories import (
     add_alias,
     create_category,
+    create_group,
     create_rule,
     delete_alias,
     delete_category,
@@ -57,11 +58,21 @@ def _priority(text: str) -> int:
     return int(text)
 
 
+_GROUP_KINDS = ["spending", "transfer", "income"]
+
+
+def _group_flags(kind: str) -> tuple[bool, bool]:
+    if kind not in _GROUP_KINDS:
+        raise ValueError("a group's kind must be spending, transfer, or income")
+    return kind == "transfer", kind == "income"
+
+
 def _categories_page(
     request: Request,
     *,
     rule_form: dict[str, str] | None = None,
     category_form: dict[str, str] | None = None,
+    group_form: dict | None = None,
     rename_form: dict[str, str] | None = None,
     delete_form: dict[str, str] | None = None,
     alias_form: dict[str, str] | None = None,
@@ -85,6 +96,8 @@ def _categories_page(
             "tree": category_lines(tree),
             "groups": [group for group, _ in choices],
             "category_form": category_form or {"name": "", "group": ""},
+            "group_form": group_form or {"name": "", "kind": "spending", "sensitive": False},
+            "group_kinds": _GROUP_KINDS,
             "rename_form": rename_form or {"name": "", "to": ""},
             "delete_form": delete_form or {"name": "", "move_to": ""},
             "aliases": alias_rows(list_aliases(session)),
@@ -145,6 +158,29 @@ def add_category(
         form = {"name": name, "group": group}
         return _categories_page(request, category_form=form, error=str(error), status_code=400)
     return _done("/categories?notice=category-added")
+
+
+@router.post("/categories/groups/add")
+def add_group(
+    request: Request,
+    csrf: _Field = "",
+    name: _Field = "",
+    kind: _Field = "",
+    sensitive: _Field = "",
+) -> Response:
+    stopped = refused(request, csrf)
+    if stopped is not None:
+        return stopped
+    form = {"name": name, "kind": kind, "sensitive": sensitive == "on"}
+    try:
+        transfer, income = _group_flags(kind)
+        with _reading() as session:
+            create_group(
+                session, name, transfer=transfer, income=income, sensitive=sensitive == "on"
+            )
+    except _REFUSALS as error:
+        return _categories_page(request, group_form=form, error=str(error), status_code=400)
+    return _done("/categories?notice=group-added")
 
 
 @router.post("/categories/rules/add")

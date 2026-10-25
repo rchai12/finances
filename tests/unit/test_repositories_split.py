@@ -116,6 +116,7 @@ HOMES = {
         "CategoryDeletion",
         "CategoryExistsError",
         "create_category",
+        "create_group",
         "check_rule",
         "create_rule",
         "delete_category",
@@ -177,7 +178,7 @@ def test_the_package_holds_one_module_per_area() -> None:
 
 def test_the_facade_offers_every_name_and_only_those() -> None:
     expected = sorted(name for names in HOMES.values() for name in names)
-    assert len(expected) == 125
+    assert len(expected) == 126
     assert sorted(repositories.__all__) == expected
     public = sorted(name for name in vars(repositories) if not name.startswith("_"))
     assert sorted(set(public) - set(HOMES)) == expected
