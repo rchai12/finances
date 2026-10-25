@@ -823,4 +823,13 @@ Template:
   - Extra tests cover `propose_group`'s empty reason, unpatched `_now`, `group_kind_word(transfer=True)`, and new-category refusal and out-of-date branches so the include coverage report stays at 100%
 - Follow-ups: None
 
+## Phase 41c: proposals that wait for another (2026-10-25)
+- Tests: 4116 -> 4136 (given 12)
+- New public names: `finances.db.repositories`: `waits_for`, `accepting_order`, `decline_proposals`
+- Changed files: 25
+- Deviations:
+  - Extra tests cover accepting order, a parent declined alone, a decided transaction, suggestions, decline refusals, naming a child first, and a name that is no longer open
+  - Removed a cycle guard, a default `_target_exists` for other kinds, and a cascade skip the OPEN filter already makes unreachable, so the include report stays at 100%
+- Follow-ups: None
+
 

@@ -7,7 +7,8 @@ from finances.db.orm import AdviceRow, CategoryRuleRow, ProposalRow, to_advice, 
 from finances.db.repositories.aliases import add_alias, alias_map
 from finances.db.repositories.assignments import _assignment_row, set_category_by_hand
 from finances.db.repositories.audit import record_change
-from finances.db.repositories.categories import _category_row, _leaf_category, create_rule
+from finances.db.repositories.categories import _category_row, create_rule
+from finances.db.repositories.chains import chain_out_of_date, proposed_category, waits_for
 from finances.db.repositories.splits import _is_split
 from finances.db.repositories.transactions import get_transaction
 from finances.db.repositories.transfers import (
@@ -36,7 +37,6 @@ from finances.domain.proposals import (
     out_of_date,
     pair_out_of_date,
     proposal_text,
-    rule_out_of_date,
 )
 from finances.domain.rules import MATCHES, normalize_pattern, rule_matches
 from finances.domain.text import (
@@ -67,7 +67,7 @@ def propose_category(session: Session, transaction_id: int, category: str, reaso
         raise ValueError("a reason must be 1 to 200 characters")
     if get_transaction(session, transaction_id) is None:
         raise ValueError("transaction not found")
-    target = _leaf_category(session, category)
+    stored, parent_id = proposed_category(session, category)
     if decided_by_a_person(session, transaction_id):
         raise ValueError("a person has already decided this transaction")
     existing = session.scalars(
@@ -75,18 +75,19 @@ def propose_category(session: Session, transaction_id: int, category: str, reaso
             ProposalRow.kind == CATEGORY, ProposalRow.target_id == transaction_id
         )
     ).all()
-    if any(row.status == DECLINED and row.value == target.name for row in existing):
+    if any(row.status == DECLINED and row.value == stored for row in existing):
         raise ValueError("a person declined this proposal already")
     if any(row.status == OPEN for row in existing):
         raise ValueError("this transaction already has an open proposal")
     row = ProposalRow(
         kind=CATEGORY,
         target_id=transaction_id,
-        value=target.name,
+        value=stored,
         reason=clean,
         status=OPEN,
         created_at=_now(),
         decided_at=None,
+        parent_id=parent_id,
     )
     session.add(row)
     session.flush()
@@ -168,8 +169,8 @@ def propose_rule(
     example = get_transaction(session, example_id)
     if example is None:
         raise ValueError("transaction not found")
-    target = _leaf_category(session, category)
-    probe = CategoryRule(0, stored, match, priority, target.id)
+    stored_name, parent_id = proposed_category(session, category)
+    probe = CategoryRule(0, stored, match, priority, 0)
     names = merchant_names(example.description, alias_map(session))
     if not any(rule_matches(probe, name) for name in names):
         raise ValueError("the rule does not match the example transaction")
@@ -182,14 +183,14 @@ def propose_rule(
             ProposalRow.pattern == stored,
         )
     ).all()
-    if any(row.status == DECLINED and row.value == target.name for row in existing):
+    if any(row.status == DECLINED and row.value == stored_name for row in existing):
         raise ValueError("a person declined this proposal already")
     if any(row.status == OPEN for row in existing):
         raise ValueError("this rule already has an open proposal")
     row = ProposalRow(
         kind=RULE,
         target_id=example_id,
-        value=target.name,
+        value=stored_name,
         reason=clean,
         status=OPEN,
         created_at=_now(),
@@ -198,6 +199,7 @@ def propose_rule(
         pattern=stored,
         match=match,
         priority=priority,
+        parent_id=parent_id,
     )
     session.add(row)
     session.flush()
@@ -269,10 +271,10 @@ def proposal_out_of_date(session: Session, proposal: Proposal) -> bool:
         return new_is_out_of_date(session, proposal)
     if proposal.kind == RULE:
         found = _category_row(session, proposal.value)
-        return rule_out_of_date(
-            category_found=found is not None and found.parent_id is not None,
-            rule_exists=_rule_exists(session, proposal.match or "", proposal.pattern or ""),
-        )
+        if _rule_exists(session, proposal.match or "", proposal.pattern or ""):
+            return True
+        missing = found is None or found.parent_id is None
+        return chain_out_of_date(session, proposal, target_missing=missing)
     if proposal.kind == ALIAS:
         try:
             check_alias(proposal.source or "", proposal.value, alias_map(session))
@@ -294,12 +296,14 @@ def proposal_out_of_date(session: Session, proposal: Proposal) -> bool:
         )
         return pair_out_of_date(exists=exists, paired=paired, rejected=rejected)
     row = _assignment_row(session, proposal.target_id)
-    return out_of_date(
+    if out_of_date(
         exists=get_transaction(session, proposal.target_id) is not None,
         set_by_hand=(row is not None and row.source == MANUAL)
         or _is_split(session, proposal.target_id),
         paired=find_transfer_pair(session, proposal.target_id) is not None,
-    )
+    ):
+        return True
+    return chain_out_of_date(session, proposal, target_missing=False)
 
 
 def _open_row(session: Session, proposal_id: int) -> ProposalRow:
@@ -313,6 +317,9 @@ def _open_row(session: Session, proposal_id: int) -> ProposalRow:
 
 def accept_proposal(session: Session, proposal_id: int) -> Proposal:
     row = _open_row(session, proposal_id)
+    waiting = waits_for(session, to_proposal(row))
+    if waiting is not None:
+        raise ValueError(f"proposal {proposal_id} waits for proposal {waiting}")
     if proposal_out_of_date(session, to_proposal(row)):
         if row.kind in (GROUP, NEW_CATEGORY):
             raise ValueError(f"proposal {proposal_id} is out of date: the categories changed since")

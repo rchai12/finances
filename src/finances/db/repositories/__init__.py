@@ -58,6 +58,11 @@ from finances.db.repositories.categories import (
     rename_category,
     set_tax_relevant,
 )
+from finances.db.repositories.chains import (
+    accepting_order,
+    decline_proposals,
+    waits_for,
+)
 from finances.db.repositories.feed import (
     confirm_transaction,
     create_feed_pull,
@@ -169,6 +174,7 @@ __all__ = [
     "CategoryExistsError",
     "PersonExistsError",
     "accept_proposal",
+    "accepting_order",
     "account_data_span",
     "account_names",
     "add_alias",
@@ -194,6 +200,7 @@ __all__ = [
     "create_transfer_pair",
     "decided_by_a_person",
     "decline_proposal",
+    "decline_proposals",
     "delete_alias",
     "delete_category",
     "delete_feed_transaction",
@@ -292,4 +299,5 @@ __all__ = [
     "unpair_transfer",
     "unshare_transaction",
     "update_feed_transaction",
+    "waits_for",
 ]

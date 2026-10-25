@@ -43,7 +43,15 @@ def review_rows(items: list[ReviewItem]) -> list[ReviewRow]:
                 now="" if item.current is None else item.current,
                 proposed=proposed_text(item.proposal),
                 reason=item.proposal.reason,
-                state="out of date" if item.out_of_date else item.proposal.status,
+                state=(
+                    "out of date"
+                    if item.out_of_date
+                    else (
+                        f"waits for #{item.waits_for}"
+                        if item.waits_for is not None
+                        else item.proposal.status
+                    )
+                ),
             )
         )
     return rows
@@ -104,7 +112,9 @@ def accepted_text(proposal: Proposal) -> str:
     )
 
 
-def declined_text(proposal: Proposal) -> str:
+def declined_text(proposal: Proposal, *, waited: bool = False) -> str:
+    if waited:
+        return f"Declined proposal {proposal.id}, which waited for {proposal.parent_id}."
     return f"Declined proposal {proposal.id}."
 
 

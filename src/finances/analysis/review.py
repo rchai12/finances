@@ -9,6 +9,7 @@ from finances.db.repositories import (
     list_category_assignments,
     list_proposals,
     proposal_out_of_date,
+    waits_for,
 )
 from finances.domain.models import Transaction
 from finances.domain.proposals import CATEGORY, OPEN, Proposal
@@ -21,6 +22,7 @@ class ReviewItem:
     account: str | None
     current: str | None
     out_of_date: bool
+    waits_for: int | None = None
 
 
 def review_items(session: Session, *, status: str = OPEN, limit: int = 50) -> list[ReviewItem]:
@@ -38,6 +40,7 @@ def review_items(session: Session, *, status: str = OPEN, limit: int = 50) -> li
                 account=None if transaction is None else accounts[transaction.account_id],
                 current=None if assignment is None else names[assignment.category_id],
                 out_of_date=proposal_out_of_date(session, proposal),
+                waits_for=waits_for(session, proposal),
             )
         )
     return items
@@ -46,6 +49,10 @@ def review_items(session: Session, *, status: str = OPEN, limit: int = 50) -> li
 def open_suggestions(session: Session) -> dict[int, str]:
     found: dict[int, str] = {}
     for proposal in list_proposals(session, status=OPEN, limit=10_000):
-        if proposal.kind == CATEGORY and not proposal_out_of_date(session, proposal):
+        if (
+            proposal.kind == CATEGORY
+            and not proposal_out_of_date(session, proposal)
+            and waits_for(session, proposal) is None
+        ):
             found[proposal.target_id] = proposal.value
     return found

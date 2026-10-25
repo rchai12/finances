@@ -5,7 +5,7 @@ from fastapi.responses import Response
 
 from finances.analysis.review import review_items
 from finances.categorize.service import accept_proposals
-from finances.db.repositories import decline_proposal, list_advice
+from finances.db.repositories import decline_proposals, list_advice
 from finances.views.review import advice_rows, review_rows
 from finances.web.access import _reading
 from finances.web.forms import refused
@@ -52,10 +52,15 @@ async def decide(request: Request) -> Response:
         with _reading() as session:
             if decision == "accept":
                 accept_proposals(session, ids)
+                waiting = False
             else:
-                for proposal_id in ids:
-                    decline_proposal(session, proposal_id)
+                waiting = any(waited for _, waited in decline_proposals(session, ids))
     except ValueError as error:
         return _page(request, error=str(error), status_code=400)
-    notice = "proposals-accepted" if decision == "accept" else "proposals-declined"
+    if decision == "accept":
+        notice = "proposals-accepted"
+    elif waiting:
+        notice = "proposals-declined-waiting"
+    else:
+        notice = "proposals-declined"
     return _done(f"/review?notice={notice}")

@@ -16,7 +16,7 @@
 </table>
 <p class="fields"><button type="submit" name="decision" value="accept">Accept chosen</button> <button type="submit" name="decision" value="decline">Decline chosen</button></p>
 </form>
-<p class="hint">Accepting sets the category as your choice. Declining changes nothing, and the agent will not propose the same again. An out of date proposal can only be declined.</p>
+<p class="hint">Accepting sets the category as your choice. Declining changes nothing, and the agent will not propose the same again. An out of date proposal can only be declined. A proposal that waits for another can be accepted only with it or after it, and declining one also declines what waits for it.</p>
 {% else %}
 <p class="empty">No open proposals.</p>
 {% endif %}

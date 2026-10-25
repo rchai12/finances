@@ -109,6 +109,7 @@ def test_a_proposal_and_its_listing(one: Settings) -> None:
         "rule": None,
         "alias": None,
         "new": None,
+        "waits_for": None,
         "reason": "a cafe",
         "status": "open",
         "created_at": "2026-05-25T12:00:00+00:00",

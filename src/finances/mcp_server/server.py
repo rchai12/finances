@@ -124,9 +124,10 @@ WRITES_PROPOSALS = ToolAnnotations(
 )
 PROPOSE_CATEGORY_DESCRIPTION = (
     "Propose a category for a transaction without one (or set only by a rule), with a one-line "
-    "reason a person will read. It changes nothing: a person accepts or declines it with fin "
-    "review. Refused when a person already decided the transaction, declined this same "
-    "proposal, or another proposal for it is open."
+    "reason a person will read. The category may be one still proposed with "
+    "propose_new_category; this proposal then waits for that one. It changes nothing: a person "
+    "accepts or declines it with fin review. Refused when a person already decided the "
+    "transaction, declined this same proposal, or another proposal for it is open."
 )
 PROPOSE_TRANSFER_DESCRIPTION = (
     "Propose that money out (out_id) and money in (in_id) on another account, of the same "
@@ -142,10 +143,11 @@ PROPOSE_NOT_TRANSFER_DESCRIPTION = (
 PROPOSE_RULE_DESCRIPTION = (
     "Propose a rule that puts every transaction whose merchant matches pattern in a category "
     "(match: contains, starts_with, or equals; priority -1000 to 1000, higher tried first), "
-    "with an example transaction it matches and a one-line reason a person will read. It "
-    "changes nothing until a person accepts it; then the rules run over every transaction. "
-    "Refused when it does not match the example, a rule with this pattern and match exists, a "
-    "person declined it, or another proposal for it is open. No amounts."
+    "with an example transaction it matches and a one-line reason a person will read. The "
+    "category may be one still proposed with propose_new_category; this proposal then waits "
+    "for that one. It changes nothing until a person accepts it; then the rules run over every "
+    "transaction. Refused when it does not match the example, a rule with this pattern and "
+    "match exists, a person declined it, or another proposal for it is open. No amounts."
 )
 PROPOSE_MERCHANT_ALIAS_DESCRIPTION = (
     "Propose merging the merchant of an example transaction (its cleaned name) into another "
@@ -163,10 +165,11 @@ PROPOSE_GROUP_DESCRIPTION = (
     "another proposal for that name is open. No amounts."
 )
 PROPOSE_NEW_CATEGORY_DESCRIPTION = (
-    "Propose a new category (a name) in an existing group, tax-relevant or not, with an "
-    "example transaction it is for and a one-line reason a person will read. It changes "
-    "nothing until a person accepts it with fin review; then propose_category can put "
-    "transactions in it. Refused when the group does not exist, a category or group has the "
+    "Propose a new category (a name) in a group, tax-relevant or not, with an example "
+    "transaction it is for and a one-line reason a person will read. The group may be one still "
+    "proposed with propose_group; this proposal then waits for that one. It changes nothing "
+    "until a person accepts it with fin review; then propose_category can put transactions in "
+    "it. Refused when the group neither exists nor is proposed, a category or group has the "
     "name, a person declined it, or another proposal for that name is open. No amounts."
 )
 LIST_PROPOSALS_DESCRIPTION = (

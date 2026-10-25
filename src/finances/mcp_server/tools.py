@@ -46,6 +46,7 @@ from finances.db.repositories import propose_new_category as store_new_category
 from finances.db.repositories import propose_not_transfer as store_not_transfer
 from finances.db.repositories import propose_rule as store_rule
 from finances.db.repositories import propose_transfer as store_transfer
+from finances.db.repositories.chains import waits_for
 from finances.domain.merchants import clean_merchant
 from finances.domain.models import Transaction
 from finances.domain.proposals import (
@@ -600,6 +601,7 @@ def _proposal_item(session: Session, proposal: Proposal) -> dict[str, Any]:
                 "tax": proposal.tax if proposal.kind == NEW_CATEGORY else None,
             }
         ),
+        "waits_for": waits_for(session, proposal),
         "reason": proposal.reason,
         "status": proposal.status,
         "created_at": proposal.created_at.isoformat(),

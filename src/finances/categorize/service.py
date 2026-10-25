@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 
 from finances.db.repositories import (
     accept_proposal,
+    accepting_order,
     alias_map,
     assign_by_rule,
     check_rule,
@@ -137,7 +138,10 @@ class Accepted:
 
 
 def accept_proposals(session: Session, proposal_ids: list[int]) -> Accepted:
-    found = [accept_proposal(session, proposal_id) for proposal_id in proposal_ids]
+    found = [
+        accept_proposal(session, proposal_id)
+        for proposal_id in accepting_order(session, proposal_ids)
+    ]
     if any(item.kind in (RULE, ALIAS) for item in found):
         return Accepted(found, categorize(session))
     return Accepted(found, None)

@@ -10,6 +10,7 @@ from finances.db.repositories.categories import (
     create_group,
     set_tax_relevant,
 )
+from finances.db.repositories.chains import chain_out_of_date, proposed_group
 from finances.db.repositories.transactions import get_transaction
 from finances.domain.proposals import (
     DECLINED,
@@ -29,10 +30,11 @@ def _now() -> datetime:
 def new_is_out_of_date(session: Session, proposal: Proposal) -> bool:
     if _category_row(session, proposal.value) is not None:
         return True
-    if proposal.kind != NEW_CATEGORY:
-        return False
-    parent = _category_row(session, proposal.group or "")
-    return parent is None or parent.parent_id is not None
+    missing = False
+    if proposal.kind == NEW_CATEGORY:
+        parent = _category_row(session, proposal.group or "")
+        missing = parent is None or parent.parent_id is not None
+    return chain_out_of_date(session, proposal, target_missing=missing)
 
 
 def accept_new(session: Session, row: ProposalRow) -> None:
@@ -129,16 +131,14 @@ def propose_new_category(
         raise ValueError(f"a category name must be 1 to {CATEGORY_NAME_LIMIT} characters")
     if get_transaction(session, example_id) is None:
         raise ValueError("transaction not found")
-    parent = _category_row(session, group)
-    if parent is None or parent.parent_id is not None:
-        raise ValueError("group not found")
+    group_name, parent_id = proposed_group(session, group)
     if _category_row(session, stored) is not None:
         raise ValueError("a category with this name already exists")
     found = _named(session, stored)
     if any(
         row.status == DECLINED
         and row.kind == NEW_CATEGORY
-        and (row.group_name or "").lower() == parent.name.lower()
+        and (row.group_name or "").lower() == group_name.lower()
         for row in found
     ):
         raise ValueError("a person declined this proposal already")
@@ -157,12 +157,12 @@ def propose_new_category(
         match=None,
         priority=None,
         source=None,
-        group_name=parent.name,
+        group_name=group_name,
         is_transfer=None,
         is_income=None,
         is_sensitive=None,
         is_tax=tax,
-        parent_id=None,
+        parent_id=parent_id,
     )
     session.add(row)
     session.flush()

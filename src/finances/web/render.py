@@ -61,6 +61,10 @@ NOTICES = {
     "budget-removed": "Budget removed.",
     "proposals-accepted": "Proposals accepted, as your choice.",
     "proposals-declined": "Proposals declined. The agent will not propose them again.",
+    "proposals-declined-waiting": (
+        "Proposals declined, with the ones that waited for them. The agent will not propose them "
+        "again."
+    ),
     "tag-added": "Tag added.",
     "tag-removed": "Tag removed.",
     "note-saved": "Note saved.",

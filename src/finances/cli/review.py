@@ -1,17 +1,14 @@
 """The `fin review` commands: a person accepts or declines the agent's proposals."""
 
-from collections.abc import Callable
 from typing import Annotated
 
 import typer
-from sqlalchemy.orm import Session
 
 from finances.analysis.review import review_items
 from finances.categorize.service import accept_proposals
 from finances.cli.common import fail, print_rows, require_current_schema
 from finances.db.engine import get_engine, session_scope
-from finances.db.repositories import decline_proposal
-from finances.domain.proposals import Proposal
+from finances.db.repositories import decline_proposals
 from finances.views.categories import categorized_text
 from finances.views.review import accepted_text, declined_text, review_rows
 
@@ -44,23 +41,6 @@ def list_command(
     print_rows(_HEADINGS, rows)
 
 
-def _decide(
-    proposal_ids: list[int],
-    decide: Callable[[Session, int], Proposal],
-    text_of: Callable[[Proposal], str],
-) -> None:
-    require_current_schema()
-    with session_scope(get_engine()) as session:
-        lines: list[str] = []
-        try:
-            for proposal_id in proposal_ids:
-                lines.append(text_of(decide(session, proposal_id)))
-        except ValueError as error:
-            fail(str(error))
-    for line in lines:
-        typer.echo(line)
-
-
 @app.command("accept")
 def accept_command(
     proposal_ids: Annotated[
@@ -89,4 +69,11 @@ def decline_command(
     ],
 ) -> None:
     """Leave the transaction as it is and stop this proposal being made again."""
-    _decide(proposal_ids, decline_proposal, declined_text)
+    require_current_schema()
+    with session_scope(get_engine()) as session:
+        try:
+            found = decline_proposals(session, proposal_ids)
+        except ValueError as error:
+            fail(str(error))
+    for proposal, waited in found:
+        typer.echo(declined_text(proposal, waited=waited))
