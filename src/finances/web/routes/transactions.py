@@ -13,6 +13,7 @@ from finances.analysis.refunds import refund_facts
 from finances.analysis.search import TransactionQuery, search_transactions
 from finances.analysis.transfers import pair_of
 from finances.categorize.service import categorize
+from finances.categorize.transfers import pair_transfers
 from finances.db.repositories import (
     account_names,
     add_tags,
@@ -361,6 +362,7 @@ def remove_split(request: Request, transaction_id: str, csrf: _Field = "") -> Re
         with _reading() as session:
             clear_split(session, found)
             categorize(session)
+            pair_transfers(session)
         return "split-removed"
 
     return _write_on_transaction(request, transaction_id, csrf, apply)

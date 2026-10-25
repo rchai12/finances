@@ -4,6 +4,12 @@
 <h1>SimpleFIN accounts: {{ link }}</h1>
 {% include "messages.html" %}
 <p><a href="/sync">Back to SimpleFIN</a></p>
+{% if unlinkable %}
+<form method="get" action="/sync/unlink" class="inline">
+  <input type="hidden" name="link" value="{{ link }}">
+  <button type="submit">Unlink</button>
+</form>
+{% endif %}
 {% if rows %}
 <table>
 <thead><tr><th>SimpleFIN account</th><th>Institution</th><th>Name</th><th>Currency</th><th>Mapped to</th></tr></thead>

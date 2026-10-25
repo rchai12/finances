@@ -2,7 +2,6 @@
 
 from typing import Annotated
 
-import keyring
 from fastapi import APIRouter, Form, Request
 from fastapi.responses import Response
 
@@ -30,7 +29,6 @@ from finances.db.repositories import (
 from finances.domain.feed_setup import new_accounts
 from finances.sync import transport
 from finances.sync.links import (
-    KEYCHAIN_SERVICE,
     delete_access_url,
     keychain_state,
     load_access_url,
@@ -51,13 +49,6 @@ from finances.web.session import recheck
 router = APIRouter()
 
 
-def _keychain_links() -> set[str]:
-    stored = getattr(keyring.get_keyring(), "passwords", None)
-    if not isinstance(stored, dict):
-        return set()
-    return {name for service, name in stored if service == KEYCHAIN_SERVICE}
-
-
 def _mapped(link: str, next_page: str) -> Response:
     if next_page == "sync":
         return _done("/sync?notice=mapped")
@@ -73,6 +64,7 @@ def _sync_page(
         ignored = list_new_feed_accounts(session, ignored=True)
         people = [person.name for person in list_people(session)]
         unmapped = [account.name for account in unmapped_accounts(session)]
+        links = sorted({row.link for row in rows} | set(list_feed_links(session)))
     offered = [
         {
             "link": offer.link,
@@ -90,7 +82,6 @@ def _sync_page(
         }
         for offer in offers
     ]
-    links = sorted({row.link for row in rows} | _keychain_links())
     context = {
         "rows": rows,
         "links": links,
@@ -208,13 +199,20 @@ def sync_accounts(request: Request) -> Response:
     if stopped is not None:
         return stopped
     link = request.query_params.get("link", "")
-    context: dict = {"link": link, "accounts": [], "types": ACCOUNT_TYPES, "rows": []}
+    context: dict = {
+        "link": link,
+        "accounts": [],
+        "types": ACCOUNT_TYPES,
+        "rows": [],
+        "unlinkable": False,
+    }
     context["messages"] = []
     try:
         validate_link_name(link)
         found = load_access_url(link)
         if found is None:
             raise ValueError(f"link {link} is not set up")
+        context["unlinkable"] = True
         answer = fetch_accounts(
             found, web_app._utc_today(), web_app._utc_today(), transport.urllib_transport
         )

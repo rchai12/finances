@@ -5,6 +5,7 @@ from fastapi.responses import Response
 from sqlalchemy.orm import Session
 
 from finances.analysis.shared import owed_report
+from finances.categorize.transfers import pair_transfers
 from finances.db.repositories import (
     delete_settlement,
     list_people,
@@ -144,6 +145,7 @@ def clear_share(request: Request, transaction_id: str, csrf: _Field = "") -> Res
     try:
         with _reading() as session:
             unshare_transaction(session, found)
+            pair_transfers(session)
     except _REFUSALS as error:
         return _transaction_page(request, transaction_id, error=str(error), status_code=400)
     return _done(f"/transactions/{found}?notice=share-removed")

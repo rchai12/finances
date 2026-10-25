@@ -781,3 +781,11 @@ Template:
 - Deviations: None
 - Follow-ups: None
 
+## Phase 38: pairing after unsplit and unshare, and the links that can be unlinked (2026-10-25)
+- Tests: 3998 -> 4010 (given 7)
+- New public names: None
+- Changed files: 10
+- Deviations:
+  - Phase 20d's extra test patched `finances.web.routes.sync.keyring`; R3 removes that import, so `test_the_sync_page_without_a_listable_keychain` now only asserts GET `/sync` is 200
+- Follow-ups: None
+

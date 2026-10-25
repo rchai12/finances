@@ -1,4 +1,4 @@
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 from pathlib import Path
 
 import pytest
@@ -6,7 +6,9 @@ from fastapi.testclient import TestClient
 
 from finances.config import Settings
 from finances.db.backup import list_backups, make_backup
+from finances.db.engine import get_engine, session_scope
 from finances.db.migrate import upgrade_to_head
+from finances.db.repositories import record_seen_feed_account
 from finances.sync.links import load_access_url, save_access_url
 from finances.web.app import create_app
 from finances.web.login import set_password
@@ -97,6 +99,12 @@ def test_linking_needs_the_password(home: TestClient) -> None:
 
 def test_unlinking_has_a_page_and_needs_the_password(home: TestClient) -> None:
     save_access_url("alex", "https://user:secret@bridge.example/simplefin")
+    engine = get_engine()
+    with session_scope(engine) as session:
+        record_seen_feed_account(
+            session, "alex", "ACT-0001", "EXAMPLE CHECKING", "EXAMPLE BANK", date(2026, 10, 24)
+        )
+    engine.dispose()
     found = page(home, "/sync")
     assert [form["method"] for form in found.all("/sync/unlink")] == ["get"]
     confirm = page(home, "/sync/unlink?link=alex")

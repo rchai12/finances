@@ -7,6 +7,7 @@ import typer
 
 import finances.clock as clock
 from finances.analysis.shared import owed_report
+from finances.categorize.transfers import pair_transfers
 from finances.cli.common import fail, print_rows, require_current_schema
 from finances.db.engine import get_engine, session_scope
 from finances.db.repositories import (
@@ -67,6 +68,7 @@ def remove_command(
     with session_scope(get_engine()) as session:
         try:
             unshare_transaction(session, transaction_id)
+            pair_transfers(session)
         except ValueError as error:
             fail(str(error))
     typer.echo(f"Transaction {transaction_id}: no longer shared.")

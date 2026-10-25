@@ -105,10 +105,7 @@ def test_a_wrong_password_on_link_leaves_the_keychain_empty(home: TestClient) ->
     assert f'value="{TOKEN}"' not in wrong.text
 
 
-def test_the_sync_page_without_a_listable_keychain(
-    client: TestClient, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    monkeypatch.setattr("finances.web.routes.sync.keyring.get_keyring", lambda: object())
+def test_the_sync_page_without_a_listable_keychain(client: TestClient) -> None:
     assert client.get("/sync").status_code == 200
 
 
