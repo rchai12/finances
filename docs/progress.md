@@ -774,3 +774,10 @@ Template:
   - The given unlink test should map an account (or list Keychain links for real) so Unlink on `/sync` does not depend on MemoryKeyring
   - `GET /sync/unlink` with no query is 405 only to keep an earlier test; a missing link name could be 400 on the SimpleFIN page instead
 
+## Phase 37: Bank of America checking and savings (2026-10-25)
+- Tests: 3952 -> 3998 (given 26)
+- New public names: `ingest.parsers.boa_deposit`: `BoaDepositParser`
+- Changed files: 6
+- Deviations: None
+- Follow-ups: None
+

@@ -1,0 +1,32 @@
+Bank of America, N.A.                                   bankofamerica.com
+
+JANE DOE
+100 EXAMPLE ST
+ANYTOWN, GA 30000
+
+Your Advantage Relationship Checking
+
+for December 15, 2026 to January 14, 2027          Account number: 0000 9012 3333
+
+Account summary
+Beginning balance on December 15, 2026                         $250.00
+Deposits and other additions                                  1,000.00
+ATM and debit card subtractions                                 -75.25
+Other subtractions                                               -0.00
+Checks                                                           -0.00
+Service fees                                                     -0.00
+Ending balance on January 14, 2027                           $1,174.75
+
+Deposits and other additions
+Date        Description                                                    Amount
+01/05/27    EXAMPLE EMPLOYER DES:PAYROLL ID:XXXXX00004 INDN:DOE,JANE     1,000.00
+Total deposits and other additions                                    $1,000.00
+
+Withdrawals and other subtractions
+
+ATM and debit card subtractions
+Date        Description                                                    Amount
+12/21/26    CHECKCARD 1219 FOOBAR BOOKS ANYTOWN GA 24000000000000000000002  -30.00
+01/02/27    CHECKCARD 1231 ACME COFFEE ANYTOWN GA 24000000000000000000003   -45.25
+Total ATM and debit card subtractions                                    -$75.25
+Page 1 of 1

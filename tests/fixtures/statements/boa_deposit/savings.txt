@@ -1,0 +1,31 @@
+Bank of America, N.A.                                   bankofamerica.com
+
+JANE DOE
+100 EXAMPLE ST
+ANYTOWN, GA 30000
+
+Your Bank of America Advantage Savings
+
+for August 1, 2026 to August 31, 2026              Account number: 0000 5678 2222
+
+Account summary
+Beginning balance on August 1, 2026                         $10,000.00
+Deposits and other additions                                    420.31
+ATM and debit card subtractions                                  -0.00
+Other subtractions                                             -500.00
+Service fees                                                     -0.00
+Ending balance on August 31, 2026                            $9,920.31
+
+Deposits and other additions
+Date        Description                                                    Amount
+08/12/26    Online Banking transfer from CHK 1111 Confirmation# 0000000002  420.00
+08/31/26    Interest Earned                                                  0.31
+Total deposits and other additions                                      $420.31
+
+Withdrawals and other subtractions
+
+Other subtractions
+Date        Description                                                    Amount
+08/20/26    Online Banking transfer to CHK 1111 Confirmation# 0000000003   -500.00
+Total other subtractions                                                -$500.00
+Page 1 of 1

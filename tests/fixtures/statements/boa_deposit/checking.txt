@@ -1,0 +1,69 @@
+Bank of America, N.A.                                   bankofamerica.com
+P.O. Box 15284                                          Customer service: 1.800.555.0100
+Wilmington, DE 19850
+
+JANE DOE
+100 EXAMPLE ST
+ANYTOWN, GA 30000
+
+Your Advantage Plus Banking
+
+for September 1, 2026 to September 30, 2026        Account number: 0000 1234 1111
+
+Account summary
+Beginning balance on September 1, 2026                       $1,500.00
+Deposits and other additions                                  3,250.25
+ATM and debit card subtractions                                -186.40
+Other subtractions                                           -1,620.00
+Checks                                                         -350.00
+Service fees                                                    -12.00
+Ending balance on September 30, 2026                         $2,581.85
+
+Tip: set up automatic transfers to your Savings account.
+
+Deposits and other additions
+Date        Description                                                    Amount
+09/02/26    EXAMPLE EMPLOYER DES:PAYROLL ID:XXXXX00001 INDN:DOE,JANE     3,000.00
+            CO ID:XXXXX00002 PPD
+09/15/26    Zelle payment from JOHN DOE Conf# x0000001                     250.00
+09/30/26    Interest Earned                                                  0.25
+Total deposits and other additions                                    $3,250.25
+
+Withdrawals and other subtractions
+
+ATM and debit card subtractions
+Date        Description                                                    Amount
+09/03/26    CHECKCARD 0902 ACME COFFEE ANYTOWN GA 24000000000000000000001   -4.50
+09/08/26    PURCHASE 0906 FOOBAR GROCERY ANYTOWN GA                        -81.90
+continued on the next page
+Page 1 of 2Bank of America, N.A.                                   bankofamerica.com
+JANE DOE ! Account # 0000 1234 1111 ! September 1, 2026 to September 30, 2026
+
+ATM and debit card subtractions - continued
+Date        Description                                                    Amount
+09/20/26    BKOFAMERICA ATM 09/20 #000001 WITHDRWL ANYTOWN GA             -100.00
+Total ATM and debit card subtractions                                   -$186.40
+
+Other subtractions
+Date        Description                                                    Amount
+09/05/26    EXAMPLE CARD DES:ACH PMT ID:00000000001 INDN:JANE DOE CO    -1,200.00
+            ID:XXXXX00003 PPD
+09/18/26    Online Banking transfer to SAV 2222 Confirmation# 0000000001   -420.00
+Total other subtractions                                              -$1,620.00
+
+Checks
+Date        Check #        Amount        Date        Check #        Amount
+09/10/26    1041          -125.00        09/14/26    1042*         -200.00
+09/25/26    1044           -25.00
+* There is a gap in the check sequence
+Total checks                                                            -$350.00
+
+Service fees
+Date        Transaction description                                        Amount
+09/30/26    Monthly Maintenance Fee                                        -12.00
+Total service fees                                                       -$12.00
+
+Daily ledger balances
+Date        Balance ($)        Date        Balance ($)
+09/01       1,500.00           09/02       4,500.00
+Page 2 of 2
