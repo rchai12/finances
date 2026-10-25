@@ -2,17 +2,18 @@
 
 ## Goal
 
-Two small gaps found by the post-37 audit (`docs/audit.md`) and confirmed against the code:
+Three small gaps found by the post-37 audit (`docs/audit.md`) and confirmed against the code:
 
 - Transfer pairing skips a split or shared transaction. Removing the split on the web, or removing a share on the web or in the terminal, makes the transaction a candidate again, but nothing pairs it until the next import, sync, or `fin categorize`; until then a transfer between the household's own accounts counts as spending. (`fin transactions unsplit` already pairs, through `categorize_all`. Rules, aliases, and clearing categories cannot create a pair, since pairing does not read categories, so they stay as they are.)
 - The SimpleFIN page decides which links get an Unlink button partly from `_keychain_links`, which reads the `passwords` dict that only the tests' in-memory Keychain has. On the real macOS Keychain it finds nothing. The links come instead from the database, as `Sync now` already takes them (`list_feed_links`).
+- A link that is set up but has no account mapped or seen yet (just linked, or linked with the wrong token) is in no table, so the SimpleFIN page cannot list it. The owner's choice (2026-10-25): the link's accounts page, where linking on the web lands, offers Unlink for its link whenever the Keychain has access for it.
 
 ## Read first
 
 - `docs/phase-conventions.md` (everything this spec does not repeat)
 - `src/finances/categorize/transfers.py` (`pair_transfers`), `src/finances/db/repositories/transfers.py` (`list_transfer_movements`: what is a candidate)
 - `src/finances/web/routes/transactions.py` (`remove_split`), `src/finances/web/routes/shared.py` (`clear_share`), `src/finances/cli/shared.py` (`remove_command`)
-- `src/finances/web/routes/sync.py` (`_keychain_links`, `_sync_page`, `run`), `src/finances/db/repositories/feed_links.py` (`list_feed_links`)
+- `src/finances/web/routes/sync.py` (`_keychain_links`, `_sync_page`, `run`, `sync_accounts`, `unlink_confirm`), `src/finances/web/templates/sync_accounts.html`, `src/finances/db/repositories/feed_links.py` (`list_feed_links`)
 
 ## Starting state
 
@@ -25,7 +26,8 @@ N is `3998` when Phase 37 is the last phase built. `pair_transfers(session)` sto
 | `src/finances/web/routes/transactions.py` | `remove_split` pairs (R1) |
 | `src/finances/web/routes/shared.py` | `clear_share` pairs (R2) |
 | `src/finances/cli/shared.py` | `remove_command` pairs (R2) |
-| `src/finances/web/routes/sync.py` | `_keychain_links` removed; the links from the database (R3) |
+| `src/finances/web/routes/sync.py` | `_keychain_links` removed; the links from the database (R3); `unlinkable` on the accounts page (R5) |
+| `src/finances/web/templates/sync_accounts.html` | the given diff (R5) |
 | `tests/integration/test_web_recheck.py` | the given diff (R4) |
 | `tests/integration/test_pairing_gaps.py` | new: given |
 | `tests/integration/test_pairing_gaps_more.py` | new: yours ("Tests to write") |
@@ -34,7 +36,7 @@ N is `3998` when Phase 37 is the last phase built. `pair_transfers(session)` sto
 ## Out of scope
 
 - Pairing after rules, aliases, clearing categories, or any other action.
-- Listing links from the Keychain by any other means; a change to `fin sync` commands.
+- Listing links from the Keychain by any other means; storing link names at link time (a migration); a change to `fin sync` commands.
 - The other findings of `docs/audit.md`.
 
 ## Dependencies
@@ -47,6 +49,31 @@ None new.
 - **R2.** `clear_share` and `remove_command` call `pair_transfers(session)` right after `unshare_transaction`, in the same session. Their redirect, notice, and output do not change; a refusal still pairs nothing and changes nothing.
 - **R3.** `_sync_page`'s `links` are the links of its mapping rows together with `list_feed_links(session)` (read in its existing session), sorted. `_keychain_links` is deleted, and `sync.py` no longer imports `keyring`.
 - **R4.** Apply the given diff to `tests/integration/test_web_recheck.py`: the link in its unlink test gets a seen feed account, the state a person reaches after linking. No other earlier test changes.
+- **R5.** `sync_accounts` renders `unlinkable` true once `load_access_url(link)` has found access, on its 200 page and on its 502 page (SimpleFIN refused or the access is unusable); false on its 400 pages (a bad name, a link not set up) and anywhere else `sync_accounts.html` is rendered. Apply the given template diff exactly. The button opens the existing `GET /sync/unlink` confirmation, which asks for the password as Phase 20d made it.
+
+## Given template diff
+
+Applied to `src/finances/web/templates/` (do not change). With `unlinkable` false every earlier test passes unchanged, and with it true as well (checked with both values).
+
+```text
+diff --git a/src/finances/web/templates/sync_accounts.html b/src/finances/web/templates/sync_accounts.html
+index be3ff12..8ea90cf 100644
+--- a/src/finances/web/templates/sync_accounts.html
++++ b/src/finances/web/templates/sync_accounts.html
+@@ -4,6 +4,12 @@
+ <h1>SimpleFIN accounts: {{ link }}</h1>
+ {% include "messages.html" %}
+ <p><a href="/sync">Back to SimpleFIN</a></p>
++{% if unlinkable %}
++<form method="get" action="/sync/unlink" class="inline">
++  <input type="hidden" name="link" value="{{ link }}">
++  <button type="submit">Unlink</button>
++</form>
++{% endif %}
+ {% if rows %}
+ <table>
+ <thead><tr><th>SimpleFIN account</th><th>Institution</th><th>Name</th><th>Currency</th><th>Mapped to</th></tr></thead>
+```
 
 ## Given diff to an earlier test
 
@@ -88,7 +115,7 @@ index a3a2ef1..13667a8 100644
 
 ## Given tests
 
-4 tests in one file. Do not change them.
+7 tests in one file. Do not change them. One (`test_no_unlink_for_a_link_that_is_not_set_up`) is a guard that passes today and must still pass.
 
 `tests/integration/test_pairing_gaps.py`
 
@@ -112,8 +139,11 @@ from finances.db.repositories import (
     share_transaction,
 )
 from finances.sync.links import save_access_url
+from finances.sync.simplefin import ProviderAnswer
 from finances.web.app import create_app
-from tests.support import WEB_PORT, page, post, run
+from tests.support import WEB_PORT, Page, page, post, run
+
+ACCESS = "https://user:secret@bridge.example/simplefin"
 
 
 @pytest.fixture
@@ -190,7 +220,7 @@ def test_unsharing_in_the_terminal_pairs_the_transfer(client: TestClient) -> Non
 
 
 def test_unlink_is_offered_for_the_links_the_database_knows(client: TestClient) -> None:
-    save_access_url("alex", "https://user:secret@bridge.example/simplefin")
+    save_access_url("alex", ACCESS)
     prepare(
         lambda session: record_seen_feed_account(
             session, "bea", "ACT-0001", "EXAMPLE CHECKING", "EXAMPLE BANK", date(2026, 5, 10)
@@ -198,6 +228,34 @@ def test_unlink_is_offered_for_the_links_the_database_knows(client: TestClient) 
     )
     found = page(client, "/sync")
     assert [form["inputs"]["link"] for form in found.all("/sync/unlink")] == [("hidden", "bea")]
+
+
+def unlinks(found: Page) -> list[tuple[str, tuple[str, str]]]:
+    return [(form["method"], form["inputs"]["link"]) for form in found.all("/sync/unlink")]
+
+
+def test_the_accounts_page_offers_unlink_right_after_linking(
+    client: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    save_access_url("alex", ACCESS)
+    monkeypatch.setattr(
+        "finances.web.routes.sync.fetch_accounts",
+        lambda *args: ProviderAnswer(accounts=[], messages=[]),
+    )
+    assert unlinks(page(client, "/sync/accounts?link=alex")) == [("get", ("hidden", "alex"))]
+
+
+def test_the_accounts_page_offers_unlink_when_simplefin_refuses(client: TestClient) -> None:
+    save_access_url("alex", "not an access url")
+    response = client.get("/sync/accounts?link=alex")
+    assert response.status_code == 502
+    assert unlinks(Page(response.text)) == [("get", ("hidden", "alex"))]
+
+
+def test_no_unlink_for_a_link_that_is_not_set_up(client: TestClient) -> None:
+    response = client.get("/sync/accounts?link=bea")
+    assert response.status_code == 400
+    assert unlinks(Page(response.text)) == []
 ```
 
 ## Tests to write
@@ -209,7 +267,8 @@ Each case names the input that decides it; the test must use that input or one t
 - clearing a split whose transaction has no transfer partner pairs nothing (`find_transfer_pair` is None) and still redirects with `split-removed`;
 - `fin shared remove --id 99` (no such transaction) fails as before and stores no pair, with the fixture's clear transfer still unpaired;
 - a link with a **mapped** account and another with only a seen account both get an Unlink form, in sorted order (`alex`, `bea`);
-- with no links at all the SimpleFIN page has no Unlink form.
+- with no links at all the SimpleFIN page has no Unlink form;
+- `GET /sync/accounts?link=Bad` (a name `validate_link_name` refuses) answers 400 with no Unlink form.
 
 ## Rules for this phase
 
@@ -220,7 +279,7 @@ Each case names the input that decides it; the test must use that input or one t
 
 The standard table of `docs/phase-conventions.md`, with:
 
-- the given test file above, 4 tests; at least N + 4 passed in all;
+- the given test file above, 7 tests; at least N + 7 passed in all;
 - `git diff --stat HEAD -- tests` lists only `tests/integration/test_web_recheck.py`;
 - `git grep -n -e "passwords" -e "keyring" -- src/finances/web/routes` prints nothing;
 - the coverage command: `.venv/bin/python -m pytest -o addopts="" --import-mode=importlib --cov=finances.web.routes.sync --cov=finances.web.routes.transactions --cov=finances.web.routes.shared --cov=finances.cli.shared --cov-branch --cov-report=term-missing --cov-fail-under=100`.
