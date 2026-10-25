@@ -40,13 +40,23 @@ from finances.db.repositories import list_rules as load_rules
 from finances.db.repositories import list_uncategorized as load_uncategorized
 from finances.db.repositories import log_advice as keep_advice
 from finances.db.repositories import propose_category as store_category_proposal
+from finances.db.repositories import propose_group as store_group
 from finances.db.repositories import propose_merchant_alias as store_alias
+from finances.db.repositories import propose_new_category as store_new_category
 from finances.db.repositories import propose_not_transfer as store_not_transfer
 from finances.db.repositories import propose_rule as store_rule
 from finances.db.repositories import propose_transfer as store_transfer
 from finances.domain.merchants import clean_merchant
 from finances.domain.models import Transaction
-from finances.domain.proposals import ALIAS, CATEGORY, RULE, Proposal
+from finances.domain.proposals import (
+    ALIAS,
+    CATEGORY,
+    GROUP,
+    NEW_CATEGORY,
+    RULE,
+    Proposal,
+    group_kind_word,
+)
 from finances.domain.spending import UNASSIGNED, UNCATEGORIZED, is_refund, month_bounds, month_range
 from finances.mcp_server.access import reading, writing
 
@@ -575,6 +585,21 @@ def _proposal_item(session: Session, proposal: Proposal) -> dict[str, Any]:
             if proposal.kind != ALIAS
             else {"source": proposal.source, "target": proposal.value}
         ),
+        "new": (
+            None
+            if proposal.kind not in (GROUP, NEW_CATEGORY)
+            else {
+                "name": proposal.value,
+                "group": proposal.group if proposal.kind == NEW_CATEGORY else None,
+                "kind": (
+                    group_kind_word(transfer=proposal.transfer, income=proposal.income)
+                    if proposal.kind == GROUP
+                    else None
+                ),
+                "sensitive": proposal.sensitive if proposal.kind == GROUP else None,
+                "tax": proposal.tax if proposal.kind == NEW_CATEGORY else None,
+            }
+        ),
         "reason": proposal.reason,
         "status": proposal.status,
         "created_at": proposal.created_at.isoformat(),
@@ -639,6 +664,36 @@ def propose_merchant_alias(example_id: int, target: str, reason: str) -> dict[st
     def work() -> dict[str, Any]:
         with writing() as session:
             found = store_alias(session, example_id, target, reason)
+            return {"proposal": _proposal_item(session, found)}
+
+    return _as_tool(work)
+
+
+def propose_group(
+    name: str,
+    example_id: int,
+    reason: str,
+    kind: Literal["spending", "transfer", "income"] = "spending",
+    sensitive: bool = False,
+) -> dict[str, Any]:
+    def work() -> dict[str, Any]:
+        with writing() as session:
+            found = store_group(session, example_id, name, reason, kind=kind, sensitive=sensitive)
+            return {"proposal": _proposal_item(session, found)}
+
+    return _as_tool(work)
+
+
+def propose_new_category(
+    name: str,
+    group: str,
+    example_id: int,
+    reason: str,
+    tax: bool = False,
+) -> dict[str, Any]:
+    def work() -> dict[str, Any]:
+        with writing() as session:
+            found = store_new_category(session, example_id, name, group, reason, tax=tax)
             return {"proposal": _proposal_item(session, found)}
 
     return _as_tool(work)

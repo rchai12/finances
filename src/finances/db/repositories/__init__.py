@@ -83,6 +83,10 @@ from finances.db.repositories.feed_links import (
     record_sync_failure,
     set_feed_account_ignored,
 )
+from finances.db.repositories.new_categories import (
+    propose_group,
+    propose_new_category,
+)
 from finances.db.repositories.people import (
     PersonExistsError,
     create_person,
@@ -249,7 +253,9 @@ __all__ = [
     "note_of",
     "proposal_out_of_date",
     "propose_category",
+    "propose_group",
     "propose_merchant_alias",
+    "propose_new_category",
     "propose_not_transfer",
     "propose_rule",
     "propose_transfer",

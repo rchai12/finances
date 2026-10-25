@@ -24,6 +24,8 @@ from finances.domain.proposals import (
     ALIAS,
     CATEGORY,
     DECLINED,
+    GROUP,
+    NEW_CATEGORY,
     NOT_TRANSFER,
     OPEN,
     RULE,
@@ -261,6 +263,10 @@ def list_proposals(
 
 
 def proposal_out_of_date(session: Session, proposal: Proposal) -> bool:
+    if proposal.kind in (GROUP, NEW_CATEGORY):
+        from finances.db.repositories.new_categories import new_is_out_of_date
+
+        return new_is_out_of_date(session, proposal)
     if proposal.kind == RULE:
         found = _category_row(session, proposal.value)
         return rule_out_of_date(
@@ -308,6 +314,8 @@ def _open_row(session: Session, proposal_id: int) -> ProposalRow:
 def accept_proposal(session: Session, proposal_id: int) -> Proposal:
     row = _open_row(session, proposal_id)
     if proposal_out_of_date(session, to_proposal(row)):
+        if row.kind in (GROUP, NEW_CATEGORY):
+            raise ValueError(f"proposal {proposal_id} is out of date: the categories changed since")
         if row.kind == CATEGORY:
             raise ValueError(
                 f"proposal {proposal_id} is out of date: the transaction was decided since"
@@ -323,7 +331,11 @@ def accept_proposal(session: Session, proposal_id: int) -> Proposal:
         raise ValueError(
             f"proposal {proposal_id} is out of date: the transactions were decided since"
         )
-    if row.kind == TRANSFER:
+    if row.kind in (GROUP, NEW_CATEGORY):
+        from finances.db.repositories.new_categories import accept_new
+
+        accept_new(session, row)
+    elif row.kind == TRANSFER:
         create_transfer_pair(session, row.target_id, row.other_id, CONFIRMED)
     elif row.kind == NOT_TRANSFER:
         reject_transfer(session, row.target_id, row.other_id)

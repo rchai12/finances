@@ -685,6 +685,12 @@ class ProposalRow(Base):
     match: Mapped[str | None] = mapped_column(String(12), nullable=True)
     priority: Mapped[int | None] = mapped_column(Integer, nullable=True)
     source: Mapped[str | None] = mapped_column(String(MERCHANT_NAME_LIMIT), nullable=True)
+    group_name: Mapped[str | None] = mapped_column(String(CATEGORY_NAME_LIMIT), nullable=True)
+    is_transfer: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
+    is_income: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
+    is_sensitive: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
+    is_tax: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
+    parent_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
 
 def to_proposal(row: ProposalRow) -> Proposal:
@@ -703,6 +709,12 @@ def to_proposal(row: ProposalRow) -> Proposal:
         match=row.match,
         priority=row.priority,
         source=row.source,
+        group=row.group_name,
+        transfer=row.is_transfer,
+        income=row.is_income,
+        sensitive=row.is_sensitive,
+        tax=row.is_tax,
+        parent_id=row.parent_id,
     )
 
 

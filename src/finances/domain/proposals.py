@@ -10,7 +10,10 @@ TRANSFER = "transfer"
 NOT_TRANSFER = "not_transfer"
 RULE = "rule"
 ALIAS = "alias"
-KINDS = (CATEGORY, TRANSFER, NOT_TRANSFER, RULE, ALIAS)
+GROUP = "group"
+NEW_CATEGORY = "new_category"
+KINDS = (CATEGORY, TRANSFER, NOT_TRANSFER, RULE, ALIAS, GROUP, NEW_CATEGORY)
+GROUP_KINDS = ("spending", "transfer", "income")
 OPEN = "open"
 ACCEPTED = "accepted"
 DECLINED = "declined"
@@ -32,6 +35,12 @@ class Proposal:
     match: str | None = None
     priority: int | None = None
     source: str | None = None
+    group: str | None = None
+    transfer: bool | None = None
+    income: bool | None = None
+    sensitive: bool | None = None
+    tax: bool | None = None
+    parent_id: int | None = None
 
 
 @dataclass(frozen=True)
@@ -54,6 +63,24 @@ def rule_out_of_date(*, category_found: bool, rule_exists: bool) -> bool:
     return (not category_found) or rule_exists
 
 
+def group_flag_words(
+    *, transfer: bool | None = False, income: bool | None = False, sensitive: bool | None = False
+) -> str:
+    return ", ".join(
+        word
+        for word, flag in (("transfer", transfer), ("income", income), ("sensitive", sensitive))
+        if flag
+    )
+
+
+def group_kind_word(*, transfer: bool | None = False, income: bool | None = False) -> str:
+    if transfer:
+        return "transfer"
+    if income:
+        return "income"
+    return "spending"
+
+
 def proposal_text(proposal: Proposal) -> str:
     if proposal.kind == TRANSFER:
         return f"{proposal.target_id} -> {proposal.other_id}: a transfer"
@@ -68,4 +95,12 @@ def proposal_text(proposal: Proposal) -> str:
         )
     if proposal.kind == ALIAS:
         return f"alias: {proposal.source} -> {proposal.value}"
+    if proposal.kind == GROUP:
+        extra = group_flag_words(
+            transfer=proposal.transfer, income=proposal.income, sensitive=proposal.sensitive
+        )
+        return f"group: {proposal.value}" + (f" ({extra})" if extra else "")
+    if proposal.kind == NEW_CATEGORY:
+        tax = " (tax)" if proposal.tax else ""
+        return f"category: {proposal.value} in {proposal.group}{tax}"
     return f"transaction {proposal.target_id}: {proposal.value}"

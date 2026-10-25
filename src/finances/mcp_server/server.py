@@ -155,6 +155,20 @@ PROPOSE_MERCHANT_ALIAS_DESCRIPTION = (
     "either is already merged, other merchants are merged into the example's, a person "
     "declined it, or another proposal for that merchant is open. No amounts."
 )
+PROPOSE_GROUP_DESCRIPTION = (
+    "Propose a new group of categories (a name; kind: spending, transfer, or income; sensitive "
+    "or not), with an example transaction it is for and a one-line reason a person will read. "
+    "Use it only when no existing group fits. It changes nothing until a person accepts it "
+    "with fin review. Refused when a category or group has the name, a person declined it, or "
+    "another proposal for that name is open. No amounts."
+)
+PROPOSE_NEW_CATEGORY_DESCRIPTION = (
+    "Propose a new category (a name) in an existing group, tax-relevant or not, with an "
+    "example transaction it is for and a one-line reason a person will read. It changes "
+    "nothing until a person accepts it with fin review; then propose_category can put "
+    "transactions in it. Refused when the group does not exist, a category or group has the "
+    "name, a person declined it, or another proposal for that name is open. No amounts."
+)
 LIST_PROPOSALS_DESCRIPTION = (
     "Your proposals, newest first, of one status (open by default, accepted, or declined), at "
     "most limit (1 to 200, default 50): the transaction, the category, your reason, when it was "
@@ -175,6 +189,8 @@ _WRITES = (
     "propose_not_transfer",
     "propose_rule",
     "propose_merchant_alias",
+    "propose_group",
+    "propose_new_category",
     "log_advice",
 )
 _TOOLS = (
@@ -209,6 +225,8 @@ def build_server() -> MCPServer:
         (tools.propose_not_transfer, PROPOSE_NOT_TRANSFER_DESCRIPTION),
         (tools.propose_rule, PROPOSE_RULE_DESCRIPTION),
         (tools.propose_merchant_alias, PROPOSE_MERCHANT_ALIAS_DESCRIPTION),
+        (tools.propose_group, PROPOSE_GROUP_DESCRIPTION),
+        (tools.propose_new_category, PROPOSE_NEW_CATEGORY_DESCRIPTION),
         (tools.list_proposals, LIST_PROPOSALS_DESCRIPTION),
         (tools.log_advice, LOG_ADVICE_DESCRIPTION),
         (tools.list_advice, LIST_ADVICE_DESCRIPTION),

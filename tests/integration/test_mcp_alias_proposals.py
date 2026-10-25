@@ -66,6 +66,7 @@ def test_the_agent_proposes_an_alias(card: Settings) -> None:
             "category": None,
             "rule": None,
             "alias": {"source": "ACME CAFE", "target": "ACME COFFEE"},
+            "new": None,
             "reason": "the same shop",
             "status": "open",
             "created_at": "2026-05-25T12:00:00+00:00",

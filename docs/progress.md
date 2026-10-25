@@ -815,4 +815,12 @@ Template:
   - Extra test `test_a_form_without_the_token_is_refused` covers the new route's `refused` branch so the include coverage report stays at 100%
 - Follow-ups: None
 
+## Phase 41b: the agent proposes a group or a category (2026-10-25)
+- Tests: 4092 -> 4116 (given 15)
+- New public names: `finances.domain.proposals`: `GROUP`, `NEW_CATEGORY`, `GROUP_KINDS`, `group_flag_words`, `group_kind_word`; `finances.db.repositories`: `propose_group`, `propose_new_category`
+- Changed files: 25
+- Deviations:
+  - Extra tests cover `propose_group`'s empty reason, unpatched `_now`, `group_kind_word(transfer=True)`, and new-category refusal and out-of-date branches so the include coverage report stays at 100%
+- Follow-ups: None
+
 

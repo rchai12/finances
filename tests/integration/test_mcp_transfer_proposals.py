@@ -60,6 +60,7 @@ def test_the_agent_proposes_a_transfer(moved: Settings) -> None:
             "category": None,
             "rule": None,
             "alias": None,
+            "new": None,
             "reason": "same day, same amount",
             "status": "open",
             "created_at": "2026-05-25T12:00:00+00:00",

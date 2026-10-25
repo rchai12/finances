@@ -86,6 +86,10 @@ HOMES = {
         "record_sync_failure",
         "set_feed_account_ignored",
     ],
+    "new_categories": [
+        "propose_group",
+        "propose_new_category",
+    ],
     "proposals": [
         "accept_proposal",
         "count_open_proposals",
@@ -178,7 +182,7 @@ def test_the_package_holds_one_module_per_area() -> None:
 
 def test_the_facade_offers_every_name_and_only_those() -> None:
     expected = sorted(name for names in HOMES.values() for name in names)
-    assert len(expected) == 126
+    assert len(expected) == 128
     assert sorted(repositories.__all__) == expected
     public = sorted(name for name in vars(repositories) if not name.startswith("_"))
     assert sorted(set(public) - set(HOMES)) == expected

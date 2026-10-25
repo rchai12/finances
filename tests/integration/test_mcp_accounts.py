@@ -33,6 +33,8 @@ NO_AMOUNTS = (
     "propose_transfer",
     "propose_not_transfer",
     "propose_rule",
+    "propose_group",
+    "propose_new_category",
 )
 READ_ONLY = {
     "read_only_hint": True,

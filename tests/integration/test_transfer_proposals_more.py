@@ -37,6 +37,7 @@ PAIR = {
     "category": None,
     "rule": None,
     "alias": None,
+    "new": None,
     "reason": "interest, not a transfer",
     "status": "open",
     "created_at": "2026-05-25T12:00:00+00:00",

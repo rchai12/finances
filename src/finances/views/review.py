@@ -3,7 +3,17 @@ from dataclasses import dataclass
 from finances.analysis.review import ReviewItem
 from finances.domain.audit import rule_text
 from finances.domain.money import format_cents
-from finances.domain.proposals import ALIAS, NOT_TRANSFER, RULE, TRANSFER, Advice, Proposal
+from finances.domain.proposals import (
+    ALIAS,
+    GROUP,
+    NEW_CATEGORY,
+    NOT_TRANSFER,
+    RULE,
+    TRANSFER,
+    Advice,
+    Proposal,
+    group_flag_words,
+)
 
 
 @dataclass(frozen=True)
@@ -57,6 +67,14 @@ def proposed_text(proposal: Proposal) -> str:
         return f"a rule: {_rule_line(proposal)}"
     if proposal.kind == ALIAS:
         return f"merge {proposal.source} into {proposal.value}"
+    if proposal.kind == GROUP:
+        extra = group_flag_words(
+            transfer=proposal.transfer, income=proposal.income, sensitive=proposal.sensitive
+        )
+        return f"a new group: {proposal.value}" + (f" ({extra})" if extra else "")
+    if proposal.kind == NEW_CATEGORY:
+        tax = ", tax-relevant" if proposal.tax else ""
+        return f"a new category: {proposal.value} in {proposal.group}{tax}"
     return proposal.value
 
 
@@ -75,6 +93,12 @@ def accepted_text(proposal: Proposal) -> str:
         return f"Accepted proposal {proposal.id}: a rule, {_rule_line(proposal)}."
     if proposal.kind == ALIAS:
         return f"Accepted proposal {proposal.id}: {proposal.source} merged into {proposal.value}."
+    if proposal.kind == GROUP:
+        return f"Accepted proposal {proposal.id}: the group {proposal.value}."
+    if proposal.kind == NEW_CATEGORY:
+        return (
+            f"Accepted proposal {proposal.id}: the category {proposal.value} in {proposal.group}."
+        )
     return (
         f"Accepted proposal {proposal.id}: {proposal.value} for transaction {proposal.target_id}."
     )
