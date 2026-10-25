@@ -248,6 +248,70 @@ Date | Description | Credits | Debits | Balance
 
 ---
 
+## 8. Bank of America checking and savings (`boa_deposit`)
+
+Added in Phase 37. Numbered after the CSV sections so earlier references stay right.
+
+**Detect:** `bankofamerica.com`, `Account number:`, and `Beginning balance on` on the first page. The card statement (section 2) prints `Account#` instead.
+
+**Header** (first page only; later pages carry `JANE DOE ! Account # 0000 1234 1111 ! September 1, 2026 to September 30, 2026`):
+```
+Your Advantage Plus Banking
+
+for September 1, 2026 to September 30, 2026 | Account number: 0000 1234 1111
+```
+- The product line starts with `Your ` and stands two lines above the account number. Savings when it holds `Savings`; otherwise checking (one real product name says only `Banking`).
+- The period and the account number share one line. `account_last4` = the last group of the number (three groups of four).
+
+**Summary:**
+```
+Account summary
+Beginning balance on September 1, 2026 | $1,500.00
+Deposits and other additions | 3,250.25
+ATM and debit card subtractions | -186.40
+Other subtractions | -1,620.00
+Checks | -350.00
+Service fees | -12.00
+Ending balance on September 30, 2026 | $2,581.85
+```
+Each balance stands on its label's line. Subtractions print a minus; the balances print `$`.
+
+**Sections** (rows print their own sign; no `$`):
+```
+Deposits and other additions
+Date | Description | Amount
+09/02/26 | EXAMPLE EMPLOYER DES:PAYROLL ID:XXXXX00001 INDN:DOE,JANE | 3,000.00
+         | CO ID:XXXXX00002 PPD                                         <- wrapped: ignore
+09/30/26 | Interest Earned | 0.25
+Total deposits and other additions | $3,250.25
+
+Withdrawals and other subtractions                                    <- groups the next two; opens nothing
+
+ATM and debit card subtractions
+09/03/26 | CHECKCARD 0902 ACME COFFEE ANYTOWN GA 24000000000000000000001 | -4.50
+Total ATM and debit card subtractions | -$186.40
+
+Other subtractions
+09/18/26 | Online Banking transfer to SAV 2222 Confirmation# 0000000001 | -420.00
+Total other subtractions | -$1,620.00
+
+Checks
+Date | Check # | Amount | Date | Check # | Amount
+09/10/26 | 1041 | -125.00 | 09/14/26 | 1042* | -200.00
+Total checks | -$350.00
+
+Service fees
+09/30/26 | Monthly Maintenance Fee | -12.00
+Total service fees | -$12.00
+
+Daily ledger balances                                                 <- ignore
+```
+- Dates are `MM/DD/YY`. A heading stands alone on its line, followed by a column header.
+- `CHECKCARD MMDD` / `PURCHASE MMDD` at the start of a description is the day of purchase.
+- **Confirmed on two real checking statements (by counts, Phase 37):** detection, the header, the summary, the deposits and other subtractions sections with their rows, wrapped lines, and totals, the interest row, and reconciliation. **Not yet seen:** card rows and their section, checks, service fees, `continued` headings, and savings.
+
+---
+
 # CSV exports
 
 CSV exports are **provisional**: they fill the gap after the latest statement and are replaced by the statement once it is imported (Phase 8). Not every institution offers CSV (Marcus does not).
