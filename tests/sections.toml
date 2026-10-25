@@ -1,0 +1,63 @@
+# Which section each test file belongs to, for `scripts/check.py --section NAME` and the table a
+# full run prints. Paths are relative to tests/ and matched with fnmatch. Sections are tried in this
+# order and the first that matches wins; the last, core, takes every file the others leave.
+
+[[section]]
+name = "migrations"
+patterns = ["integration/test_migrat*.py"]
+
+[[section]]
+name = "scripts"
+patterns = ["unit/test_check_script.py", "unit/test_sections*.py", "e2e/test_git_hooks.py"]
+
+[[section]]
+name = "web"
+patterns = [
+    "*/test_web_*.py",
+    "unit/test_session.py",
+    "unit/test_chart_*.py",
+    "integration/test_account_page_more.py",
+    "integration/test_backups_page_more.py",
+    "integration/test_dashboard_more.py",
+]
+
+[[section]]
+name = "cli"
+patterns = ["e2e/test_cli*.py", "unit/test_print_table.py"]
+
+[[section]]
+name = "mcp"
+patterns = ["*/test_mcp_*.py"]
+
+[[section]]
+name = "parsers"
+patterns = [
+    "unit/test_*parser*.py",
+    "unit/test_find_labeled_amount.py",
+    "unit/test_pdf_text*.py",
+    "unit/test_reconcile.py",
+    "unit/test_dedup.py",
+    "unit/test_statement*.py",
+    "unit/test_properties_ingest.py",
+    "integration/test_*import*.py",
+    "integration/test_statement*.py",
+    "integration/test_supersede_repositories.py",
+]
+
+[[section]]
+name = "sync"
+patterns = [
+    "unit/test_simplefin*.py",
+    "unit/test_transport*.py",
+    "unit/test_links.py",
+    "unit/test_run_links.py",
+    "unit/test_link_run_failures.py",
+    "unit/test_feed_*.py",
+    "integration/test_feed_*.py",
+    "integration/test_sync_*.py",
+    "integration/test_seen_feed_accounts.py",
+]
+
+[[section]]
+name = "core"
+patterns = ["*"]

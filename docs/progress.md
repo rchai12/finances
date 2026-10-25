@@ -799,3 +799,12 @@ Template:
   - Isolated `--cov=finances.db.repositories.proposals` with `-o addopts=""` makes Alembic raise `TypeError: 'InternalTraversal' object is not callable`; cover those modules through `--cov=finances`
   - The given `rgba()` shadow fails `test_every_colour_comes_from_a_token`
 
+## Phase 40: test sections (2026-10-25)
+- Tests: 4028 -> 4069 (given 34)
+- New public names: `scripts/check.py`: `Tally`, `read_sections`, `section_of`, `tally`, `section_lines`, `section_files`, `SECTIONS_FILE`
+- Changed files: 8
+- Deviations: None
+- Follow-ups:
+  - Update `docs/phase-conventions.md` and the architect skill now that this phase passed
+
+

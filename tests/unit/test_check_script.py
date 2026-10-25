@@ -127,7 +127,17 @@ def test_the_steps_in_order(check, tmp_path: Path) -> None:
     assert [(step.name, step.command) for step in steps] == [
         ("lint", ["/py", "-m", "ruff", "check", "."]),
         ("format", ["/py", "-m", "ruff", "format", "--check", "."]),
-        ("tests", ["/py", "-m", "pytest", f"--cov-report=json:{target}"]),
+        (
+            "tests",
+            [
+                "/py",
+                "-m",
+                "pytest",
+                f"--cov-report=json:{target}",
+                f"--junitxml={target.with_name('junit.xml')}",
+                "--continue-on-collection-errors",
+            ],
+        ),
         ("critical coverage", None),
     ]
 

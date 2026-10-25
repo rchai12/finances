@@ -50,7 +50,11 @@ Every command names the virtual environment's interpreter (`AGENTS.md`, "Running
 ```zsh
 .venv/bin/python scripts/check.py                  # everything a phase must pass: lint, format, tests, critical coverage
 .venv/bin/python scripts/check.py --real-samples   # the same, then the real statements (opt-in, counts only)
+.venv/bin/python scripts/check.py --first web     # the web section first; the full check only once it passes
+.venv/bin/python scripts/check.py --section web   # one section alone, no coverage (names in tests/sections.toml)
 .venv/bin/python -m pytest                         # the tests alone, with coverage
 ```
+
+A phase names its sections, and its check is `check.py --first <its sections>`: their tests run first, and the full run only once they pass. A full run prints a table of the eight sections after the tests, with a rerun command beside any section that failed. A new test file belongs in the section of the code it tests: add a pattern to `tests/sections.toml` when `core` would take it otherwise.
 
 To have lint and format checked before every commit, run `scripts/install-git-hooks.sh` once; `scripts/uninstall-git-hooks.sh` removes the hook.
