@@ -9,6 +9,14 @@ Every phase spec and verification guide follows this document. A spec states onl
 - The previous phase is committed: `git status --short` prints nothing.
 - Run `.venv/bin/python scripts/check.py`. It must end with `All checks passed.`. Note the number passed in its `tests` step: the spec calls it **N**.
 
+### Sections (from Phase 41a)
+
+The tests are grouped into the sections of `tests/sections.toml` (migrations, scripts, web, cli, mcp, parsers, sync, core). Each spec names its own under "Sections" in its Starting state, for example `web, core`.
+
+- While you work, run a section alone: `.venv/bin/python scripts/check.py --section web` (no coverage, seconds).
+- Your check is `.venv/bin/python scripts/check.py --first <the spec's sections>`: its sections' tests run first, and the full run, coverage, and gates follow only once they all pass. Fix a failing section before anything else.
+- A new test file belongs in the section of the code it tests. If `core` would take it otherwise, add a pattern to `tests/sections.toml`, and list that file in your Scope.
+
 ### Scope
 
 - Change only the paths in the spec's Scope table. You may add private helpers inside them. Any other production file, existing test, template, or migration stays as it is unless the spec lists it.
@@ -31,9 +39,9 @@ Unless the spec adds more, run before you report:
 
 | Command | Must show |
 |---|---|
-| `.venv/bin/python scripts/check.py` | last line `All checks passed.`; in the `tests` step 0 failed, 0 skipped, 0 xfailed, no warnings summary, and at least N plus the spec's given test count passed |
+| `.venv/bin/python scripts/check.py --first <the spec's sections>` | last line `All checks passed.`; the summary lists `tests (<sections>): passed`; in the `tests` step 0 failed, 0 skipped, 0 xfailed, no warnings summary, and at least N plus the spec's given test count passed; every line of the `Sections:` table shows 0 failed |
 | `.venv/bin/python -m pytest <the given test files> --no-cov` | exactly the spec's given test count passed |
-| the spec's coverage command | `Required test coverage of 100% reached` |
+| the spec's coverage command | `Required test coverage of 100% reached`; from Phase 41a it is `.venv/bin/python -m coverage report --include=… --fail-under=100`, run right after `check.py` on the data that run left, and must exit 0 with its `TOTAL` line at `100%` (a narrow `--cov=` with `-o addopts=""` can break Alembic's import, so specs no longer use it) |
 | each of the spec's searches | no output |
 | `git status --short` | only the paths in the Scope table |
 
@@ -52,12 +60,12 @@ Add an entry at the end of `docs/progress.md` in exactly this form. Every field 
   - <one line each: something the next phase or the architect should know> (or None)
 ```
 
-In your final message give the last ten lines of `scripts/check.py`'s output, the output line of each other acceptance command, and for each requirement the name of a test (or the probe line) that covers it.
+In your final message give the `Sections:` table and the last ten lines of `scripts/check.py`'s output, the output line of each other acceptance command, and for each requirement the name of a test (or the probe line) that covers it.
 
 ## For the verifier
 
 - Do not modify any file in the repository, except to write your report (below). Report findings only. The work under review is uncommitted: "the diff" is `git status --short` plus `git diff HEAD`, read before you write the report.
-- Run the guide's gates exactly as written, from the repository root.
+- Run the guide's gates exactly as written, from the repository root. The first gate is `scripts/check.py --first <the spec's sections>`; if a section fails, report it with the table's rerun command.
 - **Scope audit**: `git status --short` shows only the spec's Scope paths; given files are identical to the blocks in the spec; no existing test, earlier migration, or unlisted module changed.
 - Save the guide's probe script **outside the repository**, run it from the repository root with `.venv/bin/python <path>`, and delete it afterwards. Every line must end in `ok`; the last line must be `FAILURES 0`.
 - Judge code by what it does, never by resemblance to another way of writing it.
