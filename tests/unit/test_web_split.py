@@ -87,6 +87,7 @@ ROUTES = {
     ("GET", "/sync"),
     ("POST", "/sync/link"),
     ("POST", "/sync/unlink"),
+    ("GET", "/sync/unlink"),
     ("GET", "/sync/accounts"),
     ("POST", "/sync/map"),
     ("POST", "/sync/create"),

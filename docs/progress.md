@@ -763,3 +763,14 @@ Template:
   - `tests/conftest.py` also installs a default MemoryKeyring at import so a module-scoped client does not use a leftover Broken backend after given tests import one
 - Follow-ups: None
 
+## Phase 20d: the password again for the sensitive actions (2026-10-24)
+- Tests: 3937 -> 3952 (given 7)
+- New public names: `web.session`: `recheck`; `web.routes.sync`: `GET /sync/unlink`
+- Changed files: 10
+- Deviations:
+  - `_sync_page` also lists SimpleFIN names from a Keychain backend that exposes `passwords`, so a Keychain-only link has an Unlink GET form (the given test saves access without a mapping)
+  - `GET /sync/unlink` without a `link` query answers 405, so the earlier form-path GET test still passes
+- Follow-ups:
+  - The given unlink test should map an account (or list Keychain links for real) so Unlink on `/sync` does not depend on MemoryKeyring
+  - `GET /sync/unlink` with no query is 405 only to keep an earlier test; a missing link name could be 400 on the SimpleFIN page instead
+

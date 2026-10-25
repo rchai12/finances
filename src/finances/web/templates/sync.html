@@ -81,8 +81,7 @@
 <ul class="links">
 {% for name in links %}<li>{{ name }}
   <a href="/sync/accounts?link={{ name }}">SimpleFIN accounts</a>
-  <form method="post" action="/sync/unlink" class="inline">
-    <input type="hidden" name="csrf" value="{{ csrf }}">
+  <form method="get" action="/sync/unlink" class="inline">
     <input type="hidden" name="link" value="{{ name }}">
     <button type="submit">Unlink</button>
   </form>
@@ -113,6 +112,7 @@
   <label>Link name <input name="link" required maxlength="30" pattern="[a-z][a-z0-9-]{0,29}" value="{{ form.link }}"></label>
   <label>Setup token <input type="password" name="token" required autocomplete="off"></label>
   <label class="check"><input type="checkbox" name="replace" value="on"> Replace an existing link</label>
+  {% if reauth %}<label>Your password <input type="password" name="password" required autocomplete="current-password"></label>{% endif %}
   <button type="submit">Link</button>
 </form>
 </section>

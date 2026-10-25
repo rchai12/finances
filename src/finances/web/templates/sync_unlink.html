@@ -1,0 +1,14 @@
+{% extends "layout.html" %}
+{% block title %}Unlink {{ link }} · Finances{% endblock %}
+{% block content %}
+<h1>Unlink {{ link }}</h1>
+{% include "messages.html" %}
+<p class="summary">Unlink {{ link }}? Its SimpleFIN access is removed from this Mac's Keychain; its accounts and their mappings stay.</p>
+<form method="post" action="/sync/unlink" class="fields">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <input type="hidden" name="link" value="{{ link }}">
+  {% if reauth %}<label>Your password <input type="password" name="password" required autocomplete="current-password"></label>{% endif %}
+  <button type="submit">Unlink</button>
+</form>
+<p><a href="/sync">Cancel</a></p>
+{% endblock %}

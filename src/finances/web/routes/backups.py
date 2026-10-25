@@ -21,7 +21,9 @@ from finances.db.backup_records import note_backup_deleted, note_backup_restored
 from finances.views.backups import backup_rows, taken_text
 from finances.web import app as web_app
 from finances.web.forms import _Field, forged, refused
+from finances.web.login import has_password
 from finances.web.render import _done, _render
+from finances.web.session import recheck
 
 router = APIRouter()
 _CONFIRM_NAME = "type the backup's name to confirm"
@@ -53,6 +55,7 @@ def _backup_confirm(
         "taken": taken_text(backup_file(path).taken),
         "check": check,
         "error": error,
+        "reauth": has_password(),
     }
     return _render(request, "backup_confirm", context, 200 if error is None else 400)
 
@@ -91,10 +94,19 @@ def delete_confirm(request: Request) -> Response:
 
 
 @router.post("/backups/delete")
-def delete(request: Request, csrf: _Field = "", name: _Field = "") -> Response:
+def delete(
+    request: Request, csrf: _Field = "", name: _Field = "", password: _Field = ""
+) -> Response:
     stopped = forged(request, csrf)
     if stopped is not None:
         return stopped
+    denied = recheck(password)
+    if denied is not None:
+        try:
+            path = find_backup(get_settings().effective_backup_dir, name)
+        except ValueError as error:
+            return _backups_page(request, str(error), 400)
+        return _backup_confirm(request, "delete", path, error=denied)
     settings = get_settings()
     try:
         delete_backup(settings.effective_backup_dir, name)
@@ -117,7 +129,11 @@ def restore_confirm(request: Request) -> Response:
 
 @router.post("/backups/restore")
 def restore(
-    request: Request, csrf: _Field = "", name: _Field = "", confirm: _Field = ""
+    request: Request,
+    csrf: _Field = "",
+    name: _Field = "",
+    confirm: _Field = "",
+    password: _Field = "",
 ) -> Response:
     stopped = forged(request, csrf)
     if stopped is not None:
@@ -129,6 +145,9 @@ def restore(
         check = check_backup(path)
     except ValueError as error:
         return _backups_page(request, str(error), 400)
+    denied = recheck(password)
+    if denied is not None:
+        return _backup_confirm(request, "restore", path, check, denied)
     if confirm != name:
         return _backup_confirm(request, "restore", path, check, _CONFIRM_NAME)
     try:

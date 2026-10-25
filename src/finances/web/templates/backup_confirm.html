@@ -10,6 +10,7 @@
   <input type="hidden" name="csrf" value="{{ csrf }}">
   <input type="hidden" name="name" value="{{ name }}">
   <label>Name <input name="confirm" value="" autocomplete="off" required></label>
+  {% if reauth %}<label>Your password <input type="password" name="password" required autocomplete="current-password"></label>{% endif %}
   <button type="submit">Restore</button>
 </form>
 {% else %}
@@ -17,6 +18,7 @@
 <form method="post" action="/backups/delete" class="fields">
   <input type="hidden" name="csrf" value="{{ csrf }}">
   <input type="hidden" name="name" value="{{ name }}">
+  {% if reauth %}<label>Your password <input type="password" name="password" required autocomplete="current-password"></label>{% endif %}
   <button type="submit">Delete</button>
 </form>
 {% endif %}

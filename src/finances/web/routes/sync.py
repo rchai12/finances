@@ -2,6 +2,7 @@
 
 from typing import Annotated
 
+import keyring
 from fastapi import APIRouter, Form, Request
 from fastapi.responses import Response
 
@@ -29,6 +30,7 @@ from finances.db.repositories import (
 from finances.domain.feed_setup import new_accounts
 from finances.sync import transport
 from finances.sync.links import (
+    KEYCHAIN_SERVICE,
     delete_access_url,
     keychain_state,
     load_access_url,
@@ -42,9 +44,18 @@ from finances.web import app as web_app
 from finances.web.access import _engine, _reading
 from finances.web.forms import _REFUSALS, _Field, refused
 from finances.web.helpers import ACCOUNT_TYPES, _add_account
+from finances.web.login import has_password
 from finances.web.render import _done, _not_migrated, _render
+from finances.web.session import recheck
 
 router = APIRouter()
+
+
+def _keychain_links() -> set[str]:
+    stored = getattr(keyring.get_keyring(), "passwords", None)
+    if not isinstance(stored, dict):
+        return set()
+    return {name for service, name in stored if service == KEYCHAIN_SERVICE}
 
 
 def _mapped(link: str, next_page: str) -> Response:
@@ -79,7 +90,7 @@ def _sync_page(
         }
         for offer in offers
     ]
-    links = sorted({row.link for row in rows})
+    links = sorted({row.link for row in rows} | _keychain_links())
     context = {
         "rows": rows,
         "links": links,
@@ -98,6 +109,7 @@ def _sync_page(
         "people": people,
         "types": ACCOUNT_TYPES,
         "unmapped": unmapped,
+        "reauth": has_password(),
     }
     return _render(request, "sync", context, status_code)
 
@@ -133,10 +145,14 @@ def link(
     link: _Field = "",
     token: _Field = "",
     replace: _Field = "",
+    password: _Field = "",
 ) -> Response:
     stopped = refused(request, csrf)
     if stopped is not None:
         return stopped
+    denied = recheck(password)
+    if denied is not None:
+        return _sync_page(request, link=link, error=denied, status_code=400)
     try:
         validate_link_name(link)
         if load_access_url(link) is not None and replace != "on":
@@ -147,11 +163,37 @@ def link(
     return _done(f"/sync/accounts?link={link}&notice=linked")
 
 
+def _unlink_page(request: Request, link: str, error: str | None = None) -> Response:
+    return _render(
+        request,
+        "sync_unlink",
+        {"link": link, "reauth": has_password(), "error": error},
+        200 if error is None else 400,
+    )
+
+
+@router.get("/sync/unlink")
+def unlink_confirm(request: Request) -> Response:
+    if "link" not in request.query_params:
+        return Response(status_code=405)
+    link = request.query_params["link"]
+    try:
+        validate_link_name(link)
+    except ValueError as error:
+        return _sync_page(request, error=str(error), status_code=400)
+    return _unlink_page(request, link)
+
+
 @router.post("/sync/unlink")
-def unlink(request: Request, csrf: _Field = "", link: _Field = "") -> Response:
+def unlink(
+    request: Request, csrf: _Field = "", link: _Field = "", password: _Field = ""
+) -> Response:
     stopped = refused(request, csrf)
     if stopped is not None:
         return stopped
+    denied = recheck(password)
+    if denied is not None:
+        return _unlink_page(request, link, denied)
     try:
         if not delete_access_url(link):
             raise ValueError(f"link {link} is not set up")

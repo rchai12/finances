@@ -10,8 +10,9 @@ from fastapi import Request, Response
 from fastapi.responses import PlainTextResponse, RedirectResponse
 
 from finances.config import get_settings
+from finances.views.login import lock_text
 from finances.web import app as web_app
-from finances.web.login import has_password, session_key
+from finances.web.login import attempt, has_password, session_key
 
 COOKIE = "fin_session"
 IDLE = timedelta(minutes=30)
@@ -65,6 +66,20 @@ def cookie_flags(request: Request) -> dict[str, str | bool]:
     if over_https(request):
         flags["secure"] = True
     return flags
+
+
+def recheck(password: str) -> str | None:
+    try:
+        if not has_password():
+            return None
+        result = attempt(password, web_app._now())
+    except ValueError:
+        return _KEYCHAIN
+    if result.ok:
+        return None
+    if result.locked_until is not None:
+        return lock_text(result.locked_until)
+    return "wrong password"
 
 
 async def gate(request: Request, call_next: Callable[[Request], Awaitable[Response]]) -> Response:
