@@ -10,6 +10,7 @@ from fastapi.templating import Jinja2Templates
 
 from finances.db.migrate import current_revision, head_revision
 from finances.views.format import amount_class
+from finances.web.session import cookie_flags
 
 NOT_MIGRATED = "The database is not up to date. Run: fin db upgrade"
 CSRF_COOKIE = "fin_csrf"
@@ -90,7 +91,7 @@ def _render(request: Request, name: str, context: dict, status_code: int = 200) 
         request, f"{name}.html", {**shared, **context}, status_code=status_code
     )
     if fresh:
-        response.set_cookie(CSRF_COOKIE, token, httponly=True, samesite="strict", path="/")
+        response.set_cookie(CSRF_COOKIE, token, **cookie_flags(request))
     return response
 
 

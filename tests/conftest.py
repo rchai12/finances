@@ -38,6 +38,7 @@ _ENV_KEYS = (
     "FIN_BACKUP_DIR",
     "FIN_BACKUP_KEEP",
     "FIN_EXPORT_DIR",
+    "FIN_WEB_HOSTNAME",
 )
 
 _TERMINAL_KEYS = ("FORCE_COLOR", "NO_COLOR", "TTY_COMPATIBLE", "TTY_INTERACTIVE")
@@ -63,6 +64,8 @@ class MemoryKeyring(keyring.backend.KeyringBackend):
             raise keyring.errors.PasswordDeleteError("not found")
         del self.passwords[(service, username)]
 
+
+keyring.set_keyring(MemoryKeyring())
 
 _LOCAL_HOSTS = ("127.0.0.1", "::1", "localhost")
 

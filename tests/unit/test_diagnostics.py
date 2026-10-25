@@ -55,7 +55,7 @@ def test_database_url_is_masked(tmp_settings: Settings, tmp_path: Path) -> None:
     assert "***" in checks[3][2]
 
 
-def test_there_are_five_checks_in_order(tmp_settings: Settings) -> None:
+def test_there_are_eight_checks_in_order(tmp_settings: Settings) -> None:
     names = [name for name, _ok, _detail in run_checks(tmp_settings)]
     assert names == [
         "Python version",
@@ -63,6 +63,9 @@ def test_there_are_five_checks_in_order(tmp_settings: Settings) -> None:
         "Data dir",
         "Database URL",
         "Database schema",
+        "Web address",
+        "Web password",
+        "Tailscale name",
     ]
 
 

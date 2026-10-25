@@ -10,6 +10,7 @@ from fastapi.staticfiles import StaticFiles
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 from finances import clock
+from finances.config import get_settings
 
 HOST = "127.0.0.1"
 SECURITY_HEADERS = {
@@ -34,6 +35,9 @@ class _Guard:
     def __init__(self, app: ASGIApp, port: int) -> None:
         self.app = app
         self.hosts = {f"{HOST}:{port}".encode(), f"localhost:{port}".encode()}
+        name = get_settings().web_hostname
+        if name is not None:
+            self.hosts.update({name.encode(), f"{name}:443".encode()})
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         if scope["type"] != "http":

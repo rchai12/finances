@@ -3,6 +3,7 @@ from typer.testing import CliRunner
 from finances.cli.main import app
 from finances.config import Settings, get_settings
 from finances.db.migrate import head_revision
+from finances.web.login import set_password
 
 runner = CliRunner(env={"COLUMNS": "200"})
 HEAD = head_revision()
@@ -62,6 +63,7 @@ def test_db_upgrade_twice_is_fine(tmp_settings: Settings) -> None:
 
 def test_doctor_passes_after_an_upgrade(tmp_settings: Settings) -> None:
     runner.invoke(app, ["db", "upgrade"])
+    set_password("correct horse battery", None)
     result = runner.invoke(app, ["doctor"])
     assert result.exit_code == 0
     assert f"{HEAD} OK" in result.stdout

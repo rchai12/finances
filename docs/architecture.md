@@ -10,7 +10,7 @@ Everything runs on one machine the household owns (a Mac Studio): the overarchin
 
 The household reaches that machine remotely over a private, encrypted connection. The app itself is never published to the internet (see Privacy boundary).
 
-It also works on its own through the `fin` CLI and a local web UI (from Phase 16a).
+It also works on its own through the `fin` CLI and a local web UI (Phase 16), behind a household password (Phase 20).
 
 ## Goals
 
@@ -55,6 +55,8 @@ finances/
   migrations/                   Alembic
   src/finances/
     config.py                   Settings, get_settings()
+    clock.py                    today(): the machine's local date, read through one function (Phase 31)
+    diagnostics.py              fin doctor's checks
     log.py                      logging setup + redaction filter
     domain/                     pure dataclasses, enums, money helpers, and every report's rules (no project imports)
     db/                         engine/session, ORM models, repositories, backups
@@ -63,11 +65,11 @@ finances/
     sync/                       SimpleFIN client and daily sync (the ONLY place with network)
     categorize/                 the categorize run and transfer pairing
     export/                     CSV files written to a local folder (Phase 30c), or downloaded from the local site (30d); no network
-    analysis/                   reports, search, insights, recurring, upcoming, forecast, net worth, refunds, health, budgets, the dashboard: load through db, apply domain rules
+    analysis/                   reports, search, insights, recurring, upcoming, forecast, net worth, refunds, health, budgets, the dashboard, the year, shared expenses, the review queue, export gathering: load through db, apply domain rules
     views/                      display rows (text) built once for cli and web
     cli/                        Typer commands (thin)
     mcp_server/                 MCP tools for the agent on stdio (thin; from Phase 14a)
-    web/                        FastAPI app (thin): app.py (application, security, clock hooks), routes/ (one router per area), shared page and form helpers, templates, static files, vendored Chart.js
+    web/                        FastAPI app (thin): app.py (application, security, clock hooks), the login (login.py: the password and lockout in the Keychain; session.py: the signed session and the gate), routes/ (one router per area), shared page and form helpers, templates, static files, vendored Chart.js
   tests/
     fixtures/                   synthetic statement text and aggregator responses only
   data/                         gitignored: SQLite DB, real statement samples

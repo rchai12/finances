@@ -4,9 +4,14 @@
 - [roadmap.md](roadmap.md): all phases, with outlines for those not yet specified
 - [statement-formats.md](statement-formats.md): layout of each bank's PDF statement (synthetic examples)
 - [testing.md](testing.md): test layers, rules, critical modules
+- [phase-conventions.md](phase-conventions.md): what every phase spec and verification guide assume (starting checks, rules, acceptance, the progress entry, the verdict)
+- [sync-setup.md](sync-setup.md): linking SimpleFIN and the daily sync, for the household
+- [backups.md](backups.md): backups and restores, and their schedule
+- [remote-access.md](remote-access.md): reaching the site from the household's other devices through Tailscale Serve, behind the household password
 - [phases/](phases/): detailed specs, one per phase
 - `verification/`: one guide per phase, for the second agent that checks the implementation against the spec
 - [progress.md](progress.md): log the coding agent appends to after each phase
+- `reviews/`: the verifier's report for each phase, with its verdict
 
 ## Workflow
 
@@ -19,6 +24,8 @@
 
    > Read AGENTS.md, docs/phases/phase-NN-*.md, and docs/verification/phase-NN-*.md.
    > Follow the verification guide against the current diff. Do not modify files. Report the verdict.
+
+   The verifier writes its report to `reviews/`, named as the spec is.
 
    A FAIL goes back to the coding agent with the verifier's findings, in the form the guide's last section gives.
 3. Commit.

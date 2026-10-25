@@ -754,3 +754,12 @@ Template:
   - A Keychain error from `has_password()` is treated as no password (the request goes on). 503 is only for `session_key()`, so earlier SimpleFIN keychain tests still reach their own routes
 - Follow-ups: None
 
+## Phase 20c: reaching the site through Tailscale (2026-10-24)
+- Tests: 3920 -> 3937 (given 11)
+- New public names: `config.Settings`: `web_hostname`; `web.session`: `over_https`, `cookie_flags`; `diagnostics`: `Web address`, `Web password`, `Tailscale name`
+- Changed files: 19
+- Deviations:
+  - `cookie_flags` is shared by the gate, the login, `_render`, and logout so `Secure` is set the same way on every cookie
+  - `tests/conftest.py` also installs a default MemoryKeyring at import so a module-scoped client does not use a leftover Broken backend after given tests import one
+- Follow-ups: None
+

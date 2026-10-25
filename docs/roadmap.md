@@ -4,14 +4,14 @@ Each phase is sized for one focused coding session: a few modules, their tests, 
 
 **Input decision:** a third-party **aggregator** is the daily feed. Its rows are provisional. Monthly **PDF statements** are the audit and the record (see `docs/statement-formats.md`): each is reconciled against its own opening and closing balances, then upgrades the matching provisional rows in place. Statements also supply what the feed lacks, such as the cardholder on shared cards.
 
-Status (2026-10-23): built and verified, in the build order below, up to and including Phase 20b (3920 tests); Phases 16 and 30 are complete. Each phase's spec is in `docs/phases/`, its verification guide in `docs/verification/`, its review in `docs/reviews/`, and its result in `docs/progress.md`. Phase 20c is specified; phases after it are outlines until specified.
+Status (2026-10-24): built and verified, in the build order below, up to and including Phase 20b (3920 tests); Phases 16 and 30 are complete. Each phase's spec is in `docs/phases/`, its verification guide in `docs/verification/`, its review in `docs/reviews/`, and its result in `docs/progress.md`. Phase 20c is specified; phases after it are outlines until specified.
 
 **Build order:** 2 → 3 → 4 → 17a → 8 → 17b → 17c → 21 → 16a → 16b → 9 → 16c → 16d → 10 → 22 → 23 → 11 → 12 → 13 → 16e → 24 → 24b → 16f → 16j → 16g → 25 → 16h → 16i → 16k → 13d → 26a → 26b → 31 → 32 → 33 → 27a → 27b → 27c → 27d → 14a → 16l → 16m → 16n → 35a → 35b → 14b → 14c → 14d → 14e → 36a → 36b → 36c → 34a → 34b → 19a → 19b → 19c → 19d → 28a → 28b → 19e → 28c → 28d → 28e → 28f → 28g → 29a → 29b → 29c → 30a → 30b → 30c → 30d → 16 → 20. Phases 5 and 6 (more statement parsers) can be built any time after 4, when audit coverage for those banks is wanted.
 
 | # | Phase | Outcome | Spec |
 |---|---|---|---|
 | 1 | Project skeleton | Installable package, config, logging, `fin doctor`, tests run | [phase-01](phases/phase-01-skeleton.md) |
-| 2 | Database and accounts | **Done.** Money helpers, `accounts` schema + migration, repositories, `fin db upgrade`, `fin accounts add/list` | sub-phases below |
+| 2 | Database and accounts | Money helpers, `accounts` schema + migration, repositories, `fin db upgrade`, `fin accounts add/list` | sub-phases below |
 | 3 | Statement import core | PDF text, parser registry, reconciliation, dedup, `fin import statement/folder` | sub-phases below |
 | 4 | Capital One parser | Multi-cardholder card statements, year wrap, interest and fee lines, declared section totals; the opt-in check of real statements | [phase-04](phases/phase-04-capital-one-parser.md) (re-issued for the current format) |
 | 5 | BoA + Citi parsers | Two more card formats, and the shared `find_labeled_amount` helper | [phase-05](phases/phase-05-boa-citi-parsers.md) (re-issued for the current format) |
@@ -50,9 +50,9 @@ Status (2026-10-23): built and verified, in the build order below, up to and inc
 
 Phase numbers are stable. A removed phase keeps its number, and a phase that is too large for one coding session is split into lettered sub-phases (`2a`, `2b`, ...), never renumbered.
 
-## Sub-phases
+## Sub-phases of Phases 2 and 3
 
-Verification guides have the same file name under `verification/`.
+Later phases' sub-phases are linked from the table above. Verification guides have the same file name under `verification/`.
 
 | # | Sub-phase | Outcome | Spec |
 |---|---|---|---|
@@ -103,6 +103,8 @@ Testing rules for every phase are in [testing.md](testing.md). Each later phase 
 
 ## Outlines
 
+Each outline is the plan as written before its phase was specified. For a built phase, its spec and `docs/progress.md` say what was built; where the plan changed on the way, the outline says so below.
+
 ### Phase 21: People and ownership
 - Decided with the owner: separation by person is for **views and reports**, not privacy between the two people; both see everything.
 - Table `people` (name). Each account is owned by one person or is **Joint**, kept in its own table so the `accounts` table and its tests stay as they are.
@@ -112,7 +114,7 @@ Testing rules for every phase are in [testing.md](testing.md). Each later phase 
 
 ### Phase 11: Categorization and transfers
 - **Split and decided (2026-10-14).** 11a: a two-level category tree seeded by migration, merchant cleaning, rules (highest priority wins; manual choices never overwritten; adding or deleting a rule re-runs the rules over past transactions), and the terminal commands. 11b: the same on the web. 11c: transfers, paired automatically when one match is clear and offered for confirmation when not, plus keyword rules for transfers to untracked accounts. Specified (2026-10-14): 11c pairs an outflow with the same amount in another account at most 5 days away, automatically when neither side has another candidate; the rest wait for `fin transfers review`; unpairing or rejecting is remembered. Transfers to untracked accounts need nothing new: an 11a rule gives them a category in the Transfers group, which Phase 12 treats as a transfer. 11d puts transfers on the web. Refunds netting moves to Phase 12, where spending is added up. SimpleFIN supplies no categories, so there is no aggregator hint.
-- Tables: `categories` (with `is_sensitive`, `is_transfer`, `is_income` flags), `category_rules` (pattern, match type, priority), `merchants` (display name, kind: national_chain / local / p2p / unknown).
+- Tables: `categories` (with `is_sensitive`, `is_transfer`, `is_income` flags), `category_rules` (pattern, match type, priority). (A `merchants` table was not built: merchant names are cleaned on the fly, and Phase 28a merges them with aliases.)
 - Seed a default category tree (Groceries, Dining, Coffee & Dessert, Subscriptions & Digital, Shopping, Travel, Gas, Parking, Utilities & Internet, Health*, Insurance, Entertainment, Gaming, Fees & Interest, Transfers, Income...). *sensitive.
 - Merchant normalization tuned to the formats seen: strip processor prefixes (`SQ *`, `TST*`, `PP*`, `PAYPAL *`, `SP `, `GOOGLE *`, `AMAZON MKTPL*<id>`), store numbers (`#1234`), phone numbers, run-together city+state suffixes, debit-card prefixes (`DEBIT CARD PURCHASE`, `DEBIT CARD RECURRING PYMT`), and embedded `MM-DD` dates.
 - **Transfer matching** (important: the samples are full of them): card payments (`CAPITAL ONE MOBILE PYMT`, `PAYMENT FROM CHK`, autopay) and bank-to-bank transfers. Pair an outflow in one account with an inflow of the same amount in another account within N days; also keyword rules for transfers to untracked accounts (e.g. a CD). Paired and keyword transfers are excluded from spending.
@@ -120,7 +122,7 @@ Testing rules for every phase are in [testing.md](testing.md). Each later phase 
 - Use the merchant name and category supplied by the aggregator as low-priority hints (useful, but e.g. own-account savings transfers are labeled "Investments").
 - Transfer matching must use amount and date, not card numbers in descriptions (they do not match; see formats doc).
 - Rule engine: highest priority wins; manual overrides are never overwritten.
-- CLI: `fin categorize`, `fin rules add/list`, `fin uncategorized`, `fin tx set-category`, `fin transfers review`.
+- CLI: `fin categorize`, `fin rules add/list`, `fin uncategorized`, `fin transactions set-category`, `fin transfers review`.
 
 ### Phase 12: Core reports
 - Pure functions in `analysis/` returning dataclasses (reused by the web UI).
@@ -142,7 +144,7 @@ Testing rules for every phase are in [testing.md](testing.md). Each later phase 
   - `list_accounts`, `get_balances`, `get_net_worth`
   - `list_transactions` (filters: account, bank, card, person, date range, category, merchant, text; hard row cap with paging)
   - `get_spending` (one tool with `by`: category, group, merchant, person, account, bank, or card; decided in 14b instead of one tool per grouping), `month_over_month`
-  - `list_findings` (the Phase 13 insights), `merchant_stats`
+  - `get_insights` (the Phase 13 findings and merchant stats together; built in 14c in place of the planned `list_findings` and `merchant_stats`)
   - `list_uncategorized`, `list_categories`, `list_rules`, `list_transfers`, `list_transfer_suggestions` (the transfers waiting for review): the work queues, so the agent knows what to recommend on. Each wraps a function Phases 11a and 11c already built.
   - `find_merchants` (added 2026-10-21): fuzzy matching of a phrase against the cleaned merchant names (and category names), returning the closest few with a score, so the agent can turn "that coffee place" or a misspelling into a merchant and then ask for its numbers with the other tools. Standard-library matching (for example `difflib`) over the few hundred distinct names; no new dependency, no index.
   - `data_coverage`: per account, the periods covered, the date of the newest data, which periods are statement-audited, and any sync drift, so the agent can say when its answer rests on stale or partial months
@@ -152,7 +154,7 @@ Testing rules for every phase are in [testing.md](testing.md). Each later phase 
 - Tests drive the server through the SDK's in-memory client against a migrated temp database. No subprocess, no socket.
 - **The agent never reads the database directly.** Every answer comes through these tools, already computed by the app, with fixed caps; that boundary keeps arithmetic in tested code and lets the app decide what the agent sees.
 - **Vector search: not now (decided 2026-10-21).** The owner asked about adding vector capabilities so the agent could search by meaning. Most questions are exact and numeric (filter, group, sum), which the analysis functions answer and embeddings cannot; a local embedding model, a SQLite vector extension, and re-indexing on every import would add cost and another derived copy of the data. Revisit only if real use shows the agent failing because the household's words do not match merchant names (for example "gym" against "ACME FITNESS LLC"): then embed merchant and category names only, never transactions, locally, behind one tool that returns matches, never raw rows. The agent's own memory (advice, preferences) may use a vector store on the agent's side, outside this app.
-- Depends on Phases 12 and 13. Will be specified as several sub-phases (server skeleton plus one tool, then tool groups).
+- Built as 14a to 14e (all read tools); the write tools are Phase 19.
 - **Split (2026-10-22):** [14a](phases/phase-14a-mcp-server.md) the server on stdio, a read-only session, `fin mcp serve`, and `list_accounts`, `get_balances`, `get_net_worth`; then 14b transactions and spending; 14c findings, recurring, upcoming, forecast, budgets, and `data_coverage`; 14d the work queues and `find_merchants`. The SDK is mcp 2.x (`MCPServer`; 1.x's `FastMCP` is gone). **Revised with 14c (2026-10-22):** 14c is insights, recurring charges and income, upcoming, forecast, and budgets (five wrappers); data coverage moves to a new **14e** with `find_merchants`, since it needs new combining logic rather than a wrapper; 14d keeps the work queues.
 
 ### Phase 15: removed
@@ -160,10 +162,10 @@ The app no longer calls an LLM. The finance subagent of the overarching agent pr
 
 ### Phase 16: Local web UI
 - Moved forward at the owner's request (2026-10-14): setup must be possible from a web page, not only the terminal. Split into sub-phases.
-- **16a, the foundation, is specified** ([phase-16a](phases/phase-16a-web-foundation.md)): `fin web serve` on 127.0.0.1 only, a host check against DNS rebinding, strict security headers, no JavaScript, and read-only pages for accounts, people, transactions, and SimpleFIN status.
-- **16b, the setup workflows, is specified** ([phase-16b](phases/phase-16b-web-setup.md)): a form token on every form; add an account, a person, an owner, a cardholder name; link SimpleFIN by pasting the setup token into a password field; list SimpleFIN's accounts with a dropdown to map each one, or to create the matching account and map it in one step; a "Sync now" button; unlink.
-- **16c, forms that work in a real browser, is specified** ([phase-16c](phases/phase-16c-browser-origin.md)): the `no-referrer` policy of 16a made browsers send `Origin: null`, which the origin check of 16b refuses; the policy becomes `same-origin`.
-- **16d, new SimpleFIN accounts, is specified** ([phase-16d](phases/phase-16d-new-simplefin-accounts.md)): each sync remembers the SimpleFIN accounts it receives; `fin sync run` and Sync now say how many are new; the SimpleFIN page offers each one pre-filled (type, last four digits, owner, and an existing account it looks like) to create and map, map, or not track, in one click.
+- **16a, the foundation, built** ([phase-16a](phases/phase-16a-web-foundation.md)): `fin web serve` on 127.0.0.1 only, a host check against DNS rebinding, strict security headers, no JavaScript, and read-only pages for accounts, people, transactions, and SimpleFIN status.
+- **16b, the setup workflows, built** ([phase-16b](phases/phase-16b-web-setup.md)): a form token on every form; add an account, a person, an owner, a cardholder name; link SimpleFIN by pasting the setup token into a password field; list SimpleFIN's accounts with a dropdown to map each one, or to create the matching account and map it in one step; a "Sync now" button; unlink.
+- **16c, forms that work in a real browser, built** ([phase-16c](phases/phase-16c-browser-origin.md)): the `no-referrer` policy of 16a made browsers send `Origin: null`, which the origin check of 16b refuses; the policy becomes `same-origin`.
+- **16d, new SimpleFIN accounts, built** ([phase-16d](phases/phase-16d-new-simplefin-accounts.md)): each sync remembers the SimpleFIN accounts it receives; `fin sync run` and Sync now say how many are new; the SimpleFIN page offers each one pre-filled (type, last four digits, owner, and an existing account it looks like) to create and map, map, or not track, in one click.
 - **16l, a Sync now button in the menu** ([phase-16l](phases/phase-16l-sync-button-in-the-menu.md); the owner's request, 2026-10-22): every page's menu ends with a button that posts to the existing `/sync/run`; the test page readers leave the menu's form out.
 - **16m, a layered dark look** ([phase-16m](phases/phase-16m-layered-dark-look.md); the owner's choice from a mock-up, 2026-10-22: always dark in four shades, a soft purple accent, compact rows): a new `app.css` and chart colours from it; no template changes. [16n](phases/phase-16n-cards-and-coloured-amounts.md) follows: cards around each section and amounts in colour, with small template changes.
 - **Decided (2026-10-15): four web sub-phases before Phase 14**, in this order, so each builds on the last and the agent's tools can reuse their filters:
@@ -176,20 +178,20 @@ The app no longer calls an LLM. The finance subagent of the overarching agent pr
   - **16i, account pages** ([phase-16i](phases/phase-16i-account-pages.md); split 2026-10-16: 16i is the page and the links, with tables; **16k** adds the charts beside them) (asked for 2026-10-15): clicking an account name (Accounts, the balances on Reports, the Account column of Transactions, From and To on Transfers) opens that account's page; clicking card digits opens it filtered to that card. The page has the account's transactions with 16e's search and filters, and three charts: this month's (or a chosen month's) spending by category group as a pie with a legend whose rows link to the transactions, spent and income per month as bars, and the balance over time as a line.
   - **16k, charts** ([phase-16k](phases/phase-16k-charts.md)): the account page's pie, bars, and line, beside its tables.
   - **Charts use a JavaScript chart library** (the owner's choice, 2026-10-15). To keep the no-network and strict-policy rules: the library is a pinned version served from the app's own static folder (no CDN), its file hash is checked by a test, the policy becomes `script-src 'self'` (no inline scripts, no `eval`), and chart data reaches the page as JSON in a data attribute or a same-origin JSON route. Every chart keeps a table of its numbers beside it, so the page still reads without scripts. The 16i spec names the library and how the file is added; `docs/architecture.md` changes with it.
-- Later sub-phases: the review queue of agent suggestions (with Phase 19). When the system moves to the Mac Studio, the site sits behind the private VPN with a login (Phase 20).
+- The review queue of agent suggestions was built with Phase 19 (19b); the login and remote access are Phase 20.
 - FastAPI + Jinja2, bound to 127.0.0.1. From 16k the site runs its own scripts only (Chart.js 4.4.6, vendored and hash-checked, and `static/charts.js`); HTMX only if a later page needs it, served from the app itself.
 - Dashboard, transactions with category editing, insights; statement upload page that calls the same import service; sync status and a re-link prompt when a bank connection breaks; the `fin review` queue of agent writes.
 
 ### Phase 17: Aggregator sync
-- **17a, the feed core, is specified** and needs no provider: a provider-neutral `AccountFeed` (transactions, removed ids, a balance) is stored by `apply_feed` as provisional rows, with pending rows replaced in place, statement-confirmed rows left alone, and balance drift recorded per pull in `feed_pulls`. The provider's transaction id lives in `feed_items`, not on `transactions`. It unblocks Phase 8.
-- **17b, the SimpleFIN client and sync, is specified**: claiming a setup token, one request for every account's last 30 days with holds, reading both protocol versions, mapping SimpleFIN accounts to ours (`feed_accounts`), and `run_sync`. All network code is one function in `sync/transport.py`.
+- **17a, the feed core, built**, needs no provider: a provider-neutral `AccountFeed` (transactions, removed ids, a balance) is stored by `apply_feed` as provisional rows, with pending rows replaced in place, statement-confirmed rows left alone, and balance drift recorded per pull in `feed_pulls`. The provider's transaction id lives in `feed_items`, not on `transactions`. It unblocks Phase 8.
+- **17b, the SimpleFIN client and sync, built**: claiming a setup token, one request for every account's last 30 days with holds, reading both protocol versions, mapping SimpleFIN accounts to ours (`feed_accounts`), and `run_sync`. All network code is one function in `sync/transport.py`.
 - **17c, links and commands**: several named SimpleFIN links, one per person's subscription (migration `0005` adds `feed_accounts.link`; the same SimpleFIN id under two links becomes two mappings; existing signatures gain `link` as a keyword with a default, so 17b's tests keep passing); requests that refuse redirects, so the access credentials can only reach the access URL's host (a follow-up Grok raised in 17b); `fin sync link --link NAME` (asks for the setup token, stores the access URL in the macOS Keychain with `keyring`, one entry per link), `fin sync accounts`, `fin sync map`, `fin sync run`, `fin sync status`, `fin sync unlink`; a `launchd` example for a daily run. The upgraded and dropped counts of Phase 8 in `fin import statement` may move to a small follow-up if 17c is too large.
 - All network code in `src/finances/sync/`, behind a small `FeedClient` protocol so tests use a fake client and recorded synthetic responses. No test touches the network.
 - Access token in the macOS Keychain (via `keyring`), never in the database, `.env`, or logs. `fin sync link` stores it; `fin sync run` pulls; `fin sync status` shows the last successful pull per account and any connection that needs re-linking.
 - Rows are inserted with `source = aggregator`, provisional, deduplicated on the provider's transaction id. Pending transactions are stored as pending and replaced when they post; they are excluded from spending until then.
 - Balance check after each pull: the stored balance plus new posted rows must equal the balance the provider reports, otherwise the account is flagged as drifted and the agent's `data_coverage` tool reports it.
 - Scheduling is outside the app (a `launchd` job calling `fin sync run`). The agent cannot trigger a sync.
-- Will be specified as several sub-phases (client protocol and fake, token storage, row mapping, sync service, CLI).
+- Built as 17a to 17d, with sync resilience added in Phase 33.
 
 ### Phase 18: removed
 No cloud deployment. If the app ever moves off the household's machine, the privacy boundary in `architecture.md` must be redesigned first.
@@ -198,7 +200,7 @@ No cloud deployment. If the app ever moves off the household's machine, the priv
 - Depends on Phases 11, 13, and 14. Rules are fixed in `architecture.md`, Agent interface.
 - **Split (2026-10-22):** [19a](phases/phase-19a-proposals-and-advice.md) the `proposals` and `advice_log` tables, `propose_category`, `log_advice`, `list_proposals`, `list_advice`, and `fin review` (list, accept, decline); 19b the review queue on the web and the agent's suggestion beside each uncategorized transaction; [19c](phases/phase-19c-transfer-proposals.md) `propose_transfer` and `propose_not_transfer`, with the second transaction's id on `proposals` (migration 0014); [19d](phases/phase-19d-rule-proposals.md) `propose_rule` with an example transaction the rule must match, accepted through `create_rule` and one categorize run after every proposal in the list, with the rule's pattern, match, and priority on `proposals` (migration 0015). [19e](phases/phase-19e-alias-proposals.md) `propose_merchant_alias` with an example transaction whose cleaned name is the merchant to merge, accepted through `add_alias` and one categorize run, the merchant on `proposals` (migration 0017), after 28b; `propose_finding_status` waits for findings to have a status.
 - **The agent recommends; it does not act** (the owner's decision, 2026-10-14). Every write tool except the advice log stores a **proposal** that changes nothing until a person accepts it. Accepting a proposal calls the same function the terminal and web use, so the result is recorded as the person's choice.
-- Schema: a `proposals` table (kind, the target, the proposed value, the agent's one-line reason, status `open` / `accepted` / `declined`, timestamps); a `finding_status` table; an `advice_log` table.
+- Schema: a `proposals` table (kind, the target, the proposed value, the agent's one-line reason, status `open` / `accepted` / `declined`, timestamps); an `advice_log` table. (A `finding_status` table waits for findings to have a status; not built.)
 - Tools, in the order they are built: `log_advice` / `list_advice` (the agent's own notes, the only direct write), `propose_category` (for an uncategorized transaction), `propose_transfer` and `propose_not_transfer` (for a candidate waiting for review), `propose_rule`, `propose_merchant_alias`, `propose_finding_status`, `list_proposals`.
 - A proposal on something a person has since decided (a category set, a pair confirmed or rejected) is shown as out of date and cannot be accepted. The agent cannot accept or decline a proposal, and cannot propose again what a person declined.
 - `fin review` lists open proposals with the agent's reason; accept or decline each, or several at once. The web UI gets the same queue, and the Categories and Transfers pages show the agent's suggestion beside each item.
@@ -208,11 +210,11 @@ No cloud deployment. If the app ever moves off the household's machine, the priv
 - **Decided (2026-10-24, the owner):** Tailscale Serve (HTTPS on the Mac, forwarding to 127.0.0.1); one household password, its scrypt hash in the macOS Keychain, set and changed with `fin web password` (a change needs the current password and ends every session); the login everywhere, the Mac included; sessions end after 30 minutes idle and at most 1 day after login; 5 wrong passwords in a row lock the login for 1 hour, 10 for 1 day, every 3 more for 3 days, tries during a lock not counted; `fin web unlock` at the Mac, which needs the password; the password asked again before restoring or deleting a backup and linking or unlinking SimpleFIN.
 - **Split (2026-10-24):** [20a](phases/phase-20a-password-and-lockout.md) the password and the lockout in the Keychain, the two commands, and `fin web serve` refusing without a password (nothing on the web yet); [20b](phases/phase-20b-login-on-the-web.md) the login on the web (a session cookie signed with 20a's key; a gate in front of every page but the login and the static files; back to the page asked for; a Log out button in the menu; the lock's end in local time on the login page), as the owner chose; [20c](phases/phase-20c-tailscale.md) Tailscale Serve (`FIN_WEB_HOSTNAME` in the host check and the form origins; `Secure` cookies for requests through it, by name or `X-Forwarded-Proto`, so no browser spike was needed; the site failing closed on a Keychain error, closing 20b's approved deviation; three `fin doctor` checks, failing with no password; a launchd keep-alive job; the runbook [docs/remote-access.md](remote-access.md)), as the owner chose; 20d the password asked again before the four sensitive actions.
 - The app still binds to 127.0.0.1 only. The VPN that forwards to it is configured outside the repository; this phase ships the runbook, not the VPN.
-- Web UI login for a single household: password hash from configuration, signed session cookie with `Secure`, `HttpOnly`, `SameSite=Strict`, idle timeout, lockout after repeated failures.
-- CSRF tokens on every state-changing request; allowed-host check so only the configured VPN hostname and localhost are served.
-- `fin doctor` fails if the web UI is configured to bind to anything other than loopback.
+- Web UI login for a single household: the password's hash in the Keychain (decided above, in place of the outline's configuration), a signed session cookie (`HttpOnly`, `SameSite=Strict`, `Secure` through Tailscale), idle and longest limits, and the escalating lockout.
+- Form tokens on every state-changing request (built since 16b); the host check serves only localhost and the configured Tailscale name (20c).
+- `fin doctor` reports the web address (always loopback; no setting can change it) and fails with no web password (20c).
 
-### Proposed 2026-10-15 (accepted by the owner)
+### Added 2026-10-15 (accepted by the owner; all built)
 
 The order in the build line above is the architect's recommendation: protect the data first, show its health on the dashboard, then plan ahead, then the agent, then the extras.
 
@@ -228,7 +230,7 @@ The order in the build line above is the architect's recommendation: protect the
 - **Delete**: chosen from the list by name only (never a path); a confirmation page names the file. Only backup and set-aside names can be deleted.
 - **Restore**: chosen from the list only (no upload, no typed path); a confirmation page where the owner types the backup's name; the current database is always set aside first, and that copy appears in the list, so a restore can be undone by restoring it. The server pauses for it: it holds other requests, closes its database connections, copies the backup in, checks it, and carries on. A backup from an older version says to run `fin db upgrade` in the terminal.
 - **No download**: a full copy would land in the browser's downloads folder, often synced to the cloud.
-- From Phase 20 (remote access), delete and restore are allowed only from the Mac itself or after the password is entered again.
+- From Phase 20d, deleting and restoring a backup ask for the password again (the owner's choice, 2026-10-24).
 
 ### Phase 25: Data health
 - One list of problems, each with a kind, the account, and what to do: no new data for N days; a SimpleFIN link that needs relinking; a calendar month with no statement for a statement-only account (from statement periods); balance drift from the latest pull.
@@ -264,7 +266,7 @@ The order in the build line above is the architect's recommendation: protect the
 - A year's totals by category and group, with tax-relevant groups (medical, gifts and donations, taxes) pulled out.
 - CSV export of transactions and of any report, written to a chosen folder; no network.
 
-### Phase 31: Tidy (planned 2026-10-16, after an audit at 2887 tests)
+### Phase 31: Tidy (planned 2026-10-16, after an audit at 2887 tests; built)
 - One `today()` (local date of the machine) used by every command and page; the web's `_today` calls it, so tests that replace `_today` keep working. Stored timestamps stay UTC. Near a month's end in the evening, the web and the terminal then agree on the month.
 - `fin statements list` uses `views.statement_rows`; one `print_rows` helper in `cli/common.py` replaces the three copies; the budget amount message is one constant; `fin backup list` uses the web's backup rows (gaining the size column).
 - Docs were brought up to date by the architect with the plan (architecture: package roles, the pure `domain` rules, `views` not used by MCP, the full data model, the date rule).
@@ -273,14 +275,14 @@ The order in the build line above is the architect's recommendation: protect the
 - `web/app.py` (about 1700 lines, 50 routes) becomes a package of routers, one per area (accounts, people, transactions, categories and rules, transfers, reports and insights, budgets, statements, backups, sync, home), with the security middleware, the form checks, rendering, and notices in shared modules.
 - No route, template, message, or status changes; every earlier web test passes unchanged. It comes before Phase 20 (login touches every route) and before Phase 27 and 19 add pages.
 
-### Phase 33: Sync resilience (planned 2026-10-17)
+### Phase 33: Sync resilience (planned 2026-10-17; built)
 - **Why:** the daily `launchd` sync ran at 07:00 and failed four days running after the last good pull (14 October): once "aggregator answered with an error", three times "could not reach the aggregator", most likely the Mac waking before its network was back. One attempt per day means one network blip loses the day, and the log does not say when each run happened.
 - **Retry:** when SimpleFIN cannot be reached (no answer at all), `fin sync run` tries again a few times with a growing wait, over a few minutes, before giving up; an answer with an error status is not retried (it would not change within minutes), and "access revoked" never is. The waits are constants, and tests replace the sleep so they never wait.
 - **Timestamped logs:** each scheduled run of `fin sync run` and `fin backup run` writes a start line with the local date and time to its log, so failures can be placed in time. The schedule scripts stay as they are unless the spec finds that the simplest place for the line.
 - **The last failure, stored:** a migration adds a small record per SimpleFIN link of the last failed sync (when, and the kind: unreachable, error answer, access revoked), cleared by the next good sync. `fin sync status`, `fin health` (a `sync` problem that names the reason), and the dashboard show it. Phase 25's "no pull for N days" stays.
 - Out of scope: syncing more than once a day, notifications, and changing what a successful sync does.
 
-### Phase 34: Audit trail (planned 2026-10-21)
+### Phase 34: Audit trail (planned 2026-10-21; built)
 - **Split (2026-10-22):** 34a is the table, `record_change`, a record from every repository function a person uses to change data (rules, automatic pairing, and syncs record nothing), and `fin audit`; 34b adds statement imports (as `system`), backup deletions and restores (as `person`: a person presses the button or runs the command, which corrects this outline's `system` for restores), and the History page.
 - **Why:** the owner asked about MLflow for logging and auditing. MLflow tracks machine-learning experiments, models, and LLM traces; this app has no models, and MLflow would add a large dependency, a second web server, and a second store of financial detail. What the app needs is a record of changes to its own data, kept in its own database. (MLflow tracing may suit the finance subagent later, outside this app, kept local.)
 - **A table, append-only:** one row per change: when (UTC), who (`person`, `rule`, `agent` once Phase 19 accepts a proposal, or `system` for imports, syncs, and restores), what (a fixed list of actions such as `category_set`, `category_cleared`, `rule_added`, `rule_edited`, `rule_deleted`, `category_renamed`, `category_deleted`, `transfer_confirmed`, `transfer_rejected`, `transfer_unpaired`, `account_renamed`, `account_closed`, `account_reopened`, `owner_set`, `budget_set`, `budget_removed`, `statement_imported`, `backup_restored`, `backup_deleted`), the record it touched (kind and id), and the value before and after as short text. Rows are never updated or deleted by the app.
@@ -290,7 +292,7 @@ The order in the build line above is the architect's recommendation: protect the
 - **Phase 19** records each accepted proposal through it with `agent` as the source and the person who accepted it.
 - Out of scope: undoing from the audit trail, exporting it, recording page views or reads.
 
-### Phase 35: Refunds (planned 2026-10-22)
+### Phase 35: Refunds (planned 2026-10-22; built)
 - **Why (the owner's report):** the spending report's sign means two things. A category's Spent is its purchases minus its refunds, written as a positive number, so $500 of purchases shows `$500.00`; but when refunds exceed purchases in the period (a purchase last month, its refund this month) the same column shows `-$100.00`, meaning money **back**. On the Transactions page a minus means money **out**. Once 16n's colours apply, that net refund also shows in red, as if it were bad spending. A net figure also hides what happened ($400 out and $300 back reads as `$100.00`).
 - **Today's rule, kept:** a refund is money in with a spending category (kind `spending`, above zero). It reduces spending in reports, budgets, and insights; no total changes in this phase.
 - **Spent, Refunds, Net:** wherever spending is reported by category, group, merchant, person, account, bank, or card (the Reports page and `fin spending`, the account page's spending section), the single Spent column becomes three: **Spent** (purchases only), **Refunds** (money back only), both never below zero, and **Net** (Spent minus Refunds). A Net below zero is written `$100.00 back`, never with a minus, and shows in 16n's green. The summary line names the period's purchases, refunds, and net.
@@ -302,7 +304,7 @@ The order in the build line above is the architect's recommendation: protect the
 - **Placed before 14b** so the agent's tools are built on the split figures. **Split (2026-10-22):** [35a](phases/phase-35a-spent-refunds-net.md) the Spent, Refunds, and Net columns and `$X back` everywhere net spending is shown; [35b](phases/phase-35b-refunds-on-transactions.md) refund labels, the `refund` filter (web only: the terminal's transaction list has no kinds), matching, and the flag on uncategorized money in on a card.
 - Out of scope: a separate Refunds category or group; changing how refunds count in totals or budgets; storing refund matches.
 
-### Phase 36: Tidy before the write phases (planned 2026-10-22, after an audit at 3145 tests)
+### Phase 36: Tidy before the write phases (planned 2026-10-22, after an audit at 3145 tests; built)
 - **Split (2026-10-22):** 36a splits `db/repositories.py` into a package of nine area modules behind a re-exporting `__init__.py` (no import elsewhere changes) and adds the two critical modules; 36b makes the accounts, people, and categories views only format (loading moved to `analysis`, the refund text out of the route) and freezes which views may still load data; 36c does the same for sync (with the Keychain read) and transfers, shares the last hand-built CLI tables and `_change`, and forbids any `views` import of the database (the owner chose the full tidy, 2026-10-22).
 - **Why:** an audit after 35b found the structure sound (layering and privacy hold, the web split and one clock are in place) and listed what to tidy before Phase 34 and 19 add tables and repository functions.
 - **Split `db/repositories.py`** (1433 lines, every table since Phase 2) into one module per area (accounts and balances, statements and transactions, the feed and sync failures, people, categories rules and budgets, transfers), with `db/repositories.py` kept as a facade that re-exports every name, so no import elsewhere changes. Proven as Phase 32 was: the public names and their behaviour pinned from today's code first.
@@ -316,3 +318,6 @@ The order in the build line above is the architect's recommendation: protect the
 - `fin backup delete NAME` (deleting a backup is web-only since 24b).
 - `fin networth [--months N]` (net worth over time is a Reports chart since 27d).
 - Known limit to revisit: closing an account drops it from net worth history (27d).
+- Known limit: a drill-down from the Year page or a report shows at most 1000 rows, the Transactions page's own limit (30b).
+- Known limit: a split purchase counts once per part in a spending line's count, though its money is right (28e).
+- Tags and notes in the agent's tools and in `fin transactions list` (28c and 28f kept them to the terminal commands and the web).

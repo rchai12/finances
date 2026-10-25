@@ -6,6 +6,7 @@ from typing import Annotated
 from fastapi import FastAPI, Form, Request
 from fastapi.responses import PlainTextResponse, Response
 
+from finances.config import get_settings
 from finances.db.repositories import AccountExistsError, CategoryExistsError, PersonExistsError
 from finances.sync.simplefin import SyncError
 from finances.web import app as web_app
@@ -21,6 +22,9 @@ def configure_origins(api: FastAPI, port: int) -> None:
         f"http://{web_app.HOST}:{port}",
         f"http://localhost:{port}",
     }
+    name = get_settings().web_hostname
+    if name is not None:
+        api.state.origins.add(f"https://{name}")
 
 
 def forged(request: Request, csrf: str) -> Response | None:

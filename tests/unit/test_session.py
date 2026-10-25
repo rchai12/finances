@@ -140,14 +140,15 @@ def test_a_keychain_error_on_session_key_is_503(
     assert (response.status_code, response.text) == (503, "could not use the system keychain")
 
 
-def test_a_keychain_error_on_has_password_lets_the_page_through(
+def test_a_keychain_error_on_has_password_closes_the_site(
     client: TestClient, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     def boom() -> bool:
         raise ValueError("could not use the system keychain")
 
     monkeypatch.setattr("finances.web.session.has_password", boom)
-    assert client.get("/", follow_redirects=False).status_code == 200
+    response = client.get("/", follow_redirects=False)
+    assert (response.status_code, response.text) == (503, "could not use the system keychain")
 
 
 def test_a_cookie_from_before_a_password_change_is_refused(guarded: TestClient) -> None:

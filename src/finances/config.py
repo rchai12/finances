@@ -1,9 +1,14 @@
+import re
 from functools import lru_cache
 from pathlib import Path
 from typing import Literal
 from urllib.parse import urlsplit, urlunsplit
 
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+_HOST = re.compile(r"[a-z0-9-]+(\.[a-z0-9-]+)+")
+_HOST_MESSAGE = "FIN_WEB_HOSTNAME must be a host name such as mac.tail1234.ts.net"
 
 
 class Settings(BaseSettings):
@@ -17,6 +22,17 @@ class Settings(BaseSettings):
     backup_dir: Path | None = None
     backup_keep: int = 14
     export_dir: Path | None = None
+    web_hostname: str | None = None
+
+    @field_validator("web_hostname")
+    @classmethod
+    def _web_hostname(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        text = value.lower()
+        if _HOST.fullmatch(text) is None:
+            raise ValueError(_HOST_MESSAGE)
+        return text
 
     @property
     def effective_backup_dir(self) -> Path:

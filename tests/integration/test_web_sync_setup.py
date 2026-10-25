@@ -172,6 +172,8 @@ class BrokenKeyring(keyring.backend.KeyringBackend):
     priority = 1
 
     def get_password(self, service: str, username: str) -> str | None:
+        if service == "finances-web":
+            return None
         raise keyring.errors.KeyringError("locked")
 
     def set_password(self, service: str, username: str, password: str) -> None:

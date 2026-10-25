@@ -9,6 +9,7 @@ from urllib.parse import quote
 from fastapi import Request, Response
 from fastapi.responses import PlainTextResponse, RedirectResponse
 
+from finances.config import get_settings
 from finances.web import app as web_app
 from finances.web.login import has_password, session_key
 
@@ -51,17 +52,28 @@ def safe_next(text: str) -> str:
     return "/"
 
 
+def over_https(request: Request) -> bool:
+    host = request.headers.get("host", "").partition(":")[0]
+    name = get_settings().web_hostname
+    if name is not None and host == name:
+        return True
+    return request.headers.get("x-forwarded-proto") == "https"
+
+
+def cookie_flags(request: Request) -> dict[str, str | bool]:
+    flags: dict[str, str | bool] = {"httponly": True, "samesite": "strict", "path": "/"}
+    if over_https(request):
+        flags["secure"] = True
+    return flags
+
+
 async def gate(request: Request, call_next: Callable[[Request], Awaitable[Response]]) -> Response:
     path = request.url.path
     if path == "/login" or path.startswith("/static/"):
         return await call_next(request)
     try:
-        guarded = has_password()
-    except ValueError:
-        guarded = False
-    if not guarded:
-        return await call_next(request)
-    try:
+        if not has_password():
+            return await call_next(request)
         key = session_key() or ""
         now = web_app._now()
         issued = read_cookie(request.cookies.get(COOKIE, ""), key, now)
@@ -71,9 +83,7 @@ async def gate(request: Request, call_next: Callable[[Request], Awaitable[Respon
         return _send_to_login(request)
     response = await call_next(request)
     if path != "/logout":
-        response.set_cookie(
-            COOKIE, make_cookie(key, issued, now), httponly=True, samesite="strict", path="/"
-        )
+        response.set_cookie(COOKIE, make_cookie(key, issued, now), **cookie_flags(request))
     return response
 
 

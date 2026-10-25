@@ -332,6 +332,8 @@ def test_sync_status_when_the_keychain_fails(household: TestClient) -> None:
         priority = 1
 
         def get_password(self, service: str, username: str) -> str | None:
+            if service == "finances-web":
+                return None
             raise keyring.errors.KeyringLocked("locked")
 
         def set_password(self, service: str, username: str, password: str) -> None:
