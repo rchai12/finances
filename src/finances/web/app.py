@@ -87,6 +87,7 @@ def create_app(port: int) -> ASGIApp:
         export,
         history,
         home,
+        login,
         people,
         reports,
         review,
@@ -96,6 +97,7 @@ def create_app(port: int) -> ASGIApp:
         transactions,
         transfers,
     )
+    from finances.web.session import gate
 
     api = FastAPI(docs_url=None, redoc_url=None, openapi_url=None)
     api.mount("/static", StaticFiles(directory=_HERE / "static"), name="static")
@@ -114,8 +116,10 @@ def create_app(port: int) -> ASGIApp:
         sync,
         backups,
         history,
+        login,
         review,
         shared,
     ):
         api.router.routes.extend(area.router.routes)
+    api.middleware("http")(gate)
     return _Guard(api, port)

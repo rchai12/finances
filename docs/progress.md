@@ -744,3 +744,13 @@ Template:
   - Lockout state in the Keychain item is `count` or `count <ISO datetime>` (the spec left the text form open)
 - Follow-ups: None
 
+## Phase 20b: the login on the web (2026-10-24)
+- Tests: 3887 -> 3920 (given 14)
+- New public names: `web.session`: `COOKIE`, `IDLE`, `LONGEST`, `make_cookie`, `read_cookie`, `safe_next`, `gate`; `views.login`: `LOCKED`, `lock_text`; `web.routes.login`: `GET /login`, `POST /login`, `POST /logout`
+- Changed files: 10
+- Deviations:
+  - The gate does not slide the session cookie on `/logout`, so the logout route's delete can take effect
+  - Extra integration cases live in `tests/unit/test_session.py` because 20a already shipped `test_web_login_more.py`
+  - A Keychain error from `has_password()` is treated as no password (the request goes on). 503 is only for `session_key()`, so earlier SimpleFIN keychain tests still reach their own routes
+- Follow-ups: None
+
