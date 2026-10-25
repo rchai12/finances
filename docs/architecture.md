@@ -22,12 +22,12 @@ It also works on its own through the `fin` CLI and a local web UI (Phase 16), be
 
 ## Non-goals (for now)
 
-- Bank scraping or stored bank passwords. The app holds only an aggregator access token, in the macOS Keychain.
-- CSV import. The aggregator feed replaces it.
+- Bank scraping or stored bank passwords. The macOS Keychain holds only each SimpleFIN link's access URL, the web password's hash, and the web session key.
+- CSV import. The aggregator feed replaces it. (CSV *export* is built, Phase 30c.)
 - OCR. All current statements contain extractable text.
 - An LLM call, prompt, or advice text inside this app. That belongs to the agent.
 - Cloud deployment.
-- Multi-user, multi-currency, investments, taxes, budgeting envelopes.
+- Multi-user, multi-currency, investments, tax preparation, envelope budgeting. (Monthly budget targets are built, Phase 26; a tax-relevant flag on categories and a yearly report, Phase 30a.)
 
 ## Tech stack
 
@@ -52,16 +52,15 @@ finances/
   AGENTS.md, CLAUDE.md          rules for coding agents
   pyproject.toml
   docs/                         architecture, phase specs, progress log
-  migrations/                   Alembic
   src/finances/
     config.py                   Settings, get_settings()
     clock.py                    today(): the machine's local date, read through one function (Phase 31)
     diagnostics.py              fin doctor's checks
     log.py                      logging setup + redaction filter
     domain/                     pure dataclasses, enums, money helpers, and every report's rules (no project imports)
-    db/                         engine/session, ORM models, repositories, backups
+    db/                         engine/session, ORM models, repositories, backups, migrations/ (Alembic)
     ingest/                     PDF text, statement model, reconciliation, dedup, import service
-      parsers/                  one module per statement format (Capital One, BoA, Citi, Truist, Marcus)
+      parsers/                  one module per statement format (Capital One, BoA card, Citi, Truist, Marcus, BoA checking and savings)
     sync/                       SimpleFIN client and daily sync (the ONLY place with network)
     categorize/                 the categorize run and transfer pairing
     export/                     CSV files written to a local folder (Phase 30c), or downloaded from the local site (30d); no network
@@ -172,7 +171,7 @@ The command line and the web show the same views. `finances.views` builds each v
 ### Statement parsing design
 
 - Each format is a `StatementParser` with `detect(first_page_text)` and `parse(pages_text) -> ParsedStatement`. Parsers work on **text**, so tests use synthetic text fixtures and never need real PDFs.
-- **Reconciliation is the safety net**: opening balance + sum of parsed lines must equal the closing balance exactly, and declared section totals must match. A statement that does not reconcile is not imported (unless explicitly overridden and flagged).
+- **Reconciliation is the safety net**: opening balance + sum of parsed lines must equal the closing balance exactly, and declared section totals must match. A statement that does not reconcile is not imported; there is no override.
 - Statement dates often omit the year; a shared helper infers it from the statement period (handles December to January).
 - Real statements in `data/samples/` are used only by opt-in tests that report pass/fail, never content.
 
@@ -184,7 +183,7 @@ The household has two people and several shared cards. Every account is owned by
 
 Each person may have their own SimpleFIN subscription, since one person's bank logins are not the other's. The app therefore keeps several named SimpleFIN links, each with its own access URL in the Keychain, and maps each SimpleFIN account under a link to one of ours (Phase 17c; Phase 17b shipped with a single, unnamed link).
 
-## Open decisions
+## Decisions (formerly open)
 
 - **Aggregator provider: decided, SimpleFIN Bridge** (Phase 17b). Still to confirm by linking: that all five banks connect, and the sign SimpleFIN gives a card balance (the drift check of Phase 17a will show a wrong sign). SimpleFIN reports pending transactions but no per-card identifier, so the cardholder on shared cards still comes from statements. As understood, SimpleFIN Bridge gets its bank connections from a larger aggregator, so two companies see the transactions.
 - **Remote access method: decided, Tailscale Serve** (the owner, 2026-10-24): HTTPS ends on the Mac, which forwards to the app on 127.0.0.1; one household password behind it (Phase 20).

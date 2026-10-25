@@ -1,7 +1,7 @@
 # Docs
 
 - [architecture.md](architecture.md): goals, stack, layering, agent interface, privacy boundary
-- [roadmap.md](roadmap.md): all phases, with outlines for those not yet specified
+- [roadmap.md](roadmap.md): all phases, their status, and the Backlog
 - [statement-formats.md](statement-formats.md): layout of each bank's PDF statement (synthetic examples)
 - [testing.md](testing.md): test layers, rules, critical modules
 - [phase-conventions.md](phase-conventions.md): what every phase spec and verification guide assume (starting checks, rules, acceptance, the progress entry, the verdict)
