@@ -120,13 +120,21 @@ def declined_text(proposal: Proposal, *, waited: bool = False) -> str:
 
 @dataclass(frozen=True)
 class AdviceRow:
+    id: str
     when: str
     subject: str
     text: str
+    state: str
 
 
 def advice_rows(notes: list[Advice]) -> list[AdviceRow]:
     return [
-        AdviceRow(item.created_at.strftime("%Y-%m-%d %H:%M"), item.subject, item.text)
+        AdviceRow(
+            id=str(item.id),
+            when=item.created_at.strftime("%Y-%m-%d %H:%M"),
+            subject=item.subject,
+            text=item.text,
+            state="" if item.dismissed_at is None else "dismissed",
+        )
         for item in notes
     ]

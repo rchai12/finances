@@ -67,6 +67,7 @@ NOTICES = {
     ),
     "tag-added": "Tag added.",
     "tag-removed": "Tag removed.",
+    "note-dismissed": "Note dismissed.",
     "note-saved": "Note saved.",
     "note-removed": "Note removed.",
     "split-saved": "Split saved.",

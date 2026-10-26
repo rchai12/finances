@@ -727,6 +727,7 @@ class AdviceRow(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     subject: Mapped[str] = mapped_column(String(NAME_LIMIT), nullable=False)
     text: Mapped[str] = mapped_column(String(ADVICE_TEXT_LIMIT), nullable=False)
+    dismissed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
 
 def to_advice(row: AdviceRow) -> Advice:
@@ -736,4 +737,5 @@ def to_advice(row: AdviceRow) -> Advice:
         created_at=_as_utc(row.created_at),
         subject=row.subject,
         text=row.text,
+        dismissed_at=None if row.dismissed_at is None else _as_utc(row.dismissed_at),
     )

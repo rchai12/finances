@@ -8,9 +8,9 @@ from finances.analysis.review import review_items
 from finances.categorize.service import accept_proposals
 from finances.cli.common import fail, print_rows, require_current_schema
 from finances.db.engine import get_engine, session_scope
-from finances.db.repositories import decline_proposals
+from finances.db.repositories import decline_proposals, dismiss_advice, list_advice
 from finances.views.categories import categorized_text
-from finances.views.review import accepted_text, declined_text, review_rows
+from finances.views.review import accepted_text, advice_rows, declined_text, review_rows
 
 app = typer.Typer(help="Review the agent's proposals.", no_args_is_help=True)
 
@@ -25,6 +25,7 @@ _HEADINGS = (
     "Reason",
     "State",
 )
+_NOTE_HEADINGS = ("ID", "When (UTC)", "Subject", "Note", "State")
 
 
 @app.command("list")
@@ -35,10 +36,14 @@ def list_command(
     require_current_schema()
     with session_scope(get_engine()) as session:
         rows = review_rows(review_items(session, limit=limit))
+        notes = advice_rows(list_advice(session, limit=20))
     if not rows:
         typer.echo("No open proposals.")
-        return
-    print_rows(_HEADINGS, rows)
+    else:
+        print_rows(_HEADINGS, rows)
+    if notes:
+        typer.echo("Notes:")
+        print_rows(_NOTE_HEADINGS, notes)
 
 
 @app.command("accept")
@@ -77,3 +82,17 @@ def decline_command(
             fail(str(error))
     for proposal, waited in found:
         typer.echo(declined_text(proposal, waited=waited))
+
+
+@app.command("dismiss-note")
+def dismiss_note_command(
+    advice_id: Annotated[int, typer.Option("--id", help="The note's id.")],
+) -> None:
+    """Mark a note dismissed so it leaves Insights."""
+    require_current_schema()
+    with session_scope(get_engine()) as session:
+        try:
+            dismiss_advice(session, advice_id)
+        except ValueError as error:
+            fail(str(error))
+    typer.echo(f"Dismissed note {advice_id}.")

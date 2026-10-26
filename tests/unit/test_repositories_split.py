@@ -8,6 +8,10 @@ import finances.db.repositories as repositories
 
 PACKAGE = Path(repositories.__file__).parent
 HOMES = {
+    "advice": [
+        "dismiss_advice",
+        "list_open_advice",
+    ],
     "aliases": [
         "add_alias",
         "alias_map",
@@ -187,7 +191,7 @@ def test_the_package_holds_one_module_per_area() -> None:
 
 def test_the_facade_offers_every_name_and_only_those() -> None:
     expected = sorted(name for names in HOMES.values() for name in names)
-    assert len(expected) == 131
+    assert len(expected) == 133
     assert sorted(repositories.__all__) == expected
     public = sorted(name for name in vars(repositories) if not name.startswith("_"))
     assert sorted(set(public) - set(HOMES)) == expected

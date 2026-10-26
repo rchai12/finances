@@ -116,9 +116,9 @@ def test_the_notes_table_shows_at_most_twenty_newest_first(
             log_advice(session, f"Probe note {index}.", f"n{index:02d}")
     engine.dispose()
     rows = page(client, "/review").rows
-    assert rows[0] == ["When (UTC)", "Subject", "Note"]
-    assert rows[1] == ["2026-05-25 12:20", "n20", "Probe note 20."]
-    assert rows[20] == ["2026-05-25 12:01", "n01", "Probe note 1."]
+    assert rows[0] == ["When (UTC)", "Subject", "Note", "State", ""]
+    assert rows[1] == ["2026-05-25 12:20", "n20", "Probe note 20.", "", "Dismiss"]
+    assert rows[20] == ["2026-05-25 12:01", "n01", "Probe note 1.", "", "Dismiss"]
     assert len(rows) == 21
 
 

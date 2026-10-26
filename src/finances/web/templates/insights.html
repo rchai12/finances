@@ -9,6 +9,18 @@
 </form>
 {% if report %}
 <p class="summary">{{ report.heading }}</p>
+{% if notes %}
+<section class="card">
+<h2>From the agent</h2>
+<p class="hint">Notes the agent left, newest first, until you dismiss them. They are its advice, not findings the app computed.</p>
+<table>
+<thead><tr><th>When (UTC)</th><th>Subject</th><th>Note</th><th></th></tr></thead>
+<tbody>
+{% for row in notes %}<tr><td>{{ row.when }}</td><td>{{ row.subject }}</td><td>{{ row.text }}</td><td><form method="post" action="/notes/dismiss" class="inline"><input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="id" value="{{ row.id }}"><input type="hidden" name="back" value="insights"><input type="hidden" name="month" value="{{ form.month }}"><button type="submit">Dismiss</button></form></td></tr>
+{% endfor %}</tbody>
+</table>
+</section>
+{% endif %}
 <section class="card">
 <h2>Findings</h2>
 {% if report.findings %}

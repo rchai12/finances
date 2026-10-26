@@ -49,6 +49,7 @@ class Advice:
     created_at: datetime
     subject: str
     text: str
+    dismissed_at: datetime | None = None
 
 
 def out_of_date(*, exists: bool, set_by_hand: bool, paired: bool) -> bool:

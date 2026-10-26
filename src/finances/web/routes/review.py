@@ -1,11 +1,13 @@
 """The Review page: the agent's proposals and notes, and a person's decisions."""
 
+import re
+
 from fastapi import APIRouter, Request
 from fastapi.responses import Response
 
 from finances.analysis.review import review_items
 from finances.categorize.service import accept_proposals
-from finances.db.repositories import decline_proposals, list_advice
+from finances.db.repositories import decline_proposals, dismiss_advice, list_advice
 from finances.views.review import advice_rows, review_rows
 from finances.web.access import _reading
 from finances.web.forms import refused
@@ -15,6 +17,7 @@ from finances.web.render import _done, _not_migrated, _render
 router = APIRouter()
 NONE_CHOSEN = "choose at least one proposal"
 _DECISIONS = {"accept", "decline"}
+_MONTH = re.compile(r"[0-9]{4}-[0-9]{2}")
 
 
 def _page(request: Request, *, error: str | None = None, status_code: int = 200) -> Response:
@@ -64,3 +67,29 @@ async def decide(request: Request) -> Response:
     else:
         notice = "proposals-declined"
     return _done(f"/review?notice={notice}")
+
+
+def _after_note(back: str, month: str) -> str:
+    if back == "insights":
+        if _MONTH.fullmatch(month) is not None:
+            return f"/insights?month={month}&notice=note-dismissed"
+        return "/insights?notice=note-dismissed"
+    return "/review?notice=note-dismissed"
+
+
+@router.post("/notes/dismiss")
+async def dismiss_note(request: Request) -> Response:
+    form = await request.form()
+    csrf = str(form.get("csrf") or "")
+    stopped = refused(request, csrf)
+    if stopped is not None:
+        return stopped
+    text = str(form.get("id") or "")
+    if _WHOLE.fullmatch(text) is None:
+        return _page(request, error="note not found", status_code=400)
+    try:
+        with _reading() as session:
+            dismiss_advice(session, int(text))
+    except ValueError as error:
+        return _page(request, error=str(error), status_code=400)
+    return _done(_after_note(str(form.get("back") or ""), str(form.get("month") or "")))

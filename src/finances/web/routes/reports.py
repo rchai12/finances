@@ -15,6 +15,7 @@ from finances.analysis.recurring import recurring_charges
 from finances.analysis.spending import spending_report
 from finances.analysis.upcoming import upcoming_report
 from finances.analysis.yearend import year_report
+from finances.db.repositories import list_open_advice
 from finances.domain.spending import BY, month_bounds, month_range
 from finances.views.balances import balance_rows, balance_summary
 from finances.views.charts import net_worth_chart
@@ -36,6 +37,7 @@ from finances.views.insights import (
 from finances.views.months import month_notes, month_rows
 from finances.views.networth import net_worth_rows
 from finances.views.recurring import recurring_rows, recurring_summary
+from finances.views.review import advice_rows
 from finances.views.spending import spending_heading, spending_rows, spending_summary
 from finances.views.upcoming import upcoming_heading, upcoming_rows, upcoming_summary
 from finances.views.yearend import year_page
@@ -145,6 +147,7 @@ def insights(request: Request) -> Response:
         found = insights_report(session, first)
         end = month_bounds(first)[1]
         series = recurring_charges(session, end)
+        notes = advice_rows(list_open_advice(session))
     report = {
         "heading": insights_heading(found),
         "findings": finding_rows(found),
@@ -155,7 +158,7 @@ def insights(request: Request) -> Response:
         "start": first.isoformat(),
         "end": end.isoformat(),
     }
-    return _render(request, "insights", {"form": form, "report": report})
+    return _render(request, "insights", {"form": form, "report": report, "notes": notes})
 
 
 @router.get("/ahead")

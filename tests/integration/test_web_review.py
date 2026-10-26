@@ -112,8 +112,8 @@ def test_the_review_page(review: TestClient) -> None:
             "ACME is a coffee shop",
             "open",
         ],
-        ["When (UTC)", "Subject", "Note"],
-        ["2026-05-25 12:00", "budgets", "Suggested a coffee budget."],
+        ["When (UTC)", "Subject", "Note", "State", ""],
+        ["2026-05-25 12:00", "budgets", "Suggested a coffee budget.", "", "Dismiss"],
     ]
     form = found.find("/review")
     assert form["method"] == "post"

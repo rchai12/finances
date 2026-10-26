@@ -184,7 +184,8 @@ LOG_ADVICE_DESCRIPTION = (
     "computed here; write them as you would in integer cents or plain text."
 )
 LIST_ADVICE_DESCRIPTION = (
-    "Your notes, newest first, at most limit (1 to 200, default 20), with when each was kept."
+    "Your notes, newest first, at most limit (1 to 200, default 20), with when each was kept "
+    "and when a person dismissed it (dismissed_at, or none)."
 )
 _WRITES = (
     "propose_category",

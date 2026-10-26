@@ -723,6 +723,7 @@ def log_advice(text: str, subject: str = "") -> dict[str, Any]:
                     "created_at": found.created_at.isoformat(),
                     "subject": found.subject,
                     "text": found.text,
+                    "dismissed_at": _iso(found.dismissed_at),
                 }
             }
 
@@ -740,6 +741,7 @@ def list_advice(limit: Annotated[int, Field(ge=1, le=200)] = 20) -> dict[str, An
                         "created_at": item.created_at.isoformat(),
                         "subject": item.subject,
                         "text": item.text,
+                        "dismissed_at": _iso(item.dismissed_at),
                     }
                     for item in found
                 ]

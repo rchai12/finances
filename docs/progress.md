@@ -832,4 +832,12 @@ Template:
   - Removed a cycle guard, a default `_target_exists` for other kinds, and a cascade skip the OPEN filter already makes unreachable, so the include report stays at 100%
 - Follow-ups: None
 
+## Phase 42: the agent's notes beside the findings (2026-10-25)
+- Tests: 4136 -> 4160 (given 16)
+- New public names: `finances.db.repositories`: `dismiss_advice`, `list_open_advice`
+- Changed files: 25
+- Deviations:
+  - Extra tests cover open-note order and limit, the dismiss stamp, MCP `dismissed_at`, proposals then notes, History, a refused Insights month, and a form without the token
+- Follow-ups: None
+
 

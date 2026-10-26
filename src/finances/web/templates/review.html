@@ -25,9 +25,9 @@
 <h2>The agent's notes</h2>
 {% if notes %}
 <table>
-<thead><tr><th>When (UTC)</th><th>Subject</th><th>Note</th></tr></thead>
+<thead><tr><th>When (UTC)</th><th>Subject</th><th>Note</th><th>State</th><th></th></tr></thead>
 <tbody>
-{% for row in notes %}<tr><td>{{ row.when }}</td><td>{{ row.subject }}</td><td>{{ row.text }}</td></tr>
+{% for row in notes %}<tr><td>{{ row.when }}</td><td>{{ row.subject }}</td><td>{{ row.text }}</td><td>{{ row.state }}</td><td>{% if not row.state %}<form method="post" action="/notes/dismiss" class="inline"><input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="id" value="{{ row.id }}"><input type="hidden" name="back" value="review"><button type="submit">Dismiss</button></form>{% endif %}</td></tr>
 {% endfor %}</tbody>
 </table>
 {% else %}

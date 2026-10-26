@@ -142,6 +142,7 @@ def test_the_agents_notes(one: Settings) -> None:
         "created_at": "2026-05-25T12:00:00+00:00",
         "subject": "budgets",
         "text": "Suggested a coffee budget.",
+        "dismissed_at": None,
     }
     assert kept.structured_content == {"advice": note}
     assert call("list_advice").structured_content == {"advice": [note]}

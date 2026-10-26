@@ -106,6 +106,7 @@ ROUTES = {
     ("POST", "/login"),
     ("POST", "/logout"),
     ("GET", "/review"),
+    ("POST", "/notes/dismiss"),
     ("POST", "/review"),
 }
 

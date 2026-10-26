@@ -16,6 +16,10 @@ from finances.db.repositories.accounts import (
     set_account_active,
     set_balance_snapshot,
 )
+from finances.db.repositories.advice import (
+    dismiss_advice,
+    list_open_advice,
+)
 from finances.db.repositories.aliases import (
     add_alias,
     alias_map,
@@ -206,6 +210,7 @@ __all__ = [
     "delete_feed_transaction",
     "delete_rule",
     "delete_settlement",
+    "dismiss_advice",
     "edit_rule",
     "existing_fingerprints",
     "feed_posted_total",
@@ -237,6 +242,7 @@ __all__ = [
     "list_feed_accounts",
     "list_feed_links",
     "list_new_feed_accounts",
+    "list_open_advice",
     "list_pending_feed_ids",
     "list_people",
     "list_proposals",
