@@ -36,6 +36,14 @@ scripts/install-web-service.sh
 
 It installs a launchd job that starts `fin web serve` at login and again whenever it stops; the log is `data/logs/web.log`. Remove it with `scripts/uninstall-web-service.sh`.
 
+**After every code update** (a phase committed, a `git pull`), restart the server so it runs the new code:
+
+```sh
+launchctl kickstart -k gui/$(id -u)/local.finances.web
+```
+
+A running server keeps the Python code it started with but reads its page templates fresh from disk, so after an update the two disagree until it restarts, and a changed page fails with "Internal Server Error".
+
 ## 5. Publish it on the tailnet
 
 ```sh
@@ -60,4 +68,5 @@ Then open `https://mac-studio.tail1234.ts.net` on a phone: the login page appear
 - **The password is forgotten.** Open Keychain Access on the Mac, delete the items of service `finances-web`, then run `fin web password` again. Every session ends.
 - **A device is lost.** Remove it from the tailnet in the Tailscale admin console, then run `fin web password` to end every session.
 - **"Bad host" in the browser.** `FIN_WEB_HOSTNAME` is missing or differs from the name in the address bar; restart the server after changing `.env` (`scripts/install-web-service.sh` again restarts it).
+- **"Internal Server Error" on a page after an update.** The server is still running the old code; restart it as in section 4.
 - **"could not use the system keychain".** The Mac's login Keychain is locked; the site refuses every page until it can read it again.
