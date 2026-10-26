@@ -122,6 +122,9 @@ from finances.db.repositories.proposals import (
     propose_rule,
     propose_transfer,
 )
+from finances.db.repositories.rule_changes import (
+    propose_rule_change,
+)
 from finances.db.repositories.shared import (
     delete_settlement,
     list_settlements,
@@ -271,6 +274,7 @@ __all__ = [
     "propose_new_category",
     "propose_not_transfer",
     "propose_rule",
+    "propose_rule_change",
     "propose_transfer",
     "record_change",
     "record_settlement",

@@ -9,6 +9,8 @@ from finances.domain.proposals import (
     NEW_CATEGORY,
     NOT_TRANSFER,
     RULE,
+    RULE_DELETE,
+    RULE_EDIT,
     TRANSFER,
     Advice,
     Proposal,
@@ -83,6 +85,10 @@ def proposed_text(proposal: Proposal) -> str:
     if proposal.kind == NEW_CATEGORY:
         tax = ", tax-relevant" if proposal.tax else ""
         return f"a new category: {proposal.value} in {proposal.group}{tax}"
+    if proposal.kind == RULE_EDIT:
+        return f"rule {proposal.target_id}: {_rule_line(proposal)}"
+    if proposal.kind == RULE_DELETE:
+        return f"delete rule {proposal.target_id}"
     return proposal.value
 
 
@@ -107,6 +113,13 @@ def accepted_text(proposal: Proposal) -> str:
         return (
             f"Accepted proposal {proposal.id}: the category {proposal.value} in {proposal.group}."
         )
+    if proposal.kind == RULE_EDIT:
+        return (
+            f"Accepted proposal {proposal.id}: rule {proposal.target_id} is now "
+            f"{_rule_line(proposal)}."
+        )
+    if proposal.kind == RULE_DELETE:
+        return f"Accepted proposal {proposal.id}: rule {proposal.target_id} deleted."
     return (
         f"Accepted proposal {proposal.id}: {proposal.value} for transaction {proposal.target_id}."
     )

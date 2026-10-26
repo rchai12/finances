@@ -70,6 +70,7 @@ def test_the_agent_proposes_a_rule(card: Settings) -> None:
             "alias": None,
             "new": None,
             "waits_for": None,
+            "rule_change": None,
             "reason": "a cafe",
             "status": "open",
             "created_at": "2026-05-25T12:00:00+00:00",

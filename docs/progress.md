@@ -847,4 +847,14 @@ Template:
 - Deviations: None
 - Follow-ups: None
 
+## Phase 44a: proposing over a person's choice, and changing a rule (2026-10-26)
+- Tests: 4163 -> 4190 (given 17)
+- New public names: `finances.domain.proposals`: `RULE_EDIT`, `RULE_DELETE`; `Proposal.before`; `finances.db.repositories`: `propose_rule_change`; `finances.mcp_server.server`: `PROPOSE_RULE_CHANGE_DESCRIPTION`
+- Changed files: 31
+- Deviations:
+  - Moved `_rule_exists` into `categories.py` and CATEGORY out-of-date into `chains.py` so `proposals.py` stays within 400 lines
+  - Dropped the one-line docstring on `count_open_proposals` for that cap
+  - Extra tests cover field checks, a deleted rule, UTC stamp, and `decided_by_a_person` after `propose_category` stopped calling it
+- Follow-ups: None
+
 

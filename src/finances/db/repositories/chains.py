@@ -2,7 +2,12 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from finances.db.orm import ProposalRow, to_proposal
+from finances.db.repositories.assignments import _assigned_name, _assignment_row
 from finances.db.repositories.categories import _category_row
+from finances.db.repositories.splits import _is_split
+from finances.db.repositories.transactions import get_transaction
+from finances.db.repositories.transfers import find_transfer_pair
+from finances.domain.models import MANUAL
 from finances.domain.proposals import GROUP, NEW_CATEGORY, OPEN, Proposal
 
 
@@ -65,6 +70,27 @@ def chain_out_of_date(session: Session, proposal: Proposal, *, target_missing: b
     if proposal.parent_id is not None and not _target_exists(session, proposal):
         return True
     return target_missing
+
+
+def _split_or_paired(session: Session, transaction_id: int) -> bool:
+    if _is_split(session, transaction_id):
+        return True
+    return find_transfer_pair(session, transaction_id) is not None
+
+
+def category_is_out_of_date(session: Session, proposal: Proposal) -> bool:
+    if get_transaction(session, proposal.target_id) is None:
+        return True
+    if _split_or_paired(session, proposal.target_id):
+        return True
+    row = _assignment_row(session, proposal.target_id)
+    if (
+        row is not None
+        and row.source == MANUAL
+        and _assigned_name(session, proposal.target_id) != proposal.before
+    ):
+        return True
+    return chain_out_of_date(session, proposal, target_missing=False)
 
 
 def _ancestors_in(

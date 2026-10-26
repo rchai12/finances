@@ -12,7 +12,19 @@ RULE = "rule"
 ALIAS = "alias"
 GROUP = "group"
 NEW_CATEGORY = "new_category"
-KINDS = (CATEGORY, TRANSFER, NOT_TRANSFER, RULE, ALIAS, GROUP, NEW_CATEGORY)
+RULE_EDIT = "rule_edit"
+RULE_DELETE = "rule_delete"
+KINDS = (
+    CATEGORY,
+    TRANSFER,
+    NOT_TRANSFER,
+    RULE,
+    ALIAS,
+    GROUP,
+    NEW_CATEGORY,
+    RULE_EDIT,
+    RULE_DELETE,
+)
 GROUP_KINDS = ("spending", "transfer", "income")
 OPEN = "open"
 ACCEPTED = "accepted"
@@ -41,6 +53,7 @@ class Proposal:
     sensitive: bool | None = None
     tax: bool | None = None
     parent_id: int | None = None
+    before: str | None = None
 
 
 @dataclass(frozen=True)
@@ -104,4 +117,13 @@ def proposal_text(proposal: Proposal) -> str:
     if proposal.kind == NEW_CATEGORY:
         tax = " (tax)" if proposal.tax else ""
         return f"category: {proposal.value} in {proposal.group}{tax}"
+    if proposal.kind == RULE_EDIT:
+        return f"rule {proposal.target_id}: " + rule_text(
+            proposal.match or "",
+            proposal.pattern or "",
+            proposal.value,
+            0 if proposal.priority is None else proposal.priority,
+        )
+    if proposal.kind == RULE_DELETE:
+        return f"delete rule {proposal.target_id}"
     return f"transaction {proposal.target_id}: {proposal.value}"

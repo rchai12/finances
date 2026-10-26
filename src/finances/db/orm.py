@@ -691,6 +691,7 @@ class ProposalRow(Base):
     is_sensitive: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
     is_tax: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
     parent_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    before: Mapped[str | None] = mapped_column(String(AUDIT_TEXT_LIMIT), nullable=True)
 
 
 def to_proposal(row: ProposalRow) -> Proposal:
@@ -715,6 +716,7 @@ def to_proposal(row: ProposalRow) -> Proposal:
         sensitive=row.is_sensitive,
         tax=row.is_tax,
         parent_id=row.parent_id,
+        before=row.before,
     )
 
 

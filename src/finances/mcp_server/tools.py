@@ -45,6 +45,7 @@ from finances.db.repositories import propose_merchant_alias as store_alias
 from finances.db.repositories import propose_new_category as store_new_category
 from finances.db.repositories import propose_not_transfer as store_not_transfer
 from finances.db.repositories import propose_rule as store_rule
+from finances.db.repositories import propose_rule_change as store_rule_change
 from finances.db.repositories import propose_transfer as store_transfer
 from finances.db.repositories.chains import waits_for
 from finances.domain.merchants import clean_merchant
@@ -55,6 +56,8 @@ from finances.domain.proposals import (
     GROUP,
     NEW_CATEGORY,
     RULE,
+    RULE_DELETE,
+    RULE_EDIT,
     Proposal,
     group_kind_word,
 )
@@ -569,12 +572,14 @@ def _proposal_item(session: Session, proposal: Proposal) -> dict[str, Any]:
     return {
         "id": proposal.id,
         "kind": proposal.kind,
-        "transaction_id": proposal.target_id,
+        "transaction_id": None if proposal.kind in (RULE_EDIT, RULE_DELETE) else proposal.target_id,
         "in_id": proposal.other_id,
-        "category": proposal.value if proposal.kind in (CATEGORY, RULE) else None,
+        "category": proposal.value
+        if proposal.kind in (CATEGORY, RULE, RULE_EDIT, RULE_DELETE)
+        else None,
         "rule": (
             None
-            if proposal.kind != RULE
+            if proposal.kind not in (RULE, RULE_EDIT, RULE_DELETE)
             else {
                 "match": proposal.match,
                 "pattern": proposal.pattern,
@@ -602,6 +607,15 @@ def _proposal_item(session: Session, proposal: Proposal) -> dict[str, Any]:
             }
         ),
         "waits_for": waits_for(session, proposal),
+        "rule_change": (
+            None
+            if proposal.kind not in (RULE_EDIT, RULE_DELETE)
+            else {
+                "rule_id": proposal.target_id,
+                "before": proposal.before,
+                "delete": proposal.kind == RULE_DELETE,
+            }
+        ),
         "reason": proposal.reason,
         "status": proposal.status,
         "created_at": proposal.created_at.isoformat(),
@@ -696,6 +710,32 @@ def propose_new_category(
     def work() -> dict[str, Any]:
         with writing() as session:
             found = store_new_category(session, example_id, name, group, reason, tax=tax)
+            return {"proposal": _proposal_item(session, found)}
+
+    return _as_tool(work)
+
+
+def propose_rule_change(
+    rule_id: int,
+    reason: str,
+    delete: bool = False,
+    pattern: str | None = None,
+    match: Literal["contains", "starts_with", "equals"] | None = None,
+    priority: Annotated[int | None, Field(ge=-1000, le=1000)] = None,
+    category: str | None = None,
+) -> dict[str, Any]:
+    def work() -> dict[str, Any]:
+        with writing() as session:
+            found = store_rule_change(
+                session,
+                rule_id,
+                reason,
+                delete=delete,
+                pattern=pattern,
+                match=match,
+                priority=priority,
+                category=category,
+            )
             return {"proposal": _proposal_item(session, found)}
 
     return _as_tool(work)

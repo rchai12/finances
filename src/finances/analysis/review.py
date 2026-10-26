@@ -12,7 +12,7 @@ from finances.db.repositories import (
     waits_for,
 )
 from finances.domain.models import Transaction
-from finances.domain.proposals import CATEGORY, OPEN, Proposal
+from finances.domain.proposals import CATEGORY, OPEN, RULE_DELETE, RULE_EDIT, Proposal
 
 
 @dataclass(frozen=True)
@@ -31,6 +31,18 @@ def review_items(session: Session, *, status: str = OPEN, limit: int = 50) -> li
     accounts = account_names(session)
     items: list[ReviewItem] = []
     for proposal in list_proposals(session, status=status, limit=limit):
+        if proposal.kind in (RULE_EDIT, RULE_DELETE):
+            items.append(
+                ReviewItem(
+                    proposal=proposal,
+                    transaction=None,
+                    account=None,
+                    current=proposal.before,
+                    out_of_date=proposal_out_of_date(session, proposal),
+                    waits_for=waits_for(session, proposal),
+                )
+            )
+            continue
         transaction = get_transaction(session, proposal.target_id)
         assignment = assignments.get(proposal.target_id)
         items.append(

@@ -37,6 +37,7 @@ FROM_REPOSITORIES = {
     "propose_new_category",
     "propose_not_transfer",
     "propose_rule",
+    "propose_rule_change",
     "propose_transfer",
 }
 
@@ -110,6 +111,7 @@ def test_a_proposal_and_its_listing(one: Settings) -> None:
         "alias": None,
         "new": None,
         "waits_for": None,
+        "rule_change": None,
         "reason": "a cafe",
         "status": "open",
         "created_at": "2026-05-25T12:00:00+00:00",

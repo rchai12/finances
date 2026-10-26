@@ -3,13 +3,23 @@ from datetime import UTC, datetime
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from finances.db.orm import AdviceRow, CategoryRuleRow, ProposalRow, to_advice, to_proposal
+from finances.db.orm import AdviceRow, ProposalRow, to_advice, to_proposal
 from finances.db.repositories.aliases import add_alias, alias_map
-from finances.db.repositories.assignments import _assignment_row, set_category_by_hand
+from finances.db.repositories.assignments import (
+    _assigned_name,
+    _assignment_row,
+    set_category_by_hand,
+)
 from finances.db.repositories.audit import record_change
-from finances.db.repositories.categories import _category_row, create_rule
-from finances.db.repositories.chains import chain_out_of_date, proposed_category, waits_for
-from finances.db.repositories.splits import _is_split
+from finances.db.repositories.categories import _category_row, _rule_exists, create_rule
+from finances.db.repositories.chains import (
+    _split_or_paired,
+    category_is_out_of_date,
+    chain_out_of_date,
+    proposed_category,
+    waits_for,
+)
+from finances.db.repositories.rule_changes import accept_rule_change, rule_change_is_out_of_date
 from finances.db.repositories.transactions import get_transaction
 from finances.db.repositories.transfers import (
     _check_transfer,
@@ -30,11 +40,12 @@ from finances.domain.proposals import (
     NOT_TRANSFER,
     OPEN,
     RULE,
+    RULE_DELETE,
+    RULE_EDIT,
     STATUSES,
     TRANSFER,
     Advice,
     Proposal,
-    out_of_date,
     pair_out_of_date,
     proposal_text,
 )
@@ -54,11 +65,7 @@ def _now() -> datetime:
 
 def decided_by_a_person(session: Session, transaction_id: int) -> bool:
     row = _assignment_row(session, transaction_id)
-    if row is not None and row.source == MANUAL:
-        return True
-    if _is_split(session, transaction_id):
-        return True
-    return find_transfer_pair(session, transaction_id) is not None
+    return (row is not None and row.source == MANUAL) or _split_or_paired(session, transaction_id)
 
 
 def propose_category(session: Session, transaction_id: int, category: str, reason: str) -> Proposal:
@@ -68,8 +75,11 @@ def propose_category(session: Session, transaction_id: int, category: str, reaso
     if get_transaction(session, transaction_id) is None:
         raise ValueError("transaction not found")
     stored, parent_id = proposed_category(session, category)
-    if decided_by_a_person(session, transaction_id):
+    if _split_or_paired(session, transaction_id):
         raise ValueError("a person has already decided this transaction")
+    current = _assigned_name(session, transaction_id)
+    if current == stored:
+        raise ValueError("the transaction already has this category")
     existing = session.scalars(
         select(ProposalRow).where(
             ProposalRow.kind == CATEGORY, ProposalRow.target_id == transaction_id
@@ -88,6 +98,7 @@ def propose_category(session: Session, transaction_id: int, category: str, reaso
         created_at=_now(),
         decided_at=None,
         parent_id=parent_id,
+        before=current,
     )
     session.add(row)
     session.flush()
@@ -138,14 +149,6 @@ def propose_transfer(session: Session, out_id: int, in_id: int, reason: str) -> 
 
 def propose_not_transfer(session: Session, out_id: int, in_id: int, reason: str) -> Proposal:
     return _propose_pair(session, NOT_TRANSFER, out_id, in_id, reason)
-
-
-def _rule_exists(session: Session, match: str, pattern: str) -> bool:
-    clean = normalize_pattern(pattern)
-    stmt = select(CategoryRuleRow.id).where(
-        CategoryRuleRow.match == match, CategoryRuleRow.pattern == clean
-    )
-    return session.scalars(stmt).first() is not None
 
 
 def propose_rule(
@@ -241,7 +244,6 @@ def propose_merchant_alias(session: Session, example_id: int, target: str, reaso
 
 
 def count_open_proposals(session: Session) -> int:
-    """How many proposals are waiting for a person."""
     return (
         session.scalar(
             select(func.count()).select_from(ProposalRow).where(ProposalRow.status == OPEN)
@@ -269,6 +271,8 @@ def proposal_out_of_date(session: Session, proposal: Proposal) -> bool:
         from finances.db.repositories.new_categories import new_is_out_of_date
 
         return new_is_out_of_date(session, proposal)
+    if proposal.kind in (RULE_EDIT, RULE_DELETE):
+        return rule_change_is_out_of_date(session, proposal)
     if proposal.kind == RULE:
         found = _category_row(session, proposal.value)
         if _rule_exists(session, proposal.match or "", proposal.pattern or ""):
@@ -295,15 +299,7 @@ def proposal_out_of_date(session: Session, proposal: Proposal) -> bool:
             session
         )
         return pair_out_of_date(exists=exists, paired=paired, rejected=rejected)
-    row = _assignment_row(session, proposal.target_id)
-    if out_of_date(
-        exists=get_transaction(session, proposal.target_id) is not None,
-        set_by_hand=(row is not None and row.source == MANUAL)
-        or _is_split(session, proposal.target_id),
-        paired=find_transfer_pair(session, proposal.target_id) is not None,
-    ):
-        return True
-    return chain_out_of_date(session, proposal, target_missing=False)
+    return category_is_out_of_date(session, proposal)
 
 
 def _open_row(session: Session, proposal_id: int) -> ProposalRow:
@@ -327,7 +323,7 @@ def accept_proposal(session: Session, proposal_id: int) -> Proposal:
             raise ValueError(
                 f"proposal {proposal_id} is out of date: the transaction was decided since"
             )
-        if row.kind == RULE:
+        if row.kind in (RULE, RULE_EDIT, RULE_DELETE):
             raise ValueError(
                 f"proposal {proposal_id} is out of date: the rules or categories changed since"
             )
@@ -350,6 +346,8 @@ def accept_proposal(session: Session, proposal_id: int) -> Proposal:
         create_rule(session, row.pattern, row.value, row.match, row.priority)
     elif row.kind == ALIAS:
         add_alias(session, row.source or "", row.value)
+    elif row.kind in (RULE_EDIT, RULE_DELETE):
+        accept_rule_change(session, row)
     else:
         set_category_by_hand(session, row.target_id, row.value)
     row.status = ACCEPTED

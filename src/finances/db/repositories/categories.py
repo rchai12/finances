@@ -192,6 +192,14 @@ def _rule_line(session: Session, row: CategoryRuleRow) -> str:
     return rule_text(row.match, row.pattern, category.name, row.priority)
 
 
+def _rule_exists(session: Session, match: str, pattern: str) -> bool:
+    clean = normalize_pattern(pattern)
+    stmt = select(CategoryRuleRow.id).where(
+        CategoryRuleRow.match == match, CategoryRuleRow.pattern == clean
+    )
+    return session.scalars(stmt).first() is not None
+
+
 def delete_rule(session: Session, rule_id: int) -> None:
     """Delete a rule and the assignments it set. The caller commits."""
     row = session.get(CategoryRuleRow, rule_id)

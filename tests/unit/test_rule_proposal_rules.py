@@ -25,6 +25,8 @@ def test_the_kinds() -> None:
         "alias",
         "group",
         "new_category",
+        "rule_edit",
+        "rule_delete",
     )
 
 

@@ -86,7 +86,6 @@ def test_a_rules_category_can_be_proposed_over(session: Session) -> None:
         (99, "Dining", "why", "transaction not found"),
         (1, "Nope", "why", "category not found"),
         (1, "Food", "why", "rules and transactions take a category, not a group"),
-        (3, "Dining", "why", "a person has already decided this transaction"),
         (4, "Dining", "why", "a person has already decided this transaction"),
     ],
 )

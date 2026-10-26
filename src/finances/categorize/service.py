@@ -21,7 +21,7 @@ from finances.db.repositories import (
 )
 from finances.domain.merchants import merchant_name, merchant_names
 from finances.domain.models import BY_RULE, MANUAL, CategoryAssignment, CategoryRule, Transaction
-from finances.domain.proposals import ALIAS, RULE, Proposal
+from finances.domain.proposals import ALIAS, RULE, RULE_DELETE, RULE_EDIT, Proposal
 from finances.domain.rules import pick_rule_for
 
 
@@ -142,6 +142,6 @@ def accept_proposals(session: Session, proposal_ids: list[int]) -> Accepted:
         accept_proposal(session, proposal_id)
         for proposal_id in accepting_order(session, proposal_ids)
     ]
-    if any(item.kind in (RULE, ALIAS) for item in found):
+    if any(item.kind in (RULE, ALIAS, RULE_EDIT, RULE_DELETE) for item in found):
         return Accepted(found, categorize(session))
     return Accepted(found, None)

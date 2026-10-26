@@ -123,11 +123,12 @@ WRITES_PROPOSALS = ToolAnnotations(
     read_only_hint=False, destructive_hint=False, idempotent_hint=False, open_world_hint=False
 )
 PROPOSE_CATEGORY_DESCRIPTION = (
-    "Propose a category for a transaction without one (or set only by a rule), with a one-line "
-    "reason a person will read. The category may be one still proposed with "
-    "propose_new_category; this proposal then waits for that one. It changes nothing: a person "
-    "accepts or declines it with fin review. Refused when a person already decided the "
-    "transaction, declined this same proposal, or another proposal for it is open."
+    "Propose a category for a transaction, with a one-line reason a person will read. The "
+    "transaction may have a category already, set by a rule or by a person; the category may "
+    "be one still proposed with propose_new_category, and this proposal then waits for that "
+    "one. It changes nothing: a person accepts or declines it with fin review. Refused for a "
+    "split transaction or one in a transfer, when it already has that category, when a person "
+    "declined this same proposal, or when another proposal for it is open."
 )
 PROPOSE_TRANSFER_DESCRIPTION = (
     "Propose that money out (out_id) and money in (in_id) on another account, of the same "
@@ -172,6 +173,14 @@ PROPOSE_NEW_CATEGORY_DESCRIPTION = (
     "it. Refused when the group neither exists nor is proposed, a category or group has the "
     "name, a person declined it, or another proposal for that name is open. No amounts."
 )
+PROPOSE_RULE_CHANGE_DESCRIPTION = (
+    "Propose changing an existing rule (rule_id from list_rules): any of its pattern, match, "
+    "priority, and category, or delete=true to delete it, with a one-line reason a person will "
+    "read. The category must exist. It changes nothing until a person accepts it; then the "
+    "rules run over every transaction. Refused when the rule would not change, another rule "
+    "has the new pattern and match, a person declined it, or another proposal for that rule "
+    "is open. No amounts."
+)
 LIST_PROPOSALS_DESCRIPTION = (
     "Your proposals, newest first, of one status (open by default, accepted, or declined), at "
     "most limit (1 to 200, default 50): the transaction, the category, your reason, when it was "
@@ -195,6 +204,7 @@ _WRITES = (
     "propose_merchant_alias",
     "propose_group",
     "propose_new_category",
+    "propose_rule_change",
     "log_advice",
 )
 _TOOLS = (
@@ -231,6 +241,7 @@ def build_server() -> MCPServer:
         (tools.propose_merchant_alias, PROPOSE_MERCHANT_ALIAS_DESCRIPTION),
         (tools.propose_group, PROPOSE_GROUP_DESCRIPTION),
         (tools.propose_new_category, PROPOSE_NEW_CATEGORY_DESCRIPTION),
+        (tools.propose_rule_change, PROPOSE_RULE_CHANGE_DESCRIPTION),
         (tools.list_proposals, LIST_PROPOSALS_DESCRIPTION),
         (tools.log_advice, LOG_ADVICE_DESCRIPTION),
         (tools.list_advice, LIST_ADVICE_DESCRIPTION),
