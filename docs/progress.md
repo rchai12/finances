@@ -840,4 +840,11 @@ Template:
   - Extra tests cover open-note order and limit, the dismiss stamp, MCP `dismissed_at`, proposals then notes, History, a refused Insights month, and a form without the token
 - Follow-ups: None
 
+## Phase 43: telemetry off (2026-10-25)
+- Tests: 4160 -> 4163 (given 3)
+- New public names: `finances.web.app`: `TELEMETRY_OFF`
+- Changed files: 4
+- Deviations: None
+- Follow-ups: None
+
 

@@ -13,6 +13,7 @@ from finances import clock
 from finances.config import get_settings
 
 HOST = "127.0.0.1"
+TELEMETRY_OFF = {"tracing": False, "metrics": False, "logs": False, "auto_configure": False}
 SECURITY_HEADERS = {
     "content-security-policy": (
         "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self'; "
@@ -103,7 +104,7 @@ def create_app(port: int) -> ASGIApp:
     )
     from finances.web.session import gate
 
-    api = FastAPI(docs_url=None, redoc_url=None, openapi_url=None)
+    api = FastAPI(docs_url=None, redoc_url=None, openapi_url=None, telemetry=TELEMETRY_OFF)
     api.mount("/static", StaticFiles(directory=_HERE / "static"), name="static")
     configure_origins(api, port)
     for area in (
