@@ -90,6 +90,11 @@ HOMES = {
         "record_sync_failure",
         "set_feed_account_ignored",
     ],
+    "findings": [
+        "list_finding_statuses",
+        "reopen_finding",
+        "set_finding_status",
+    ],
     "category_changes": [
         "propose_category_change",
     ],
@@ -197,7 +202,7 @@ def test_the_package_holds_one_module_per_area() -> None:
 
 def test_the_facade_offers_every_name_and_only_those() -> None:
     expected = sorted(name for names in HOMES.values() for name in names)
-    assert len(expected) == 135
+    assert len(expected) == 138
     assert sorted(repositories.__all__) == expected
     public = sorted(name for name in vars(repositories) if not name.startswith("_"))
     assert sorted(set(public) - set(HOMES)) == expected

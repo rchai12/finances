@@ -78,6 +78,9 @@ NOTICES = {
     "share-removed": "Share removed.",
     "tax-set": "Marked tax-relevant.",
     "tax-cleared": "No longer tax-relevant.",
+    "finding-handled": "Finding marked handled.",
+    "finding-ignored": "Finding ignored in every month.",
+    "finding-reopened": "Finding reopened.",
 }
 
 _TEMPLATES = Jinja2Templates(directory=Path(__file__).parent / "templates")

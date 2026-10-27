@@ -95,6 +95,11 @@ from finances.db.repositories.feed_links import (
     record_sync_failure,
     set_feed_account_ignored,
 )
+from finances.db.repositories.findings import (
+    list_finding_statuses,
+    reopen_finding,
+    set_finding_status,
+)
 from finances.db.repositories.new_categories import (
     propose_group,
     propose_new_category,
@@ -247,6 +252,7 @@ __all__ = [
     "list_changes",
     "list_feed_accounts",
     "list_feed_links",
+    "list_finding_statuses",
     "list_new_feed_accounts",
     "list_open_advice",
     "list_pending_feed_ids",
@@ -290,6 +296,7 @@ __all__ = [
     "remove_tags",
     "rename_account",
     "rename_category",
+    "reopen_finding",
     "resolve_owner",
     "set_account_active",
     "set_account_owner",
@@ -299,6 +306,7 @@ __all__ = [
     "set_categories_by_hand",
     "set_category_by_hand",
     "set_feed_account_ignored",
+    "set_finding_status",
     "set_note",
     "set_split",
     "set_tax_relevant",

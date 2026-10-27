@@ -867,4 +867,14 @@ Template:
   - Extra tests cover a deleted category by id, unpatched `_now`, a waiting category after a delete, and a rule change whose rule is already gone
 - Follow-ups: None
 
+## Phase 45a: findings a person handled or ignored (2026-10-27)
+- Tests: 4218 -> 4268 (given 38)
+- New public names: `finances.domain.findings`: `HANDLED`, `IGNORED`, `FINDING_STATUSES`, `FindingStatus`, `ClosedFinding`, `finding_text`, `status_of`, `split_findings`; `finances.db.repositories`: `set_finding_status`, `reopen_finding`, `list_finding_statuses`; `finances.analysis.insights`: `find_finding`, `InsightsReport.closed`; `finances.views.insights`: `ClosedRow`, `closed_rows`; CLI `fin findings handle|ignore|reopen`; POST `/findings/status` and `/findings/reopen`
+- Changed files: 27
+- Deviations:
+  - `FindingStatusRow.subject` is `String(NAME_LIMIT)` rather than the literal `String(100)`, so `test_the_orm_names_its_widths_by_constant` still passes; the stored type remains `VARCHAR(100)`
+  - The spec's four given files contain 38 tests (the verification guide said 37)
+  - Extra tests cover stored month None vs the finding's month, reopen from June leaving May handled, list order by id, a subject cut to 100, the dashboard and `get_insights` leaving out a handled finding, an empty form month using this month, History `who` is person, an unknown type on reopen, a bad form month, and a forged form token
+- Follow-ups: The History page's `change_link` has no entry for kind `finding` (the same gap as `proposal`, `alias`, and `settlement`). CLI `fin audit` lists the rows.
+
 

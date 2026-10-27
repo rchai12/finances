@@ -45,6 +45,9 @@ ACTIONS = (
     "settlement_added",
     "settlement_deleted",
     "category_tax_set",
+    "finding_handled",
+    "finding_ignored",
+    "finding_reopened",
 )
 KINDS = (
     "account",
@@ -58,6 +61,7 @@ KINDS = (
     "proposal",
     "alias",
     "settlement",
+    "finding",
 )
 
 

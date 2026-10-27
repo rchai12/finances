@@ -8,14 +8,14 @@ from fastapi.responses import Response
 
 from finances.analysis.balances import balance_report
 from finances.analysis.forecast import forecast_report
-from finances.analysis.insights import insights_report
+from finances.analysis.insights import find_finding, insights_report
 from finances.analysis.months import month_report
 from finances.analysis.networth import net_worth_over_time
 from finances.analysis.recurring import recurring_charges
 from finances.analysis.spending import spending_report
 from finances.analysis.upcoming import upcoming_report
 from finances.analysis.yearend import year_report
-from finances.db.repositories import list_open_advice
+from finances.db.repositories import list_open_advice, reopen_finding, set_finding_status
 from finances.domain.spending import BY, month_bounds, month_range
 from finances.views.balances import balance_rows, balance_summary
 from finances.views.charts import net_worth_chart
@@ -29,6 +29,7 @@ from finances.views.forecast import (
     step_rows,
 )
 from finances.views.insights import (
+    closed_rows,
     finding_rows,
     findings_summary,
     insights_heading,
@@ -43,8 +44,9 @@ from finances.views.upcoming import upcoming_heading, upcoming_rows, upcoming_su
 from finances.views.yearend import year_page
 from finances.web import app as web_app
 from finances.web.access import _reading
+from finances.web.forms import refused
 from finances.web.helpers import _WHOLE, _day
-from finances.web.render import _not_migrated, _render
+from finances.web.render import _done, _not_migrated, _render
 
 router = APIRouter()
 _REPORT_MONTHS = 6
@@ -82,6 +84,12 @@ def _month_start(text: str) -> date:
     if not text:
         return month_bounds(web_app._today())[0]
     return month_range(text)[0]
+
+
+def _insights_refused(request: Request, month: str, message: str) -> Response:
+    return _render(
+        request, "insights", {"form": {"month": month}, "report": None, "error": message}, 400
+    )
 
 
 @router.get("/reports")
@@ -141,8 +149,7 @@ def insights(request: Request) -> Response:
     try:
         first = _month_start(form["month"])
     except ValueError as refusal:
-        context = {"form": form, "report": None, "error": str(refusal)}
-        return _render(request, "insights", context, 400)
+        return _insights_refused(request, form["month"], str(refusal))
     with _reading() as session:
         found = insights_report(session, first)
         end = month_bounds(first)[1]
@@ -150,8 +157,10 @@ def insights(request: Request) -> Response:
         notes = advice_rows(list_open_advice(session))
     report = {
         "heading": insights_heading(found),
+        "month": found.month.isoformat()[:7],
         "findings": finding_rows(found),
         "findings_summary": findings_summary(found),
+        "closed": closed_rows(found),
         "recurring": recurring_rows(series),
         "recurring_summary": recurring_summary(series),
         "merchants": merchant_rows(found),
@@ -159,6 +168,49 @@ def insights(request: Request) -> Response:
         "end": end.isoformat(),
     }
     return _render(request, "insights", {"form": form, "report": report, "notes": notes})
+
+
+@router.post("/findings/status")
+async def set_finding_status_route(request: Request) -> Response:
+    form = await request.form()
+    csrf = str(form.get("csrf") or "")
+    stopped = refused(request, csrf)
+    if stopped is not None:
+        return stopped
+    month_text = str(form.get("month") or "")
+    type_text = str(form.get("type") or "")
+    about = str(form.get("about") or "")
+    status = str(form.get("status") or "")
+    try:
+        first = _month_start(month_text)
+        with _reading() as session:
+            found = find_finding(session, first, type_text, about)
+            stored = set_finding_status(session, found, status)
+    except ValueError as error:
+        return _insights_refused(request, month_text, str(error))
+    shown = found.month.isoformat()[:7]
+    return _done(f"/insights?month={shown}&notice=finding-{stored.status}")
+
+
+@router.post("/findings/reopen")
+async def reopen_finding_route(request: Request) -> Response:
+    form = await request.form()
+    csrf = str(form.get("csrf") or "")
+    stopped = refused(request, csrf)
+    if stopped is not None:
+        return stopped
+    month_text = str(form.get("month") or "")
+    type_text = str(form.get("type") or "")
+    about = str(form.get("about") or "")
+    try:
+        first = _month_start(month_text)
+        with _reading() as session:
+            found = find_finding(session, first, type_text, about)
+            reopen_finding(session, type_text, about, first)
+    except ValueError as error:
+        return _insights_refused(request, month_text, str(error))
+    shown = found.month.isoformat()[:7]
+    return _done(f"/insights?month={shown}&notice=finding-reopened")
 
 
 @router.get("/ahead")

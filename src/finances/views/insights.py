@@ -17,6 +17,16 @@ class FindingRow:
 
 
 @dataclass(frozen=True)
+class ClosedRow:
+    severity: str
+    type: str
+    about: str
+    saves: str
+    detail: str
+    status: str
+
+
+@dataclass(frozen=True)
 class MerchantRow:
     merchant: str
     visits: str
@@ -47,6 +57,20 @@ def finding_rows(report: InsightsReport) -> list[FindingRow]:
 def findings_summary(report: InsightsReport) -> str:
     savings = sum(finding.savings_cents for finding in report.findings)
     return f"Findings: {len(report.findings)}. Could save up to {format_cents(savings)} a month."
+
+
+def closed_rows(report: InsightsReport) -> list[ClosedRow]:
+    return [
+        ClosedRow(
+            severity=item.finding.severity,
+            type=item.finding.type,
+            about=item.finding.subject,
+            saves=format_cents(item.finding.savings_cents),
+            detail=item.finding.detail,
+            status=item.status,
+        )
+        for item in report.closed
+    ]
 
 
 def merchant_rows(report: InsightsReport) -> list[MerchantRow]:

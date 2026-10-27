@@ -79,6 +79,8 @@ ROUTES = {
     ("GET", "/export/year"),
     ("GET", "/export/spending"),
     ("GET", "/insights"),
+    ("POST", "/findings/status"),
+    ("POST", "/findings/reopen"),
     ("GET", "/ahead"),
     ("GET", "/transfers"),
     ("POST", "/transfers/find"),

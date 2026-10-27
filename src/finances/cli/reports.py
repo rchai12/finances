@@ -29,6 +29,7 @@ from finances.views.forecast import (
     step_rows,
 )
 from finances.views.insights import (
+    closed_rows,
     finding_rows,
     findings_summary,
     insights_heading,
@@ -262,9 +263,13 @@ def insights_command(month: Annotated[str | None, _MONTH_OPTION] = None) -> None
     rows = finding_rows(report)
     if not rows:
         typer.echo("No findings.")
-        return
-    print_rows(("Severity", "Type", "About", "Saves a month", "Detail"), rows)
-    typer.echo(findings_summary(report))
+    else:
+        print_rows(("Severity", "Type", "About", "Saves a month", "Detail"), rows)
+        typer.echo(findings_summary(report))
+    closed = closed_rows(report)
+    if closed:
+        typer.echo("Handled or ignored:")
+        print_rows(("Severity", "Type", "About", "Saves a month", "Detail", "Status"), closed)
 
 
 def merchants_command(month: Annotated[str | None, _MONTH_OPTION] = None) -> None:

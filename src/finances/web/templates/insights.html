@@ -25,14 +25,24 @@
 <h2>Findings</h2>
 {% if report.findings %}
 <table>
-<thead><tr><th>Severity</th><th>Type</th><th>About</th><th class="amount">Saves a month</th><th>Detail</th></tr></thead>
+<thead><tr><th>Severity</th><th>Type</th><th>About</th><th class="amount">Saves a month</th><th>Detail</th><th></th></tr></thead>
 <tbody>
-{% for row in report.findings %}<tr><td>{{ row.severity }}</td><td>{{ row.type }}</td><td>{% if row.type in ("spike", "subscription_overlap") %}<a href="/transactions?from={{ report.start }}&amp;to={{ report.end }}&amp;category={{ row.about|urlencode }}&amp;kind=spending&amp;limit=1000">{{ row.about }}</a>{% elif row.type in ("frequent_small", "price_increase", "duplicate", "large_first_charge") %}<a href="/transactions?from={{ report.start }}&amp;to={{ report.end }}&amp;merchant={{ row.about|urlencode }}&amp;kind=spending&amp;limit=1000">{{ row.about }}</a>{% else %}{{ row.about }}{% endif %}</td><td class="{{ row.saves|amount_class }}">{{ row.saves }}</td><td>{{ row.detail }}</td></tr>
+{% for row in report.findings %}<tr><td>{{ row.severity }}</td><td>{{ row.type }}</td><td>{% if row.type in ("spike", "subscription_overlap") %}<a href="/transactions?from={{ report.start }}&amp;to={{ report.end }}&amp;category={{ row.about|urlencode }}&amp;kind=spending&amp;limit=1000">{{ row.about }}</a>{% elif row.type in ("frequent_small", "price_increase", "duplicate", "large_first_charge") %}<a href="/transactions?from={{ report.start }}&amp;to={{ report.end }}&amp;merchant={{ row.about|urlencode }}&amp;kind=spending&amp;limit=1000">{{ row.about }}</a>{% else %}{{ row.about }}{% endif %}</td><td class="{{ row.saves|amount_class }}">{{ row.saves }}</td><td>{{ row.detail }}</td><td><form method="post" action="/findings/status" class="inline"><input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="type" value="{{ row.type }}"><input type="hidden" name="about" value="{{ row.about }}"><input type="hidden" name="month" value="{{ report.month }}"><input type="hidden" name="status" value="handled"><button type="submit">Handled</button></form> <form method="post" action="/findings/status" class="inline"><input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="type" value="{{ row.type }}"><input type="hidden" name="about" value="{{ row.about }}"><input type="hidden" name="month" value="{{ report.month }}"><input type="hidden" name="status" value="ignored"><button type="submit">Ignore</button></form></td></tr>
 {% endfor %}</tbody>
 </table>
 <p class="summary">{{ report.findings_summary }}</p>
 {% else %}
 <p class="empty">No findings.</p>
+{% endif %}
+{% if report.closed %}
+<h3>Handled or ignored</h3>
+<p class="hint">Handled covers that month only; ignored covers the same type and subject in every month.</p>
+<table>
+<thead><tr><th>Severity</th><th>Type</th><th>About</th><th class="amount">Saves a month</th><th>Detail</th><th>Status</th><th></th></tr></thead>
+<tbody>
+{% for row in report.closed %}<tr><td>{{ row.severity }}</td><td>{{ row.type }}</td><td>{{ row.about }}</td><td class="{{ row.saves|amount_class }}">{{ row.saves }}</td><td>{{ row.detail }}</td><td>{{ row.status }}</td><td><form method="post" action="/findings/reopen" class="inline"><input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="type" value="{{ row.type }}"><input type="hidden" name="about" value="{{ row.about }}"><input type="hidden" name="month" value="{{ report.month }}"><button type="submit">Reopen</button></form></td></tr>
+{% endfor %}</tbody>
+</table>
 {% endif %}
 </section>
 <section class="card">

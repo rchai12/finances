@@ -12,7 +12,8 @@ from finances.db.repositories import create_account, create_rule
 from finances.web.app import create_app
 from tests.support import WEB_NOT_MIGRATED, WEB_PORT, Page, page, texts
 
-FINDINGS = ["Severity", "Type", "About", "Saves a month", "Detail"]
+FINDINGS = ["Severity", "Type", "About", "Saves a month", "Detail", ""]
+BUTTONS = "Handled Ignore"
 RECURRING = ["Merchant", "Every", "Amount", "Monthly", "Count", "Last", "Next"]
 MERCHANTS = ["Merchant", "Visits", "Spent", "Average", "Baseline", "Change", "Weekend"]
 
@@ -102,13 +103,14 @@ def test_a_month(home: TestClient) -> None:
     found = Page(response.text)
     assert table(found, FINDINGS) == [
         FINDINGS,
-        ["high", "interest", "", "$23.45", "Interest charged: $23.45."],
+        ["high", "interest", "", "$23.45", "Interest charged: $23.45.", BUTTONS],
         [
             "medium",
             "spike",
             "Dining",
             "$140.00",
             "Dining: $200.00 this month, against $60.00 a month before.",
+            BUTTONS,
         ],
         [
             "medium",
@@ -116,6 +118,7 @@ def test_a_month(home: TestClient) -> None:
             "QUUX STREAMING",
             "$2.00",
             "QUUX STREAMING went from $15.99 to $17.99.",
+            BUTTONS,
         ],
         [
             "low",
@@ -123,6 +126,7 @@ def test_a_month(home: TestClient) -> None:
             "ACME COFFEE",
             "$20.00",
             "ACME COFFEE: 8 visits averaging $5.00.",
+            BUTTONS,
         ],
         [
             "low",
@@ -131,6 +135,7 @@ def test_a_month(home: TestClient) -> None:
             "$8.25",
             "Subscriptions & Digital: QUUX STREAMING ($17.99), BAZ VIDEO ($9.99),"
             " QUUX CLOUD ($8.25).",
+            BUTTONS,
         ],
     ]
     assert table(found, RECURRING) == [
@@ -164,6 +169,7 @@ def test_a_yearly_plan_charged_before_the_window_still_overlaps(home: TestClient
             "Subscriptions & Digital",
             "$8.25",
             "Subscriptions & Digital: QUUX STREAMING ($15.99), QUUX CLOUD ($8.25).",
+            BUTTONS,
         ]
     ]
 

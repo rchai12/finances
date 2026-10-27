@@ -4,12 +4,16 @@ New tests import these instead of copying them. Tests written before Phase 13c k
 copies.
 """
 
+from datetime import date
 from html.parser import HTMLParser
 
 from fastapi.testclient import TestClient
 from typer.testing import CliRunner
 
 from finances.cli.main import app
+from finances.db.engine import get_engine, session_scope
+from finances.db.orm import TransactionRow
+from finances.db.repositories import create_account
 
 CLI_NOT_MIGRATED = "Error: database is not up to date (run: fin db upgrade)\n"
 WEB_NOT_MIGRATED = "The database is not up to date. Run: fin db upgrade"
@@ -147,6 +151,49 @@ def post(client: TestClient, path: str, **fields: str):
 def texts(found: Page, kind: str) -> list[str]:
     """The texts of the page's paragraphs of this class, in order."""
     return [text for name, text in found.paragraphs if name == kind]
+
+
+def add_findings_data() -> None:
+    """February to June 2026 on one card, into a migrated database. May has five findings:
+    interest, a Dining spike, a QUUX STREAMING price rise, ACME COFFEE eight times, and two
+    video subscriptions; June has one: interest charged again."""
+    rows = [
+        (date(2026, 2, 3), -6000, "ACME DINER"),
+        (date(2026, 3, 17), -6000, "ACME DINER"),
+        (date(2026, 4, 9), -6000, "ACME DINER"),
+        (date(2026, 5, 22), -20000, "ACME DINER"),
+        (date(2026, 2, 5), -1599, "QUUX STREAMING"),
+        (date(2026, 3, 5), -1599, "QUUX STREAMING"),
+        (date(2026, 4, 5), -1599, "QUUX STREAMING"),
+        (date(2026, 5, 5), -1799, "QUUX STREAMING"),
+        (date(2026, 3, 12), -999, "BAZ VIDEO"),
+        (date(2026, 4, 12), -999, "BAZ VIDEO"),
+        (date(2026, 5, 12), -999, "BAZ VIDEO"),
+        (date(2026, 5, 28), -2345, "PURCHASE INTEREST CHARGE"),
+        (date(2026, 6, 28), -1000, "PURCHASE INTEREST CHARGE"),
+    ] + [(date(2026, 5, day), -500, "ACME COFFEE") for day in (2, 3, 6, 9, 10, 13, 16, 17)]
+    engine = get_engine()
+    with session_scope(engine) as session:
+        card = create_account(session, "Test Card", "Example Card Co", "credit_card")
+        for number, (day, cents, description) in enumerate(rows, start=1):
+            session.add(
+                TransactionRow(
+                    account_id=card.id,
+                    posted_date=day,
+                    amount_cents=cents,
+                    description=description,
+                    source="statement",
+                    fingerprint=f"t{number:02d}".ljust(64, "0"),
+                )
+            )
+    engine.dispose()
+    for pattern, category in (
+        ("ACME DINER", "Dining"),
+        ("QUUX STREAMING", "Subscriptions & Digital"),
+        ("BAZ VIDEO", "Subscriptions & Digital"),
+        ("ACME COFFEE", "Coffee & Dessert"),
+    ):
+        assert run("rules", "add", "--pattern", pattern, "--category", category).exit_code == 0
 
 
 # Every MCP tool, and the ones that write (proposals and the advice log only).

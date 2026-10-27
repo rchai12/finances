@@ -17,6 +17,7 @@ from sqlalchemy import (
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 from finances.domain.audit import Change
+from finances.domain.findings import FindingStatus
 from finances.domain.merchants import MerchantAlias
 from finances.domain.models import (
     DEFAULT_LINK,
@@ -740,4 +741,29 @@ def to_advice(row: AdviceRow) -> Advice:
         subject=row.subject,
         text=row.text,
         dismissed_at=None if row.dismissed_at is None else _as_utc(row.dismissed_at),
+    )
+
+
+class FindingStatusRow(Base):
+    """One row of finding_statuses: a finding a person handled or ignored."""
+
+    __tablename__ = "finding_statuses"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    type: Mapped[str] = mapped_column(String(30), nullable=False)
+    subject: Mapped[str] = mapped_column(String(NAME_LIMIT), nullable=False)
+    month: Mapped[date | None] = mapped_column(Date, nullable=True)
+    status: Mapped[str] = mapped_column(String(10), nullable=False)
+    set_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
+def to_finding_status(row: FindingStatusRow) -> FindingStatus:
+    """Return the domain FindingStatus for a row of the finding_statuses table."""
+    return FindingStatus(
+        id=row.id,
+        type=row.type,
+        subject=row.subject,
+        month=row.month,
+        status=row.status,
+        set_at=_as_utc(row.set_at),
     )
