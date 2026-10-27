@@ -181,6 +181,14 @@ PROPOSE_RULE_CHANGE_DESCRIPTION = (
     "has the new pattern and match, a person declined it, or another proposal for that rule "
     "is open. No amounts."
 )
+PROPOSE_CATEGORY_CHANGE_DESCRIPTION = (
+    "Propose renaming a category or group (rename_to), or deleting one (delete=true): a "
+    "category in use needs move_to, the existing category its transactions, rules, and budget "
+    "move to; a group must be empty. Give a one-line reason a person will read. It changes "
+    "nothing until a person accepts it with fin review; then a rename carries your other open "
+    "proposals to the new name. Refused as fin categories rename and delete refuse, and when a "
+    "person declined it or another proposal for that category is open. No amounts."
+)
 LIST_PROPOSALS_DESCRIPTION = (
     "Your proposals, newest first, of one status (open by default, accepted, or declined), at "
     "most limit (1 to 200, default 50): the transaction, the category, your reason, when it was "
@@ -205,6 +213,7 @@ _WRITES = (
     "propose_group",
     "propose_new_category",
     "propose_rule_change",
+    "propose_category_change",
     "log_advice",
 )
 _TOOLS = (
@@ -242,6 +251,7 @@ def build_server() -> MCPServer:
         (tools.propose_group, PROPOSE_GROUP_DESCRIPTION),
         (tools.propose_new_category, PROPOSE_NEW_CATEGORY_DESCRIPTION),
         (tools.propose_rule_change, PROPOSE_RULE_CHANGE_DESCRIPTION),
+        (tools.propose_category_change, PROPOSE_CATEGORY_CHANGE_DESCRIPTION),
         (tools.list_proposals, LIST_PROPOSALS_DESCRIPTION),
         (tools.log_advice, LOG_ADVICE_DESCRIPTION),
         (tools.list_advice, LIST_ADVICE_DESCRIPTION),

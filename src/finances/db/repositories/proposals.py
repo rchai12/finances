@@ -12,10 +12,15 @@ from finances.db.repositories.assignments import (
 )
 from finances.db.repositories.audit import record_change
 from finances.db.repositories.categories import _category_row, _rule_exists, create_rule
+from finances.db.repositories.category_changes import (
+    accept_category_change,
+    category_change_is_out_of_date,
+)
 from finances.db.repositories.chains import (
     _split_or_paired,
     category_is_out_of_date,
     chain_out_of_date,
+    pair_is_out_of_date,
     proposed_category,
     waits_for,
 )
@@ -34,6 +39,8 @@ from finances.domain.proposals import (
     ACCEPTED,
     ALIAS,
     CATEGORY,
+    CATEGORY_DELETE,
+    CATEGORY_RENAME,
     DECLINED,
     GROUP,
     NEW_CATEGORY,
@@ -46,7 +53,6 @@ from finances.domain.proposals import (
     TRANSFER,
     Advice,
     Proposal,
-    pair_out_of_date,
     proposal_text,
 )
 from finances.domain.rules import MATCHES, normalize_pattern, rule_matches
@@ -271,6 +277,8 @@ def proposal_out_of_date(session: Session, proposal: Proposal) -> bool:
         from finances.db.repositories.new_categories import new_is_out_of_date
 
         return new_is_out_of_date(session, proposal)
+    if proposal.kind in (CATEGORY_RENAME, CATEGORY_DELETE):
+        return category_change_is_out_of_date(session, proposal)
     if proposal.kind in (RULE_EDIT, RULE_DELETE):
         return rule_change_is_out_of_date(session, proposal)
     if proposal.kind == RULE:
@@ -286,19 +294,7 @@ def proposal_out_of_date(session: Session, proposal: Proposal) -> bool:
             return True
         return False
     if proposal.kind != CATEGORY:
-        in_id = proposal.other_id
-        exists = (
-            get_transaction(session, proposal.target_id) is not None
-            and in_id is not None
-            and get_transaction(session, in_id) is not None
-        )
-        paired = find_transfer_pair(session, proposal.target_id) is not None or (
-            in_id is not None and find_transfer_pair(session, in_id) is not None
-        )
-        rejected = in_id is not None and (proposal.target_id, in_id) in list_transfer_rejections(
-            session
-        )
-        return pair_out_of_date(exists=exists, paired=paired, rejected=rejected)
+        return pair_is_out_of_date(session, proposal)
     return category_is_out_of_date(session, proposal)
 
 
@@ -317,9 +313,11 @@ def accept_proposal(session: Session, proposal_id: int) -> Proposal:
     if waiting is not None:
         raise ValueError(f"proposal {proposal_id} waits for proposal {waiting}")
     if proposal_out_of_date(session, to_proposal(row)):
-        if row.kind in (GROUP, NEW_CATEGORY):
+        if row.kind in (GROUP, NEW_CATEGORY, CATEGORY_RENAME, CATEGORY_DELETE):
             raise ValueError(f"proposal {proposal_id} is out of date: the categories changed since")
         if row.kind == CATEGORY:
+            if row.parent_id is None and _category_row(session, row.value) is None:
+                set_category_by_hand(session, row.target_id, row.value)
             raise ValueError(
                 f"proposal {proposal_id} is out of date: the transaction was decided since"
             )
@@ -338,6 +336,8 @@ def accept_proposal(session: Session, proposal_id: int) -> Proposal:
         from finances.db.repositories.new_categories import accept_new
 
         accept_new(session, row)
+    elif row.kind in (CATEGORY_RENAME, CATEGORY_DELETE):
+        accept_category_change(session, row)
     elif row.kind == TRANSFER:
         create_transfer_pair(session, row.target_id, row.other_id, CONFIRMED)
     elif row.kind == NOT_TRANSFER:

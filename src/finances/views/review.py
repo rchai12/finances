@@ -5,6 +5,8 @@ from finances.domain.audit import rule_text
 from finances.domain.money import format_cents
 from finances.domain.proposals import (
     ALIAS,
+    CATEGORY_DELETE,
+    CATEGORY_RENAME,
     GROUP,
     NEW_CATEGORY,
     NOT_TRANSFER,
@@ -89,6 +91,12 @@ def proposed_text(proposal: Proposal) -> str:
         return f"rule {proposal.target_id}: {_rule_line(proposal)}"
     if proposal.kind == RULE_DELETE:
         return f"delete rule {proposal.target_id}"
+    if proposal.kind == CATEGORY_RENAME:
+        return f"rename to {proposal.value}"
+    if proposal.kind == CATEGORY_DELETE:
+        if proposal.value:
+            return f"delete, moving its uses to {proposal.value}"
+        return "delete"
     return proposal.value
 
 
@@ -120,6 +128,15 @@ def accepted_text(proposal: Proposal) -> str:
         )
     if proposal.kind == RULE_DELETE:
         return f"Accepted proposal {proposal.id}: rule {proposal.target_id} deleted."
+    if proposal.kind == CATEGORY_RENAME:
+        return f"Accepted proposal {proposal.id}: {proposal.before} is now {proposal.value}."
+    if proposal.kind == CATEGORY_DELETE:
+        if proposal.value:
+            return (
+                f"Accepted proposal {proposal.id}: {proposal.before} deleted, "
+                f"its uses moved to {proposal.value}."
+            )
+        return f"Accepted proposal {proposal.id}: {proposal.before} deleted."
     return (
         f"Accepted proposal {proposal.id}: {proposal.value} for transaction {proposal.target_id}."
     )

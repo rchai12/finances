@@ -14,6 +14,8 @@ GROUP = "group"
 NEW_CATEGORY = "new_category"
 RULE_EDIT = "rule_edit"
 RULE_DELETE = "rule_delete"
+CATEGORY_RENAME = "category_rename"
+CATEGORY_DELETE = "category_delete"
 KINDS = (
     CATEGORY,
     TRANSFER,
@@ -24,6 +26,8 @@ KINDS = (
     NEW_CATEGORY,
     RULE_EDIT,
     RULE_DELETE,
+    CATEGORY_RENAME,
+    CATEGORY_DELETE,
 )
 GROUP_KINDS = ("spending", "transfer", "income")
 OPEN = "open"
@@ -126,4 +130,10 @@ def proposal_text(proposal: Proposal) -> str:
         )
     if proposal.kind == RULE_DELETE:
         return f"delete rule {proposal.target_id}"
+    if proposal.kind == CATEGORY_RENAME:
+        return f"category {proposal.before}: rename to {proposal.value}"
+    if proposal.kind == CATEGORY_DELETE:
+        if proposal.value:
+            return f"category {proposal.before}: delete, moving its uses to {proposal.value}"
+        return f"category {proposal.before}: delete"
     return f"transaction {proposal.target_id}: {proposal.value}"

@@ -40,6 +40,7 @@ from finances.db.repositories import list_rules as load_rules
 from finances.db.repositories import list_uncategorized as load_uncategorized
 from finances.db.repositories import log_advice as keep_advice
 from finances.db.repositories import propose_category as store_category_proposal
+from finances.db.repositories import propose_category_change as store_category_change
 from finances.db.repositories import propose_group as store_group
 from finances.db.repositories import propose_merchant_alias as store_alias
 from finances.db.repositories import propose_new_category as store_new_category
@@ -47,12 +48,15 @@ from finances.db.repositories import propose_not_transfer as store_not_transfer
 from finances.db.repositories import propose_rule as store_rule
 from finances.db.repositories import propose_rule_change as store_rule_change
 from finances.db.repositories import propose_transfer as store_transfer
+from finances.db.repositories.categories import CategoryExistsError
 from finances.db.repositories.chains import waits_for
 from finances.domain.merchants import clean_merchant
 from finances.domain.models import Transaction
 from finances.domain.proposals import (
     ALIAS,
     CATEGORY,
+    CATEGORY_DELETE,
+    CATEGORY_RENAME,
     GROUP,
     NEW_CATEGORY,
     RULE,
@@ -572,7 +576,9 @@ def _proposal_item(session: Session, proposal: Proposal) -> dict[str, Any]:
     return {
         "id": proposal.id,
         "kind": proposal.kind,
-        "transaction_id": None if proposal.kind in (RULE_EDIT, RULE_DELETE) else proposal.target_id,
+        "transaction_id": None
+        if proposal.kind in (RULE_EDIT, RULE_DELETE, CATEGORY_RENAME, CATEGORY_DELETE)
+        else proposal.target_id,
         "in_id": proposal.other_id,
         "category": proposal.value
         if proposal.kind in (CATEGORY, RULE, RULE_EDIT, RULE_DELETE)
@@ -616,6 +622,20 @@ def _proposal_item(session: Session, proposal: Proposal) -> dict[str, Any]:
                 "delete": proposal.kind == RULE_DELETE,
             }
         ),
+        "category_change": (
+            None
+            if proposal.kind not in (CATEGORY_RENAME, CATEGORY_DELETE)
+            else {
+                "name": proposal.before,
+                "rename_to": proposal.value if proposal.kind == CATEGORY_RENAME else None,
+                "delete": proposal.kind == CATEGORY_DELETE,
+                "move_to": (
+                    None
+                    if proposal.kind != CATEGORY_DELETE or not proposal.value
+                    else proposal.value
+                ),
+            }
+        ),
         "reason": proposal.reason,
         "status": proposal.status,
         "created_at": proposal.created_at.isoformat(),
@@ -627,7 +647,7 @@ def _proposal_item(session: Session, proposal: Proposal) -> dict[str, Any]:
 def _as_tool(work: Callable[[], dict[str, Any]]) -> dict[str, Any]:
     try:
         return work()
-    except ValueError as error:
+    except (ValueError, CategoryExistsError) as error:
         raise ToolError(str(error)) from None
 
 
@@ -735,6 +755,23 @@ def propose_rule_change(
                 match=match,
                 priority=priority,
                 category=category,
+            )
+            return {"proposal": _proposal_item(session, found)}
+
+    return _as_tool(work)
+
+
+def propose_category_change(
+    name: str,
+    reason: str,
+    rename_to: str | None = None,
+    delete: bool = False,
+    move_to: str | None = None,
+) -> dict[str, Any]:
+    def work() -> dict[str, Any]:
+        with writing() as session:
+            found = store_category_change(
+                session, name, reason, rename_to=rename_to, delete=delete, move_to=move_to
             )
             return {"proposal": _proposal_item(session, found)}
 

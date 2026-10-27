@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 
 from finances.db.orm import CategoryRow, CategoryRuleRow, ProposalRow, to_proposal
 from finances.db.repositories.categories import (
+    _category_row,
     _leaf_category,
     _rule_line,
     delete_rule,
@@ -31,7 +32,13 @@ def rule_change_is_out_of_date(session: Session, proposal: Proposal) -> bool:
     row = session.get(CategoryRuleRow, proposal.target_id)
     if row is None:
         return True
-    return _rule_line(session, row) != proposal.before
+    if _rule_line(session, row) != proposal.before:
+        return True
+    if proposal.kind == RULE_EDIT:
+        found = _category_row(session, proposal.value)
+        if found is None or found.parent_id is None:
+            return True
+    return False
 
 
 def accept_rule_change(session: Session, row: ProposalRow) -> None:

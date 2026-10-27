@@ -6,9 +6,9 @@ from finances.db.repositories.assignments import _assigned_name, _assignment_row
 from finances.db.repositories.categories import _category_row
 from finances.db.repositories.splits import _is_split
 from finances.db.repositories.transactions import get_transaction
-from finances.db.repositories.transfers import find_transfer_pair
+from finances.db.repositories.transfers import find_transfer_pair, list_transfer_rejections
 from finances.domain.models import MANUAL
-from finances.domain.proposals import GROUP, NEW_CATEGORY, OPEN, Proposal
+from finances.domain.proposals import GROUP, NEW_CATEGORY, OPEN, Proposal, pair_out_of_date
 
 
 def _target_exists(session: Session, proposal: Proposal) -> bool:
@@ -90,7 +90,25 @@ def category_is_out_of_date(session: Session, proposal: Proposal) -> bool:
         and _assigned_name(session, proposal.target_id) != proposal.before
     ):
         return True
-    return chain_out_of_date(session, proposal, target_missing=False)
+    found = _category_row(session, proposal.value)
+    missing = found is None or found.parent_id is None
+    return chain_out_of_date(session, proposal, target_missing=missing)
+
+
+def pair_is_out_of_date(session: Session, proposal: Proposal) -> bool:
+    in_id = proposal.other_id
+    exists = (
+        get_transaction(session, proposal.target_id) is not None
+        and in_id is not None
+        and get_transaction(session, in_id) is not None
+    )
+    paired = find_transfer_pair(session, proposal.target_id) is not None or (
+        in_id is not None and find_transfer_pair(session, in_id) is not None
+    )
+    rejected = in_id is not None and (proposal.target_id, in_id) in list_transfer_rejections(
+        session
+    )
+    return pair_out_of_date(exists=exists, paired=paired, rejected=rejected)
 
 
 def _ancestors_in(

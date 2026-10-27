@@ -857,4 +857,14 @@ Template:
   - Extra tests cover field checks, a deleted rule, UTC stamp, and `decided_by_a_person` after `propose_category` stopped calling it
 - Follow-ups: None
 
+## Phase 44b: renaming and deleting categories by proposal (2026-10-27)
+- Tests: 4190 -> 4218 (given 18)
+- New public names: `finances.domain.proposals`: `CATEGORY_RENAME`, `CATEGORY_DELETE`; `finances.db.repositories`: `propose_category_change`; `finances.mcp_server.server`: `PROPOSE_CATEGORY_CHANGE_DESCRIPTION`
+- Changed files: 26
+- Deviations:
+  - Moved pair out-of-date into `chains.pair_is_out_of_date` so `proposals.py` stays within 400 lines
+  - Accepting a CATEGORY proposal whose named category is gone still raises `category not found` (an earlier test pins that message) after the list already shows out of date
+  - Extra tests cover a deleted category by id, unpatched `_now`, a waiting category after a delete, and a rule change whose rule is already gone
+- Follow-ups: None
+
 

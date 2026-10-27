@@ -12,7 +12,15 @@ from finances.db.repositories import (
     waits_for,
 )
 from finances.domain.models import Transaction
-from finances.domain.proposals import CATEGORY, OPEN, RULE_DELETE, RULE_EDIT, Proposal
+from finances.domain.proposals import (
+    CATEGORY,
+    CATEGORY_DELETE,
+    CATEGORY_RENAME,
+    OPEN,
+    RULE_DELETE,
+    RULE_EDIT,
+    Proposal,
+)
 
 
 @dataclass(frozen=True)
@@ -31,7 +39,7 @@ def review_items(session: Session, *, status: str = OPEN, limit: int = 50) -> li
     accounts = account_names(session)
     items: list[ReviewItem] = []
     for proposal in list_proposals(session, status=status, limit=limit):
-        if proposal.kind in (RULE_EDIT, RULE_DELETE):
+        if proposal.kind in (RULE_EDIT, RULE_DELETE, CATEGORY_RENAME, CATEGORY_DELETE):
             items.append(
                 ReviewItem(
                     proposal=proposal,

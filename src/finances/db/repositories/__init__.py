@@ -62,6 +62,9 @@ from finances.db.repositories.categories import (
     rename_category,
     set_tax_relevant,
 )
+from finances.db.repositories.category_changes import (
+    propose_category_change,
+)
 from finances.db.repositories.chains import (
     accepting_order,
     decline_proposals,
@@ -269,6 +272,7 @@ __all__ = [
     "note_of",
     "proposal_out_of_date",
     "propose_category",
+    "propose_category_change",
     "propose_group",
     "propose_merchant_alias",
     "propose_new_category",
