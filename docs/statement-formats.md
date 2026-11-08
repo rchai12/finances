@@ -220,9 +220,9 @@ Total deposits, credits and interest | = $13,390.00
 
 ---
 
-## 5. Marcus by Goldman Sachs savings (`marcus_savings`)
+## 5. Marcus by Goldman Sachs savings and CDs (`marcus_savings`)
 
-**Detect:** `Goldman Sachs Bank USA` and `ONLINE SAVINGS ACCOUNT STATEMENT`.
+**Detect:** `Goldman Sachs Bank USA` and either `ONLINE SAVINGS ACCOUNT STATEMENT` or `CD ACCOUNT STATEMENT` (Phase 46). A CD statement has the same header and activity table, plus a `CD SUMMARY` block (term, yield, maturity date) that matches no row and is ignored; it imports as a `savings` account.
 
 **Header:**
 ```
