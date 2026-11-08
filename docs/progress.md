@@ -887,4 +887,12 @@ Template:
   - Extra tests cover `status_for` vs `status_of`, stored `target_id` 0 and a cut subject, declined/open handled across months, ignored from June putting a May proposal out of date, the Review page, and a missing month on the tool
 - Follow-ups: None
 
+## Phase 45c: a link for every History record (2026-11-08)
+- Tests: 4291 -> 4302 (given 11)
+- New public names: None (`change_link` return type is now `str | None`)
+- Changed files: 5
+- Deviations:
+  - Module-level `_FINDING_MONTH` regex and the finding case written apart from the fixed-link table, as the verification guide allows
+- Follow-ups: None
+
 

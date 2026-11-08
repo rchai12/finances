@@ -20,7 +20,7 @@
 <table>
 <thead><tr><th>When (UTC)</th><th>Who</th><th>Action</th><th>Record</th><th>Before</th><th>After</th></tr></thead>
 <tbody>
-{% for row, link in rows %}<tr><td>{{ row.when }}</td><td>{{ row.who }}</td><td>{{ row.action }}</td><td><a href="{{ link }}">{{ row.record }}</a></td><td>{{ row.before }}</td><td>{{ row.after }}</td></tr>
+{% for row, link in rows %}<tr><td>{{ row.when }}</td><td>{{ row.who }}</td><td>{{ row.action }}</td><td>{% if link %}<a href="{{ link }}">{{ row.record }}</a>{% else %}{{ row.record }}{% endif %}</td><td>{{ row.before }}</td><td>{{ row.after }}</td></tr>
 {% endfor %}</tbody>
 </table>
 {% if rows|length >= limit %}<p class="hint">Showing the {{ limit }} newest. Choose an action or a day to see others.</p>{% endif %}

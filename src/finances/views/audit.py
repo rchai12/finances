@@ -1,8 +1,24 @@
 """The audit trail as the `fin audit` table shows it."""
 
+import re
 from dataclasses import dataclass
 
 from finances.domain.audit import Change
+
+_FINDING_MONTH = re.compile(r" in (\d{4}-\d{2})$")
+
+_LINKS = {
+    "account": "/accounts",
+    "person": "/people",
+    "category": "/categories",
+    "rule": "/categories",
+    "transfer": "/transfers",
+    "statement": "/statements",
+    "backup": "/backups",
+    "proposal": "/review",
+    "alias": "/categories",
+    "settlement": "/shared",
+}
 
 
 @dataclass(frozen=True)
@@ -29,15 +45,13 @@ def change_rows(changes: list[Change]) -> list[ChangeRow]:
     ]
 
 
-def change_link(change: Change) -> str:
+def change_link(change: Change) -> str | None:
     if change.kind == "transaction":
         return f"/transactions/{change.record_id}"
-    return {
-        "account": "/accounts",
-        "person": "/people",
-        "category": "/categories",
-        "rule": "/categories",
-        "transfer": "/transfers",
-        "statement": "/statements",
-        "backup": "/backups",
-    }[change.kind]
+    if change.kind == "finding":
+        text = change.after if change.after is not None else change.before
+        found = _FINDING_MONTH.search(text or "")
+        if found is not None:
+            return f"/insights?month={found.group(1)}"
+        return "/insights"
+    return _LINKS.get(change.kind)
