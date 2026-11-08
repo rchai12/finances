@@ -1,0 +1,18 @@
+Marcus by Goldman Sachs                    CD ACCOUNT STATEMENT
+Goldman Sachs Bank USA, Member FDIC
+Statement Period      07/01/2026 to 09/30/2026
+Account Number      300200007777
+
+CD SUMMARY
+Term      12 Months
+Annual Percentage Yield      4.40%
+Maturity Date      03/31/2027
+
+ACCOUNT ACTIVITY
+Date          Description                                        Credits      Debits      Balance
+07/01/2026   Beginning Balance                                                  $5,000.00
+09/30/2026   Interest Paid                                           $54.61              $5,054.61
+09/30/2026   Ending Balance                                                     $5,054.61
+
+INTEREST SUMMARY
+Interest Paid Year to Date      $108.12

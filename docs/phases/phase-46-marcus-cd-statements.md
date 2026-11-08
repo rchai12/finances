@@ -98,7 +98,7 @@ def pages() -> list[str]:
 
 def test_a_cd_statement_is_detected() -> None:
     assert MarcusSavingsParser().detect(pages()[0]) is True
-    assert detect_parser(pages()[0]).name == "marcus_savings"
+    assert detect_parser(pages()).name == "marcus_savings"
 
 
 def test_a_cd_statement_parses_as_savings() -> None:

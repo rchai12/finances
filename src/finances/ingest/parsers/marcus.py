@@ -1,4 +1,4 @@
-"""The parser for Marcus by Goldman Sachs online savings statements."""
+"""The parser for Marcus by Goldman Sachs online savings and CD statements."""
 
 import re
 from datetime import date
@@ -15,6 +15,8 @@ _PERIOD = re.compile(rf"Statement Period\s+{_FULL_DATE}\s*to\s*{_FULL_DATE}")
 _BALANCE_LINE = re.compile(rf"{_FULL_DATE}\s+(.+?)\s+(-?{_MONEY})")
 _ROW = re.compile(rf"{_FULL_DATE}\s+(.+?)\s+({_MONEY})\s+(-?{_MONEY})")
 
+_HEADINGS = ("ONLINE SAVINGS ACCOUNT STATEMENT", "CD ACCOUNT STATEMENT")
+
 _NO_ACCOUNT = "marcus: account number not found"
 _NO_PERIOD = "marcus: statement period not found"
 _NO_BEGINNING = "marcus: beginning balance not found"
@@ -25,9 +27,8 @@ class MarcusSavingsParser:
     name = "marcus_savings"
 
     def detect(self, first_page: str) -> bool:
-        return (
-            "Goldman Sachs Bank USA" in first_page
-            and "ONLINE SAVINGS ACCOUNT STATEMENT" in first_page
+        return "Goldman Sachs Bank USA" in first_page and any(
+            heading in first_page for heading in _HEADINGS
         )
 
     def parse(self, pages: list[str]) -> ParsedStatement:

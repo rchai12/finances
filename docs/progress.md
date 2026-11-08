@@ -895,4 +895,13 @@ Template:
   - Module-level `_FINDING_MONTH` regex and the finding case written apart from the fixed-link table, as the verification guide allows
 - Follow-ups: None
 
+## Phase 46: Marcus CD statements (2026-11-08)
+- Tests: 4302 -> 4310 (given 7)
+- New public names: None
+- Changed files: 6
+- Deviations:
+  - Module-level `_HEADINGS` tuple for the two statement titles, as the verification guide allows
+  - The given test originally called `detect_parser(pages()[0])`; the architect fixed the spec to `detect_parser(pages())` before this build finished
+- Follow-ups: None
+
 
