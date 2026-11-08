@@ -41,6 +41,7 @@ PAIR = {
     "waits_for": None,
     "rule_change": None,
     "category_change": None,
+    "finding": None,
     "reason": "interest, not a transfer",
     "status": "open",
     "created_at": "2026-05-25T12:00:00+00:00",

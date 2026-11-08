@@ -37,6 +37,7 @@ NO_AMOUNTS = (
     "propose_new_category",
     "propose_rule_change",
     "propose_category_change",
+    "propose_finding_status",
 )
 READ_ONLY = {
     "read_only_hint": True,

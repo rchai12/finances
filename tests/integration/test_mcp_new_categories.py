@@ -69,6 +69,7 @@ def item(kind: str, new: dict, reason: str) -> dict:
             "waits_for": None,
             "rule_change": None,
             "category_change": None,
+            "finding": None,
             "reason": reason,
             "status": "open",
             "created_at": "2026-05-25T12:00:00+00:00",

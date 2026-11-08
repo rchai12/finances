@@ -221,6 +221,7 @@ MCP_TOOLS = [
     "month_over_month",
     "propose_category",
     "propose_category_change",
+    "propose_finding_status",
     "propose_group",
     "propose_merchant_alias",
     "propose_new_category",
@@ -239,5 +240,6 @@ MCP_WRITERS = (
     "propose_new_category",
     "propose_rule_change",
     "propose_category_change",
+    "propose_finding_status",
     "log_advice",
 )

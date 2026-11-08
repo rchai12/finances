@@ -17,6 +17,7 @@ from finances.db.repositories.category_changes import (
     category_change_is_out_of_date,
 )
 from finances.db.repositories.chains import (
+    _open_row,
     _split_or_paired,
     category_is_out_of_date,
     chain_out_of_date,
@@ -27,10 +28,8 @@ from finances.db.repositories.chains import (
 from finances.db.repositories.rule_changes import accept_rule_change, rule_change_is_out_of_date
 from finances.db.repositories.transactions import get_transaction
 from finances.db.repositories.transfers import (
-    _check_transfer,
+    _propose_pair,
     create_transfer_pair,
-    find_transfer_pair,
-    list_transfer_rejections,
     reject_transfer,
 )
 from finances.domain.merchants import check_alias, clean_merchant, merchant_names
@@ -42,6 +41,7 @@ from finances.domain.proposals import (
     CATEGORY_DELETE,
     CATEGORY_RENAME,
     DECLINED,
+    FINDING_STATUS,
     GROUP,
     NEW_CATEGORY,
     NOT_TRANSFER,
@@ -105,44 +105,6 @@ def propose_category(session: Session, transaction_id: int, category: str, reaso
         decided_at=None,
         parent_id=parent_id,
         before=current,
-    )
-    session.add(row)
-    session.flush()
-    return to_proposal(row)
-
-
-def _propose_pair(session: Session, kind: str, out_id: int, in_id: int, reason: str) -> Proposal:
-    clean = collapse_ws(reason)
-    if not 1 <= len(clean) <= PROPOSAL_TEXT_LIMIT:
-        raise ValueError("a reason must be 1 to 200 characters")
-    _check_transfer(session, out_id, in_id)
-    if (
-        find_transfer_pair(session, out_id) is not None
-        or find_transfer_pair(session, in_id) is not None
-    ):
-        raise ValueError("a person or the rules already paired one of these transactions")
-    if (out_id, in_id) in list_transfer_rejections(session):
-        raise ValueError("a person said these two are not a transfer")
-    existing = session.scalars(
-        select(ProposalRow).where(
-            ProposalRow.target_id == out_id,
-            ProposalRow.other_id == in_id,
-            ProposalRow.kind.in_((TRANSFER, NOT_TRANSFER)),
-        )
-    ).all()
-    if any(row.status == DECLINED and row.kind == kind for row in existing):
-        raise ValueError("a person declined this proposal already")
-    if any(row.status == OPEN for row in existing):
-        raise ValueError("these two already have an open proposal")
-    row = ProposalRow(
-        kind=kind,
-        target_id=out_id,
-        value="",
-        reason=clean,
-        status=OPEN,
-        created_at=_now(),
-        decided_at=None,
-        other_id=in_id,
     )
     session.add(row)
     session.flush()
@@ -279,6 +241,10 @@ def proposal_out_of_date(session: Session, proposal: Proposal) -> bool:
         return new_is_out_of_date(session, proposal)
     if proposal.kind in (CATEGORY_RENAME, CATEGORY_DELETE):
         return category_change_is_out_of_date(session, proposal)
+    if proposal.kind == FINDING_STATUS:
+        from finances.db.repositories.finding_proposals import finding_status_is_out_of_date
+
+        return finding_status_is_out_of_date(session, proposal)
     if proposal.kind in (RULE_EDIT, RULE_DELETE):
         return rule_change_is_out_of_date(session, proposal)
     if proposal.kind == RULE:
@@ -298,21 +264,16 @@ def proposal_out_of_date(session: Session, proposal: Proposal) -> bool:
     return category_is_out_of_date(session, proposal)
 
 
-def _open_row(session: Session, proposal_id: int) -> ProposalRow:
-    row = session.get(ProposalRow, proposal_id)
-    if row is None:
-        raise ValueError("proposal not found")
-    if row.status != OPEN:
-        raise ValueError(f"proposal {proposal_id} is already {row.status}")
-    return row
-
-
 def accept_proposal(session: Session, proposal_id: int) -> Proposal:
     row = _open_row(session, proposal_id)
     waiting = waits_for(session, to_proposal(row))
     if waiting is not None:
         raise ValueError(f"proposal {proposal_id} waits for proposal {waiting}")
     if proposal_out_of_date(session, to_proposal(row)):
+        if row.kind == FINDING_STATUS:
+            raise ValueError(
+                f"proposal {proposal_id} is out of date: a person set this finding's status since"
+            )
         if row.kind in (GROUP, NEW_CATEGORY, CATEGORY_RENAME, CATEGORY_DELETE):
             raise ValueError(f"proposal {proposal_id} is out of date: the categories changed since")
         if row.kind == CATEGORY:
@@ -338,6 +299,10 @@ def accept_proposal(session: Session, proposal_id: int) -> Proposal:
         accept_new(session, row)
     elif row.kind in (CATEGORY_RENAME, CATEGORY_DELETE):
         accept_category_change(session, row)
+    elif row.kind == FINDING_STATUS:
+        from finances.db.repositories.finding_proposals import accept_finding_status
+
+        accept_finding_status(session, row)
     elif row.kind == TRANSFER:
         create_transfer_pair(session, row.target_id, row.other_id, CONFIRMED)
     elif row.kind == NOT_TRANSFER:

@@ -34,24 +34,30 @@ def finding_text(type: str, subject: str, month: date | None) -> str:
     return f"{type} in {when}"
 
 
-def status_of(finding: Finding, statuses: Iterable[FindingStatus]) -> str | None:
+def status_for(
+    type: str, subject: str, month: date, statuses: Iterable[FindingStatus]
+) -> str | None:
     items = list(statuses)
     for item in items:
         if (
             item.status == IGNORED
-            and item.type == finding.type
-            and item.subject.casefold() == finding.subject.casefold()
+            and item.type == type
+            and item.subject.casefold() == subject.casefold()
         ):
             return IGNORED
     for item in items:
         if (
             item.status == HANDLED
-            and item.type == finding.type
-            and item.subject.casefold() == finding.subject.casefold()
-            and item.month == finding.month
+            and item.type == type
+            and item.subject.casefold() == subject.casefold()
+            and item.month == month
         ):
             return HANDLED
     return None
+
+
+def status_of(finding: Finding, statuses: Iterable[FindingStatus]) -> str | None:
+    return status_for(finding.type, finding.subject, finding.month, statuses)
 
 
 def split_findings(

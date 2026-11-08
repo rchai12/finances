@@ -115,6 +115,7 @@ def test_insights_for_a_month_with_no_data(today: Settings) -> None:
         "month": "2024-01",
         "findings": [],
         "merchants": [],
+        "set_aside": [],
     }
 
 

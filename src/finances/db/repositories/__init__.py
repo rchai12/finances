@@ -95,6 +95,9 @@ from finances.db.repositories.feed_links import (
     record_sync_failure,
     set_feed_account_ignored,
 )
+from finances.db.repositories.finding_proposals import (
+    propose_finding_status,
+)
 from finances.db.repositories.findings import (
     list_finding_statuses,
     reopen_finding,
@@ -279,6 +282,7 @@ __all__ = [
     "proposal_out_of_date",
     "propose_category",
     "propose_category_change",
+    "propose_finding_status",
     "propose_group",
     "propose_merchant_alias",
     "propose_new_category",

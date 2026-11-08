@@ -13,7 +13,7 @@ from finances.analysis.balances import balance_report
 from finances.analysis.budgets import budget_report
 from finances.analysis.coverage import coverage_report
 from finances.analysis.forecast import forecast_report
-from finances.analysis.insights import insights_report
+from finances.analysis.insights import find_finding, insights_report
 from finances.analysis.months import month_report
 from finances.analysis.names import find_names
 from finances.analysis.networth import net_worth_over_time
@@ -41,6 +41,7 @@ from finances.db.repositories import list_uncategorized as load_uncategorized
 from finances.db.repositories import log_advice as keep_advice
 from finances.db.repositories import propose_category as store_category_proposal
 from finances.db.repositories import propose_category_change as store_category_change
+from finances.db.repositories import propose_finding_status as store_finding_status
 from finances.db.repositories import propose_group as store_group
 from finances.db.repositories import propose_merchant_alias as store_alias
 from finances.db.repositories import propose_new_category as store_new_category
@@ -57,6 +58,7 @@ from finances.domain.proposals import (
     CATEGORY,
     CATEGORY_DELETE,
     CATEGORY_RENAME,
+    FINDING_STATUS,
     GROUP,
     NEW_CATEGORY,
     RULE,
@@ -302,6 +304,17 @@ def get_insights(month: str = "") -> dict[str, Any]:
                 "weekend_visits": item.weekend_visits,
             }
             for item in report.merchants
+        ],
+        "set_aside": [
+            {
+                "type": item.finding.type,
+                "severity": item.finding.severity,
+                "subject": item.finding.subject or None,
+                "savings_cents": item.finding.savings_cents,
+                "detail": item.finding.detail,
+                "status": item.status,
+            }
+            for item in report.closed
         ],
     }
 
@@ -577,7 +590,8 @@ def _proposal_item(session: Session, proposal: Proposal) -> dict[str, Any]:
         "id": proposal.id,
         "kind": proposal.kind,
         "transaction_id": None
-        if proposal.kind in (RULE_EDIT, RULE_DELETE, CATEGORY_RENAME, CATEGORY_DELETE)
+        if proposal.kind
+        in (RULE_EDIT, RULE_DELETE, CATEGORY_RENAME, CATEGORY_DELETE, FINDING_STATUS)
         else proposal.target_id,
         "in_id": proposal.other_id,
         "category": proposal.value
@@ -620,6 +634,18 @@ def _proposal_item(session: Session, proposal: Proposal) -> dict[str, Any]:
                 "rule_id": proposal.target_id,
                 "before": proposal.before,
                 "delete": proposal.kind == RULE_DELETE,
+            }
+        ),
+        "finding": (
+            None
+            if proposal.kind != FINDING_STATUS
+            else {
+                "type": proposal.finding_type,
+                "about": proposal.finding_subject or "",
+                "month": (
+                    "" if proposal.finding_month is None else proposal.finding_month.isoformat()[:7]
+                ),
+                "status": proposal.value,
             }
         ),
         "category_change": (
@@ -774,6 +800,19 @@ def propose_category_change(
                 session, name, reason, rename_to=rename_to, delete=delete, move_to=move_to
             )
             return {"proposal": _proposal_item(session, found)}
+
+    return _as_tool(work)
+
+
+def propose_finding_status(
+    type: str, status: str, reason: str, about: str = "", month: str = ""
+) -> dict[str, Any]:
+    def work() -> dict[str, Any]:
+        with writing() as session:
+            start = _month_start(month)
+            found = find_finding(session, start, type, about)
+            stored = store_finding_status(session, found, status, reason)
+            return {"proposal": _proposal_item(session, stored)}
 
     return _as_tool(work)
 

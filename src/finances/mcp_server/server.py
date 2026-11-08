@@ -54,8 +54,10 @@ MONTH_OVER_MONTH_DESCRIPTION = (
 GET_INSIGHTS_DESCRIPTION = (
     "Findings for a month (YYYY-MM, default this month): each with its type, severity (high, "
     "medium, low), subject (a category or merchant, or null), what acting on it could save a "
-    "month in integer cents, and a sentence; and each merchant's visits, spending, average, "
-    "baseline from earlier months, change, and weekend visits, in integer cents."
+    "month in integer cents, and a sentence; findings a person handled (that month) or ignored "
+    "(every month) are left out of findings and listed in set_aside with their status; and each "
+    "merchant's visits, spending, average, baseline from earlier months, change, and weekend "
+    "visits, in integer cents."
 )
 GET_RECURRING_DESCRIPTION = (
     "Recurring charges, or recurring income when income is true, found up to today: merchant, "
@@ -189,6 +191,14 @@ PROPOSE_CATEGORY_CHANGE_DESCRIPTION = (
     "proposals to the new name. Refused as fin categories rename and delete refuse, and when a "
     "person declined it or another proposal for that category is open. No amounts."
 )
+PROPOSE_FINDING_STATUS_DESCRIPTION = (
+    "Propose marking an open finding of get_insights handled (that month only) or ignored (its "
+    "type and subject in every month). Name it by type, about (its subject; empty for interest "
+    "and fees), and month (YYYY-MM, default this month), and give a one-line reason a person "
+    "will read. It changes nothing until a person accepts it with fin review. Refused when the "
+    "finding is not there or already has a status, and when a person declined it or another "
+    "proposal for that finding is open. No amounts."
+)
 LIST_PROPOSALS_DESCRIPTION = (
     "Your proposals, newest first, of one status (open by default, accepted, or declined), at "
     "most limit (1 to 200, default 50): the transaction, the category, your reason, when it was "
@@ -214,6 +224,7 @@ _WRITES = (
     "propose_new_category",
     "propose_rule_change",
     "propose_category_change",
+    "propose_finding_status",
     "log_advice",
 )
 _TOOLS = (
@@ -252,6 +263,7 @@ def build_server() -> MCPServer:
         (tools.propose_new_category, PROPOSE_NEW_CATEGORY_DESCRIPTION),
         (tools.propose_rule_change, PROPOSE_RULE_CHANGE_DESCRIPTION),
         (tools.propose_category_change, PROPOSE_CATEGORY_CHANGE_DESCRIPTION),
+        (tools.propose_finding_status, PROPOSE_FINDING_STATUS_DESCRIPTION),
         (tools.list_proposals, LIST_PROPOSALS_DESCRIPTION),
         (tools.log_advice, LOG_ADVICE_DESCRIPTION),
         (tools.list_advice, LIST_ADVICE_DESCRIPTION),

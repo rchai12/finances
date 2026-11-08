@@ -29,6 +29,7 @@ def test_the_kinds() -> None:
         "rule_delete",
         "category_rename",
         "category_delete",
+        "finding_status",
     )
 
 

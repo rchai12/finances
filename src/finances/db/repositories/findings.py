@@ -21,12 +21,7 @@ def _now() -> datetime:
     return datetime.now(UTC)
 
 
-def set_finding_status(session: Session, finding: Finding, status: str) -> FindingStatus:
-    if status not in FINDING_STATUSES:
-        raise ValueError("status must be one of: " + ", ".join(FINDING_STATUSES))
-    current = status_of(finding, list_finding_statuses(session))
-    if current is not None:
-        raise ValueError(f"this finding is already {current}")
+def _store_finding_status(session: Session, finding: Finding, status: str) -> FindingStatus:
     row = FindingStatusRow(
         type=fit(finding.type, NAME_LIMIT),
         subject=fit(finding.subject, NAME_LIMIT),
@@ -45,6 +40,15 @@ def set_finding_status(session: Session, finding: Finding, status: str) -> Findi
         after=finding_text(row.type, row.subject, row.month),
     )
     return to_finding_status(row)
+
+
+def set_finding_status(session: Session, finding: Finding, status: str) -> FindingStatus:
+    if status not in FINDING_STATUSES:
+        raise ValueError("status must be one of: " + ", ".join(FINDING_STATUSES))
+    current = status_of(finding, list_finding_statuses(session))
+    if current is not None:
+        raise ValueError(f"this finding is already {current}")
+    return _store_finding_status(session, finding, status)
 
 
 def reopen_finding(session: Session, type: str, subject: str, month: date) -> list[FindingStatus]:

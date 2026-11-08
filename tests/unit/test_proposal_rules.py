@@ -31,6 +31,7 @@ def test_the_lists_and_limits() -> None:
             "rule_delete",
             "category_rename",
             "category_delete",
+            "finding_status",
         ),
     )
     assert (OPEN, ACCEPTED, DECLINED, STATUSES) == (

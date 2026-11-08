@@ -2,11 +2,13 @@ from dataclasses import dataclass
 
 from finances.analysis.review import ReviewItem
 from finances.domain.audit import rule_text
+from finances.domain.findings import HANDLED, finding_text
 from finances.domain.money import format_cents
 from finances.domain.proposals import (
     ALIAS,
     CATEGORY_DELETE,
     CATEGORY_RENAME,
+    FINDING_STATUS,
     GROUP,
     NEW_CATEGORY,
     NOT_TRANSFER,
@@ -97,6 +99,10 @@ def proposed_text(proposal: Proposal) -> str:
         if proposal.value:
             return f"delete, moving its uses to {proposal.value}"
         return "delete"
+    if proposal.kind == FINDING_STATUS:
+        if proposal.value == HANDLED:
+            return "mark handled"
+        return "ignore in every month"
     return proposal.value
 
 
@@ -137,6 +143,13 @@ def accepted_text(proposal: Proposal) -> str:
                 f"its uses moved to {proposal.value}."
             )
         return f"Accepted proposal {proposal.id}: {proposal.before} deleted."
+    if proposal.kind == FINDING_STATUS:
+        month = proposal.finding_month if proposal.value == HANDLED else None
+        return (
+            f"Accepted proposal {proposal.id}: "
+            f"{finding_text(proposal.finding_type or '', proposal.finding_subject or '', month)} "
+            f"is {proposal.value}."
+        )
     return (
         f"Accepted proposal {proposal.id}: {proposal.value} for transaction {proposal.target_id}."
     )

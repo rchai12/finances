@@ -693,6 +693,9 @@ class ProposalRow(Base):
     is_tax: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
     parent_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
     before: Mapped[str | None] = mapped_column(String(AUDIT_TEXT_LIMIT), nullable=True)
+    finding_type: Mapped[str | None] = mapped_column(String(30), nullable=True)
+    finding_subject: Mapped[str | None] = mapped_column(String(NAME_LIMIT), nullable=True)
+    finding_month: Mapped[date | None] = mapped_column(Date, nullable=True)
 
 
 def to_proposal(row: ProposalRow) -> Proposal:
@@ -718,6 +721,9 @@ def to_proposal(row: ProposalRow) -> Proposal:
         tax=row.is_tax,
         parent_id=row.parent_id,
         before=row.before,
+        finding_type=row.finding_type,
+        finding_subject=row.finding_subject,
+        finding_month=row.finding_month,
     )
 
 

@@ -8,11 +8,13 @@ from sqlalchemy import (
 from sqlalchemy.orm import Session
 
 from finances.db.orm import (
+    ProposalRow,
     SharedExpenseRow,
     TransactionRow,
     TransactionSplitRow,
     TransferPairRow,
     TransferRejectionRow,
+    to_proposal,
     to_transfer_pair,
 )
 from finances.db.repositories.audit import record_change
@@ -24,6 +26,8 @@ from finances.domain.models import (
     CONFIRMED,
     TransferPair,
 )
+from finances.domain.proposals import DECLINED, NOT_TRANSFER, OPEN, TRANSFER, Proposal
+from finances.domain.text import PROPOSAL_TEXT_LIMIT, collapse_ws
 from finances.domain.transfers import Movement
 
 
@@ -169,3 +173,43 @@ def unpair_transfer(session: Session, pair_id: int) -> TransferPair:
         before=pair_text(pair.out_transaction_id, pair.in_transaction_id),
     )
     return pair
+
+
+def _propose_pair(session: Session, kind: str, out_id: int, in_id: int, reason: str) -> Proposal:
+    from finances.db.repositories.proposals import _now
+
+    clean = collapse_ws(reason)
+    if not 1 <= len(clean) <= PROPOSAL_TEXT_LIMIT:
+        raise ValueError("a reason must be 1 to 200 characters")
+    _check_transfer(session, out_id, in_id)
+    if (
+        find_transfer_pair(session, out_id) is not None
+        or find_transfer_pair(session, in_id) is not None
+    ):
+        raise ValueError("a person or the rules already paired one of these transactions")
+    if (out_id, in_id) in list_transfer_rejections(session):
+        raise ValueError("a person said these two are not a transfer")
+    existing = session.scalars(
+        select(ProposalRow).where(
+            ProposalRow.target_id == out_id,
+            ProposalRow.other_id == in_id,
+            ProposalRow.kind.in_((TRANSFER, NOT_TRANSFER)),
+        )
+    ).all()
+    if any(row.status == DECLINED and row.kind == kind for row in existing):
+        raise ValueError("a person declined this proposal already")
+    if any(row.status == OPEN for row in existing):
+        raise ValueError("these two already have an open proposal")
+    row = ProposalRow(
+        kind=kind,
+        target_id=out_id,
+        value="",
+        reason=clean,
+        status=OPEN,
+        created_at=_now(),
+        decided_at=None,
+        other_id=in_id,
+    )
+    session.add(row)
+    session.flush()
+    return to_proposal(row)

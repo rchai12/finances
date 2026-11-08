@@ -11,11 +11,13 @@ from finances.db.repositories import (
     proposal_out_of_date,
     waits_for,
 )
+from finances.domain.findings import finding_text
 from finances.domain.models import Transaction
 from finances.domain.proposals import (
     CATEGORY,
     CATEGORY_DELETE,
     CATEGORY_RENAME,
+    FINDING_STATUS,
     OPEN,
     RULE_DELETE,
     RULE_EDIT,
@@ -46,6 +48,22 @@ def review_items(session: Session, *, status: str = OPEN, limit: int = 50) -> li
                     transaction=None,
                     account=None,
                     current=proposal.before,
+                    out_of_date=proposal_out_of_date(session, proposal),
+                    waits_for=waits_for(session, proposal),
+                )
+            )
+            continue
+        if proposal.kind == FINDING_STATUS:
+            items.append(
+                ReviewItem(
+                    proposal=proposal,
+                    transaction=None,
+                    account=None,
+                    current=finding_text(
+                        proposal.finding_type or "",
+                        proposal.finding_subject or "",
+                        proposal.finding_month,
+                    ),
                     out_of_date=proposal_out_of_date(session, proposal),
                     waits_for=waits_for(session, proposal),
                 )

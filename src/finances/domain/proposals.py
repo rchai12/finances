@@ -1,9 +1,10 @@
 """The agent's suggestions and notes, waiting for a person."""
 
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import date, datetime
 
 from finances.domain.audit import rule_text
+from finances.domain.findings import HANDLED, finding_text
 
 CATEGORY = "category"
 TRANSFER = "transfer"
@@ -16,6 +17,7 @@ RULE_EDIT = "rule_edit"
 RULE_DELETE = "rule_delete"
 CATEGORY_RENAME = "category_rename"
 CATEGORY_DELETE = "category_delete"
+FINDING_STATUS = "finding_status"
 KINDS = (
     CATEGORY,
     TRANSFER,
@@ -28,6 +30,7 @@ KINDS = (
     RULE_DELETE,
     CATEGORY_RENAME,
     CATEGORY_DELETE,
+    FINDING_STATUS,
 )
 GROUP_KINDS = ("spending", "transfer", "income")
 OPEN = "open"
@@ -58,6 +61,9 @@ class Proposal:
     tax: bool | None = None
     parent_id: int | None = None
     before: str | None = None
+    finding_type: str | None = None
+    finding_subject: str | None = None
+    finding_month: date | None = None
 
 
 @dataclass(frozen=True)
@@ -136,4 +142,8 @@ def proposal_text(proposal: Proposal) -> str:
         if proposal.value:
             return f"category {proposal.before}: delete, moving its uses to {proposal.value}"
         return f"category {proposal.before}: delete"
+    if proposal.kind == FINDING_STATUS:
+        month = proposal.finding_month if proposal.value == HANDLED else None
+        named = finding_text(proposal.finding_type or "", proposal.finding_subject or "", month)
+        return f"finding {named}: {proposal.value}"
     return f"transaction {proposal.target_id}: {proposal.value}"

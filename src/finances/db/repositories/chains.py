@@ -29,6 +29,15 @@ def _open_named(session: Session, kind: str, name: str) -> ProposalRow | None:
     ).first()
 
 
+def _open_row(session: Session, proposal_id: int) -> ProposalRow:
+    row = session.get(ProposalRow, proposal_id)
+    if row is None:
+        raise ValueError("proposal not found")
+    if row.status != OPEN:
+        raise ValueError(f"proposal {proposal_id} is already {row.status}")
+    return row
+
+
 def proposed_category(session: Session, name: str) -> tuple[str, int | None]:
     row = _category_row(session, name)
     if row is not None and row.parent_id is not None:

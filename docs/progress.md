@@ -877,4 +877,14 @@ Template:
   - Extra tests cover stored month None vs the finding's month, reopen from June leaving May handled, list order by id, a subject cut to 100, the dashboard and `get_insights` leaving out a handled finding, an empty form month using this month, History `who` is person, an unknown type on reopen, a bad form month, and a forged form token
 - Follow-ups: The History page's `change_link` has no entry for kind `finding` (the same gap as `proposal`, `alias`, and `settlement`). CLI `fin audit` lists the rows.
 
+## Phase 45b: the agent proposes a finding's status (2026-11-08)
+- Tests: 4268 -> 4291 (given 15)
+- New public names: `finances.domain.proposals`: `FINDING_STATUS`; `finances.domain.findings`: `status_for`; `finances.db.repositories`: `propose_finding_status`; `finances.mcp_server.server`: `PROPOSE_FINDING_STATUS_DESCRIPTION`
+- Changed files: 32
+- Deviations:
+  - Moved `_open_row` into `chains.py` and `_propose_pair` into `transfers.py` (still calling `proposals._now`) so `proposals.py` stays within 400 lines after the FINDING_STATUS dispatch
+  - `ProposalRow.finding_subject` is `String(NAME_LIMIT)` rather than the literal `String(100)`, matching Phase 45a
+  - Extra tests cover `status_for` vs `status_of`, stored `target_id` 0 and a cut subject, declined/open handled across months, ignored from June putting a May proposal out of date, the Review page, and a missing month on the tool
+- Follow-ups: None
+
 
