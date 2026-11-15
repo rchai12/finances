@@ -905,3 +905,23 @@ Template:
 - Follow-ups: None
 
 
+## Project tooling: Codex phase skills (2026-11-15)
+- Phase: None; project skill setup only.
+- Built: Project-local architect and combined implementer/verifier skills in `.agents/skills/`, modeled on `.claude/skills/`; architect reuses the shared checklist and helpers.
+- Validation: Both skills passed dependency-free frontmatter, naming, description, and placeholder checks. The bundled skill validator could not run because the project interpreter lacks PyYAML; no packages were installed.
+- Deviations: None; no application phase implemented.
+- Follow-ups: None.
+
+## Project tooling: mature Codex architect process (2026-11-15)
+- Phase: None; project skill update only.
+- Built: Replaced the Codex architect wrapper with a self-contained process adapted from `../emails/.claude/skills/phase-architect/SKILL.md`: facts before tests, bounded phases, baseline diagnosis, isolated failing tests, independent probe checks, full-path spot checks, and explicit handoffs.
+- Validation: Skill structure and every referenced local resource path passed; no dependencies or scripts added. Application checks were not run for this instruction-only change.
+- Deviations: Preserved finances' embedded given files, temporary probes, existing helpers, and read-only verifier conventions rather than importing emails-specific tooling or workflows.
+- Follow-ups: None.
+
+## Design: audit remediation, planned Phase 47 (2026-11-15)
+- Built: `docs/audit-remediation-design.md` and its verification plan; roadmap and docs index link nine planned parts and explicit deferral triggers.
+- Owner decision: November 15 audit findings accepted as verified; design only, staged delivery permitted.
+- Validation: Inspected existing integration contracts and checked document links and whitespace; no implementation tests or application gates run.
+- Deviations: This is an umbrella design, not an executable phase spec; given tests and exact scope/counts will be prepared per part against its reviewed predecessor.
+- Follow-ups: Issue the executable 47a spec and guide first; preserve unrelated working-tree changes and establish the intended committed baseline before implementation.
