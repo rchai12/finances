@@ -328,7 +328,7 @@ audit parts move from 47b–47i to 47c–47j. Fixture optimization waits for tim
 
 ## Phase 47c: explicit proposal-kind refusal (2026-11-16)
 
-Specified; result pending. Predecessor 47b approved at 4371 tests. Four given
+PASS: 4426 tests, no findings or approved deviations; implementation/review committed at 69294ab. Predecessor 47b approved at 4371 tests. Four given
 refusal cases collected in an isolated 3edb182 clone; all four fail for missing
 ValueError, lint and formatting pass. Complete twelve-kind dispatch matrices and
 persisted safety/compatibility cases remain coder-owned. No implementation,
@@ -338,3 +338,18 @@ choice. Finalized planning baseline must be committed before isolated coding.
 47a lesson: distinguish unrelated workspace scope from functional defects. The
 owner-approved reassessment is committed at c8ec721; no functional repair was
 needed. Use isolated baselines before handoff, as the current skill requires.
+
+
+## Phase 47d: shared proposal reasons and repository UTC time (2026-11-16)
+
+Specified; result pending. Baseline 69294ab, N=4426. Two public helpers, nine
+reason sites and fifteen clock sites in nine repository modules (eight clock
+definitions plus transfer borrowing). Nine given cases collected in a fresh
+fail47d clone: eight intended missing-helper failures with names-only stubs and
+one audit-clock bypass failure. All given/migrated tests lint and format clean.
+Exact diff migrates thirty earlier files with every assertion AST preserved.
+Notes iterators retain creation times and support later dismissals; notes_more
+switches from KEPT to GONE after setup. Strict coder event sequences guard against
+merging audit/decision clock reads. No implementation, dependency, probe, search
+gate or tooling change. No unresolved owner choice. Planning commit precedes
+isolated coding; unrelated editor settings remain untouched.
