@@ -956,3 +956,17 @@ Template:
   - Sequential acceptance at 1/2/4 workers passed 4371 tests each, scripts first 100, every section zero failures/skips, no xfails/warnings; command wall 284.31/162.60/100.21 seconds and pytest full step 275.51/154.63/91.78 seconds; given-only 7 passed; all acceptance subprocesses and coverage exports exit 0.
   - Complete collection and full-run JUnit identities/multiplicities match across all runs; all 199 measured files and missing line/branch sets match; overall coverage 99.9848%, every critical line/branch covered. Baseline sandbox had 10 localhost-bind errors; permitted rerun passed all 4337; package-index DNS required permitted installation of the authorized dev dependency.
   - Benchmark evidence, versions, digest, timing observations and requirement mapping: docs/testing-performance.md; recommend --workers 4 (2.84x serial speed on this machine), default remains 1. Blockers: None. Independent verification remains required; repeated migration setup merits later separately scoped fixture profiling/design.
+
+## Phase 47c: explicit proposal-kind refusal (2026-11-16)
+- Tests: 4371 -> 4426 (given 4)
+- New public names: None
+- Changed files: 5
+- Deviations: None
+- Follow-ups:
+  - Built early unknown-kind guards and exhaustive category/transfer dispatch; unsupported and registered-but-unhandled kinds raise the constant refusal without mutations, while existing loading/dependency order and caller transaction ownership remain intact.
+  - Baseline cbcfeea8850dd49c307b6f7184d7ed58960ba569; spec/guide matched HEAD; clean isolated /tmp/finances-47c-cbcfeea linked the existing venv, with PYTHONPATH=/tmp/finances-47c-cbcfeea/src and finances.__file__ resolving inside that clone; original .vscode/settings.json preserved.
+  - Baseline sandbox: 4361 passed, 10 existing localhost-bind errors; permitted four-worker baseline: 4371 passed, All checks passed. Given tests failed first (4 failures), remained byte-identical to the spec, and then passed exactly 4; 42 coder unit cases and 9 coder integration cases passed.
+  - Required --first core,mcp,web,cli --workers 4 acceptance exited 0: selected-first 3005 passed, full suite 4426 passed in 93.39s, every section zero failures/skips, no xfails/warnings, overall 99.98% and all critical gates passed; final line All checks passed.
+  - Immediate required proposals coverage report exited 0: 205 statements, 0 missed, 104 branches, 0 partial, 100%, no missing locations; all new early guards and future-kind fallbacks covered. Given-only command exited 0: 4 passed in 0.03s. Synthetic logs retained in /tmp/finances-47c-evidence and /tmp/finances-47c-baseline.log.
+  - R1/R2: test_unsupported_kind_refuses_without_mutation, test_unknown_domain_proposal_refuses_without_queries, test_unknown_acceptance_refuses_before_dependency; R3: test_refusal_caught_inside_transaction_leaves_persisted_state; R4: complete acceptance/staleness matrices plus rule/alias validation cases; R5: test_supported_decisions_persist_with_audit, test_missing_and_decided_refuse_before_dispatch, test_open_dependency_refuses_before_staleness and full prior suite.
+  - No blockers; independent verification remains required. No dependencies, adapters, migrations or existing tests changed; no commit or push.

@@ -43,6 +43,7 @@ from finances.domain.proposals import (
     DECLINED,
     FINDING_STATUS,
     GROUP,
+    KINDS,
     NEW_CATEGORY,
     NOT_TRANSFER,
     OPEN,
@@ -235,6 +236,8 @@ def list_proposals(
 
 
 def proposal_out_of_date(session: Session, proposal: Proposal) -> bool:
+    if proposal.kind not in KINDS:
+        raise ValueError("unsupported proposal kind")
     if proposal.kind in (GROUP, NEW_CATEGORY):
         from finances.db.repositories.new_categories import new_is_out_of_date
 
@@ -259,13 +262,17 @@ def proposal_out_of_date(session: Session, proposal: Proposal) -> bool:
         except ValueError:
             return True
         return False
-    if proposal.kind != CATEGORY:
+    if proposal.kind in (TRANSFER, NOT_TRANSFER):
         return pair_is_out_of_date(session, proposal)
-    return category_is_out_of_date(session, proposal)
+    if proposal.kind == CATEGORY:
+        return category_is_out_of_date(session, proposal)
+    raise ValueError("unsupported proposal kind")
 
 
 def accept_proposal(session: Session, proposal_id: int) -> Proposal:
     row = _open_row(session, proposal_id)
+    if row.kind not in KINDS:
+        raise ValueError("unsupported proposal kind")
     waiting = waits_for(session, to_proposal(row))
     if waiting is not None:
         raise ValueError(f"proposal {proposal_id} waits for proposal {waiting}")
@@ -313,8 +320,10 @@ def accept_proposal(session: Session, proposal_id: int) -> Proposal:
         add_alias(session, row.source or "", row.value)
     elif row.kind in (RULE_EDIT, RULE_DELETE):
         accept_rule_change(session, row)
-    else:
+    elif row.kind == CATEGORY:
         set_category_by_hand(session, row.target_id, row.value)
+    else:
+        raise ValueError("unsupported proposal kind")
     row.status = ACCEPTED
     row.decided_at = _now()
     session.flush()
