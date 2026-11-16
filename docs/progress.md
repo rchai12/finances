@@ -940,4 +940,7 @@ Template:
 - Deviations:
   - Preserved 13 pre-existing working-tree entries instead of requiring a clean committed baseline; Phase 47a changes only its 11 Scope paths.
   - Sandboxed baseline and acceptance runs had 10 existing loopback-binding errors; acceptance rerun with loopback permission passed all 4337 tests and critical coverage; service coverage is 100%.
-- Follow-ups: None
+  - Owner-approved exception (2026-11-15 reassessment): unrelated process/documentation changes in 9f2e5c83346ab7affd517648a62fa3e99a6629e0 and preserved untracked .vscode/settings.json do not themselves block Phase 47a approval; no functional requirements waived and unrelated work untouched.
+- Follow-ups:
+  - Independent reassessment PASS (2026-11-15), docs/reviews/phase-47a-categorize-and-pair.md: sole prior finding was mixed scope; historical evidence preserved. Prior environment/dependency identity could not be established, so gates ran afresh: sandbox 4327 passed/10 localhost-bind errors; permitted check 4337 passed, All checks passed.; service 100%; given 7 passed; three scratch mutation detections.
+  - Phase 47b's predecessor approval requirement is satisfied once this reassessment is committed; no Phase 47b implementation, commit, or push performed. Historical Tests and Changed files fields above describe the coder's original delivery.
