@@ -2,7 +2,7 @@
 
 - [architecture.md](architecture.md): goals, stack, layering, agent interface, privacy boundary
 - [codebase-audit.md](codebase-audit.md): maintainability audit of the tree as of 2026-11-15
-- [audit-remediation-design.md](audit-remediation-design.md): accepted audit findings mapped to Phase 47a–47i, contracts, acceptance scenarios, and deferred-work triggers
+- [audit-remediation-design.md](audit-remediation-design.md): accepted audit findings and prioritized test tooling mapped to Phase 47a–47j, contracts, acceptance scenarios, and deferred-work triggers
 - [audit.md](audit.md): earlier audit, 2026-10-25, after Phase 37
 - [roadmap.md](roadmap.md): all phases, their status, and the Backlog
 - [statement-formats.md](statement-formats.md): layout of each bank's PDF statement (synthetic examples)

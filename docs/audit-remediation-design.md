@@ -30,7 +30,7 @@ produce a design; split the work into phases rather than do it all at once.
 
 **Architect decisions:** preserve external behavior except the named pairing
 repair, unknown-kind refusal, and separately scheduled lock-wait change. Keep
-existing data and schemas. Use existing dependencies. Retain explicit proposal
+existing data and schemas. Use existing runtime dependencies; 47b permits pytest-xdist for development. Retain explicit proposal
 branches; do not introduce a plugin registry or generic ORM mapper. Keep WAL
 conditional because backup/restore and cross-process access need their own design.
 
@@ -39,20 +39,21 @@ conditional because backup/restore and cross-process access need their own desig
 | Part | Outcome | Depends on | Primary test sections |
 |---|---|---|---|
 | 47a | Categorize and pair through one application operation | 46 | web, cli, core |
-| 47b | Refuse unsupported proposal kinds before mutation | 47a | core, mcp, web, cli |
-| 47c | Share proposal reason validation and repository UTC time | 47b | core, mcp |
-| 47d | Share statement line flattening | 47c | parsers |
-| 47e | Use analysis account ownership in MCP | 47d | core, mcp |
-| 47f | Share reporting period selection | 47e | core, cli, web, mcp |
-| 47g | Split MCP tools behind their existing import path | 47f | mcp |
-| 47h | Document test organization and tighten stale guards | 47g | core, scripts |
-| 47i | Configure a bounded database lock wait | 47h | core, web, sync |
+| 47b | Parallel test runner, timings and measured worker recommendation | 47a | scripts |
+| 47c | Refuse unsupported proposal kinds before mutation | 47b | core, mcp, web, cli |
+| 47d | Share proposal reason validation and repository UTC time | 47c | core, mcp |
+| 47e | Share statement line flattening | 47d | parsers |
+| 47f | Use analysis account ownership in MCP | 47e | core, mcp |
+| 47g | Share reporting period selection | 47f | core, cli, web, mcp |
+| 47h | Split MCP tools behind their existing import path | 47g | mcp |
+| 47i | Document test organization and tighten stale guards | 47h | core, scripts |
+| 47j | Configure a bounded database lock wait | 47i | core, web, sync |
 
-This is a serial release order to keep one baseline at a time. Parts 47c–47f are
+This is a serial release order to keep one baseline at a time. Parts 47d–47g are
 largely independent design concerns. Each part must stay within about ten
 requirements, three to five public units, and thirty given test functions; split
 again before writing tests if the actual contract surface exceeds those bounds.
-47g may move many existing functions without adding public units. No part here
+47h may move many existing functions without adding public units. No part here
 requires a migration. Never add a migration merely to move Python code.
 
 ## 47a: categorize and pair as one operation
@@ -96,7 +97,15 @@ no pair; accepting a rule/alias proposal performs the intended recategorization.
 routes, their behavior tests; no pairing algorithm changes and no session-helper
 rename. `web/access.py` need not change just to rename `_reading`.
 
-## 47b: explicit proposal-kind refusal
+## 47b: faster test execution
+
+Owner-prioritized tooling work (2026-11-15): opt-in local pytest-xdist workers,
+timing reports, serial/2/4-worker count and coverage parity, and measured guidance.
+Executable [spec](phases/phase-47b-faster-tests.md) and
+[guide](verification/phase-47b-faster-tests.md) govern this part. No fixture caching
+or evidence-cache automation; migration profiling informs a later decision.
+
+## 47c: explicit proposal-kind refusal
 
 Both `accept_proposal` and `proposal_out_of_date` must reject a kind outside
 `finances.domain.proposals.KINDS` with `ValueError("unsupported proposal kind")`.
@@ -126,7 +135,7 @@ handler is still refused; normal category and transfer proposals still work.
 adapters only if they need to translate this ValueError. No dispatch framework,
 new kind, migration, or MCP write permission.
 
-## 47c: reason and timestamp helpers
+## 47d: reason and timestamp helpers
 
 Add pure `clean_reason(reason: str) -> str` in `domain/proposals.py`. Collapse
 whitespace using the existing domain helper, then require one through
@@ -151,7 +160,7 @@ remain identical. Retain distinct event times where existing calls read twice.
 **Boundaries:** the two helpers, their callers, and tests patching moved clocks.
 No generic repository superclass or mass rewrite of timestamps outside this set.
 
-## 47d: parser line flattening
+## 47e: parser line flattening
 
 Add `flatten(pages: list[str]) -> list[str]` in
 `ingest/parsers/helpers.py`. Return each `splitlines()` line, stripped, in page
@@ -170,7 +179,7 @@ is inspected or used to produce fixtures.
 helpers may be extracted only when the affected tests actually duplicate the
 same operation. Do not introduce parser inheritance or a section-walker framework.
 
-## 47e: MCP account ownership from analysis
+## 47f: MCP account ownership from analysis
 
 Make `mcp_server.tools.list_accounts` load through `analysis.listings.account_listing`.
 Preserve every JSON key, ordering rule, inactive-account option, and value:
@@ -191,7 +200,7 @@ schema before/after. MCP still runs under its existing read-only session.
 **Boundaries:** analysis listing data, the one MCP tool, focused tests. Transfer
 ordering and spending-summary serialization are separate contracts, unchanged.
 
-## 47f: shared reporting period selection
+## 47g: shared reporting period selection
 
 Put the common month-versus-range rules in `domain/periods.py`, with explicit
 `today: date` input. The domain must not read a clock or know CLI option labels,
@@ -225,7 +234,7 @@ ToolError separately. Report and export select exactly the same dates and rows.
 MCP period callers, related tests. If the captured caller matrix exceeds phase
 limits, split the domain/CLI/web and MCP integrations before writing given tests.
 
-## 47g: split MCP tools by responsibility
+## 47h: split MCP tools by responsibility
 
 Keep `finances.mcp_server.tools` as the supported facade. Move implementations
 into cohesive modules under `mcp_server`: account/balance tools, reporting tools,
@@ -254,7 +263,7 @@ tests remain behavioral evidence after patch-path edits.
 spending field conversion; serialization is an adapter responsibility. No ORM or
 repository split in the same phase.
 
-## 47h: test and documentation maintenance
+## 47i: test and documentation maintenance
 
 Update `docs/testing.md`: new tests are named for the behavior and their layer;
 the ten-second unit-suite statement is a historical aspiration, not a measured
@@ -276,7 +285,7 @@ also have direct tests.
 **Boundaries:** testing docs, the stale view guard, exact test moves if justified,
 section patterns. No source renaming campaign or release-version bump.
 
-## 47i: a bounded SQLite lock wait
+## 47j: a bounded SQLite lock wait
 
 Add settings `db_busy_timeout_ms: int = 30000`, constrained to 0 through 120000,
 from `get_settings()` (`FIN_DB_BUSY_TIMEOUT_MS`). Configure every SQLite connection
@@ -317,7 +326,7 @@ connection configuration remains inside the existing SQLite engine boundary.
 | CLI tag/import/sync/doctor tables | Move each to views when its output is next changed; pin complete displayed rows. |
 | English detail in domain findings/health | Keep stable for CLI/web/MCP. A structured-finding redesign needs its own consumer/versioning plan. |
 | Transfer row order differs in MCP | Preserve the existing MCP order. Aligning it is an explicit API behavior change, not necessary for code splitting. |
-| MCP spending field names/summary conversion | Keep stable names and values during 47g; do not change financial totals in a file-move phase. |
+| MCP spending field names/summary conversion | Keep stable names and values during 47h; do not change financial totals in a file-move phase. |
 | Per-call engines and pragma-based read-only protection | Retain current design. Pooling or URI read-only mode needs separate lifecycle/permissions tests. |
 | Missing-password access and forwarded HTTPS header | Record as operational boundaries; no authentication-policy redesign in this remediation. Follow `remote-access.md` before exposing the service. |
 | Parser section/date errors that reconcile; BoA ambiguity | Preserve fail-safe detection and synthetic layout regressions. Add a layout-specific fix when an actual supported layout requires it. |
