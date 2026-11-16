@@ -1,7 +1,7 @@
 """PreToolUse tripwire: the architect writing the phase's source in a scratch clone.
 
 A scratch copy of the phase's source is a reference build, whatever it is called (see the
-phase-architect skill, "Checking a spec before publishing"). Writes into `src/finances/`
+phase-architect skill, checklist step 12). Writes into `src/finances/`
 under the scratchpad ask the owner first. Clones named `fail*` (the fail check, which
 needs stub files) are allowed.
 """

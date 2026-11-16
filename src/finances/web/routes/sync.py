@@ -11,8 +11,7 @@ from finances.analysis.simplefin import (
     unmapped_accounts,
     waiting_counts,
 )
-from finances.categorize.service import categorize
-from finances.categorize.transfers import pair_transfers
+from finances.categorize.service import categorize_and_pair
 from finances.db.engine import session_scope
 from finances.db.repositories import (
     account_names,
@@ -321,8 +320,7 @@ def run(request: Request, csrf: _Field = "") -> Response:
         )
         if any(item.report is not None for item in runs):
             with session_scope(engine) as session:
-                categorize(session)
-                pair_transfers(session)
+                categorize_and_pair(session)
         with session_scope(engine) as session:
             rows = run_rows(runs, account_names(session))
             waiting = waiting_counts(session, runs)

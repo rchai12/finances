@@ -4,6 +4,7 @@ from dataclasses import dataclass
 
 from sqlalchemy.orm import Session
 
+from finances.categorize.transfers import pair_transfers
 from finances.db.repositories import (
     accept_proposal,
     accepting_order,
@@ -64,6 +65,13 @@ def categorize(session: Session) -> CategorizeResult:
         if after is None:
             uncategorized += 1
     return CategorizeResult(total, changed, uncategorized)
+
+
+def categorize_and_pair(session: Session) -> CategorizeResult:
+    """Run categorization and transfer pairing. The caller owns the transaction."""
+    result = categorize(session)
+    pair_transfers(session)
+    return result
 
 
 def _category(assignment: CategoryAssignment | None) -> int | None:
@@ -143,5 +151,5 @@ def accept_proposals(session: Session, proposal_ids: list[int]) -> Accepted:
         for proposal_id in accepting_order(session, proposal_ids)
     ]
     if any(item.kind in (RULE, ALIAS, RULE_EDIT, RULE_DELETE) for item in found):
-        return Accepted(found, categorize(session))
+        return Accepted(found, categorize_and_pair(session))
     return Accepted(found, None)

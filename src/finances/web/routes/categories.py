@@ -12,7 +12,7 @@ from finances.analysis.categories import (
     uncategorized_items,
 )
 from finances.analysis.review import open_suggestions
-from finances.categorize.service import categorize, preview_rule
+from finances.categorize.service import categorize_and_pair, preview_rule
 from finances.db.repositories import (
     add_alias,
     create_category,
@@ -200,7 +200,7 @@ def add_rule(
         number = _priority(priority)
         with _reading() as session:
             create_rule(session, pattern, category, match, number)
-            categorize(session)
+            categorize_and_pair(session)
     except _REFUSALS as error:
         form = _rule_form(pattern, match, priority, category)
         return _categories_page(request, rule_form=form, error=str(error), status_code=400)
@@ -248,7 +248,7 @@ def merge_merchants(
     try:
         with _reading() as session:
             add_alias(session, source, target)
-            categorize(session)
+            categorize_and_pair(session)
     except _REFUSALS as error:
         form = {"source": source, "target": target}
         return _categories_page(request, alias_form=form, error=str(error), status_code=400)
@@ -263,7 +263,7 @@ def unmerge_merchants(request: Request, csrf: _Field = "", source: _Field = "") 
     try:
         with _reading() as session:
             delete_alias(session, source)
-            categorize(session)
+            categorize_and_pair(session)
     except _REFUSALS as error:
         return _categories_page(request, error=str(error), status_code=400)
     return _done("/categories?notice=merchant-unmerged")
@@ -298,7 +298,7 @@ def remove_rule(request: Request, csrf: _Field = "", rule: _Field = "") -> Respo
             raise ValueError("rule not found")
         with _reading() as session:
             delete_rule(session, rule_id)
-            categorize(session)
+            categorize_and_pair(session)
     except _REFUSALS as error:
         return _categories_page(request, error=str(error), status_code=400)
     return _done("/categories?notice=rule-deleted")
@@ -375,7 +375,7 @@ def change_rule(
                 priority=level,
                 category=category,
             )
-            categorize(session)
+            categorize_and_pair(session)
     except _REFUSALS as error:
         return _rule_edit_page(request, number, rule_form=form, error=str(error), status_code=400)
     return _done("/categories?notice=rule-changed")

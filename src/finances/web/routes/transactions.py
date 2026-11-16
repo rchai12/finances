@@ -12,8 +12,7 @@ from finances.analysis.people import JOINT_FILTER, UNASSIGNED_FILTER
 from finances.analysis.refunds import refund_facts
 from finances.analysis.search import TransactionQuery, search_transactions
 from finances.analysis.transfers import pair_of
-from finances.categorize.service import categorize
-from finances.categorize.transfers import pair_transfers
+from finances.categorize.service import categorize_and_pair
 from finances.db.repositories import (
     account_names,
     add_tags,
@@ -235,7 +234,7 @@ async def bulk_category(request: Request) -> Response:
                 set_categories_by_hand(session, numbers, category)
                 return "bulk-set"
             clear_categories_by_hand(session, numbers)
-            categorize(session)
+            categorize_and_pair(session)
             return "bulk-cleared"
 
     try:
@@ -284,7 +283,7 @@ def clear_category(request: Request, transaction_id: str, csrf: _Field = "") -> 
         return _missing_transaction(request)
     with _reading() as session:
         clear_category_by_hand(session, found)
-        categorize(session)
+        categorize_and_pair(session)
     return _done(f"/transactions/{found}?notice=category-cleared")
 
 
@@ -361,8 +360,7 @@ def remove_split(request: Request, transaction_id: str, csrf: _Field = "") -> Re
     def apply(found: int) -> str:
         with _reading() as session:
             clear_split(session, found)
-            categorize(session)
-            pair_transfers(session)
+            categorize_and_pair(session)
         return "split-removed"
 
     return _write_on_transaction(request, transaction_id, csrf, apply)

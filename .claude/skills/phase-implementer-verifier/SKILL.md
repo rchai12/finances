@@ -1,11 +1,12 @@
 ---
 name: phase-implementer-verifier
 description: >-
-  Implements one finances phase from its spec, then verifies that work against
-  the matching verification guide. Use when the user asks to implement, build,
-  check, or verify a phase, names a file under docs/phases or docs/verification,
-  or asks the agent to act as the implementer, the verifier, or both. Implement
-  only a phase the user names. If that spec is unclear, ask and do not write code.
+  One agent implements a named finances phase and then verifies it against its
+  guide. Use only when the owner explicitly invokes this skill or asks one agent
+  to act as both implementer and verifier. Never use it for the standard coder
+  or verifier prompt: those are separate agents, and the coder must not read the
+  verification guide.
+disable-model-invocation: true
 ---
 
 # Phase implementer and verifier

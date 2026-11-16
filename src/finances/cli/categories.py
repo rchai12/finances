@@ -10,8 +10,7 @@ from finances.analysis.categories import (
     rule_listing,
     uncategorized_items,
 )
-from finances.categorize.service import CategorizeResult, categorize, preview_rule
-from finances.categorize.transfers import pair_transfers
+from finances.categorize.service import CategorizeResult, categorize_and_pair, preview_rule
 from finances.cli.common import fail, print_rows, require_current_schema
 from finances.cli.listing import transactions_app
 from finances.db.engine import get_engine, session_scope
@@ -48,8 +47,7 @@ rules_app = typer.Typer(help="Rules that put transactions in categories.", no_ar
 def categorize_all() -> CategorizeResult:
     """Run the rules over every transaction, then pair transfers, in a session of its own."""
     with session_scope(get_engine()) as session:
-        result = categorize(session)
-        pair_transfers(session)
+        result = categorize_and_pair(session)
     return result
 
 

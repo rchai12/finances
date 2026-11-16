@@ -932,3 +932,12 @@ Template:
 - Baseline checks: `scripts/check.py` passed 4,310 tests and critical coverage after granting loopback access; `categorize/service.py` reports 100% coverage. The first sandboxed run had 10 loopback binding errors.
 - Deviations: None from the 47a umbrella design.
 - Follow-ups: Commit the spec and guide and establish a clean baseline before giving the phase to a coder.
+
+## Phase 47a: categorize and pair (2026-11-15)
+- Tests: 4310 -> 4337 (given 7)
+- New public names: `finances.categorize.service`: `categorize_and_pair`
+- Changed files: 23
+- Deviations:
+  - Preserved 13 pre-existing working-tree entries instead of requiring a clean committed baseline; Phase 47a changes only its 11 Scope paths.
+  - Sandboxed baseline and acceptance runs had 10 existing loopback-binding errors; acceptance rerun with loopback permission passed all 4337 tests and critical coverage; service coverage is 100%.
+- Follow-ups: None

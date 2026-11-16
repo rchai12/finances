@@ -6,8 +6,7 @@ from starlette.concurrency import run_in_threadpool
 from starlette.datastructures import UploadFile
 
 from finances.analysis.statements import statement_gap_lines
-from finances.categorize.service import categorize
-from finances.categorize.transfers import pair_transfers
+from finances.categorize.service import categorize_and_pair
 from finances.db.repositories import account_names, list_accounts, list_statements
 from finances.ingest.service import ImportStatus, StatementImportResult, import_statement
 from finances.views.statements import gap_rows, import_rows, statement_rows
@@ -104,8 +103,7 @@ async def upload_statement(request: Request) -> Response:
 
         def after() -> None:
             with _reading() as session:
-                categorize(session)
-                pair_transfers(session)
+                categorize_and_pair(session)
 
         await run_in_threadpool(after)
     return _statements_page(
