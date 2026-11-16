@@ -342,7 +342,7 @@ needed. Use isolated baselines before handoff, as the current skill requires.
 
 ## Phase 47d: shared proposal reasons and repository UTC time (2026-11-16)
 
-Specified; result pending. Baseline 69294ab, N=4426. Two public helpers, nine
+PASS: 4514 tests, no findings or approved deviations; implementation 949e31d and review cf3c2c0 committed. Baseline 69294ab, N=4426. Two public helpers, nine
 reason sites and fifteen clock sites in nine repository modules (eight clock
 definitions plus transfer borrowing). Nine given cases collected in a fresh
 fail47d clone: eight intended missing-helper failures with names-only stubs and
@@ -353,3 +353,16 @@ switches from KEPT to GONE after setup. Strict coder event sequences guard again
 merging audit/decision clock reads. No implementation, dependency, probe, search
 gate or tooling change. No unresolved owner choice. Planning commit precedes
 isolated coding; unrelated editor settings remain untouched.
+
+
+## Phase 47e: shared parser line flattening (2026-11-16)
+
+Specified; result pending. Baseline cf3c2c0, N=4514. One critical helper and
+six parser call sites, explicitly including Marcus CD. Sixteen given cases
+collected in a fresh fail47e clone: nine missing-helper attribute failures and
+seven missing-delegation sentinel failures. Eight literal line expectations
+checked against the predecessor expression; all seven synthetic parser bases
+parse and reconcile. Given lint/format pass, generated embedded bytes match.
+No implementation, fixtures, dependency, probe, search gate or tooling changes.
+No unresolved owner decision. Commit planning docs before isolated coding; retain
+unrelated editor settings. Existing helper contracts and full branch gate remain.

@@ -87,7 +87,7 @@ cli, mcp_server, web  ──►  ingest, sync, categorize, analysis  ──►  
 - `cli`, `mcp_server`, and `web` are three thin front ends over the same functions. None of them imports another, except that `fin web serve` and `fin mcp serve` import the app or server they start.
 - **`views` only format** (Phases 36b and 36c): they take what `analysis` returns and never open the database, the Keychain, or the network; a test on the source enforces it. `analysis` may call `categorize`'s read functions (such as `transfer_suggestions`), since both sit in one tier.
 - **Today's date** for anything a person reads (the current month, "today", days since) is the machine's local date, read through one function (Phase 31). Stored timestamps (feed pulls, imports) are UTC.
-- **Planned in Phase 47d:** proposal reasons share `domain.proposals.clean_reason`; the eight scoped repository clocks and transfer proposal clock use `db.time.utc_now` through its module. Each event retains its own read and microsecond precision. This does not replace local dates, ORM defaults, or web authentication clocks.
+- **Repository helpers (Phase 47d):** proposal reasons share `domain.proposals.clean_reason`; the eight scoped repository clocks and transfer proposal clock use `db.time.utc_now` through its module. Each event retains its own read and microsecond precision. This does not replace local dates, ORM defaults, or web authentication clocks.
 
 ## Data flow
 
