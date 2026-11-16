@@ -925,3 +925,10 @@ Template:
 - Validation: Inspected existing integration contracts and checked document links and whitespace; no implementation tests or application gates run.
 - Deviations: This is an umbrella design, not an executable phase spec; given tests and exact scope/counts will be prepared per part against its reviewed predecessor.
 - Follow-ups: Issue the executable 47a spec and guide first; preserve unrelated working-tree changes and establish the intended committed baseline before implementation.
+
+## Design: Phase 47a specification (2026-11-15)
+- Built: Implementation spec and verifier guide for shared categorization and transfer pairing; no production implementation.
+- Given tests: Seven web action cases collected; all seven fail on the Phase 46 baseline because no pair is stored and pass with a disposable pairing spike.
+- Baseline checks: `scripts/check.py` passed 4,310 tests and critical coverage after granting loopback access; `categorize/service.py` reports 100% coverage. The first sandboxed run had 10 loopback binding errors.
+- Deviations: None from the 47a umbrella design.
+- Follow-ups: Commit the spec and guide and establish a clean baseline before giving the phase to a coder.

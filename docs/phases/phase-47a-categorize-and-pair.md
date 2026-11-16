@@ -1,82 +1,192 @@
 # Phase 47a: categorize and pair
 
-**Draft — not ready for implementation.** Given tests, their failure checks,
-the earlier-test diff, exact scope, coverage baseline, and spot checks remain to
-be prepared. Do not use this document as a coder handoff yet.
-
 ## Goal
 
-After an action runs categorization, pair eligible transfers before the action
-finishes. The owner accepted the November audit findings and chose staged
-remediation (2026-11-15). The phase follows
-[`audit-remediation-design.md`](../audit-remediation-design.md#47a-categorize-and-pair-as-one-operation).
+A person who changes a rule, merchant alias, or manual category on the web gets eligible transfers paired as part of the same operation. The owner accepted the November audit findings and chose staged remediation (2026-11-15). Phase 38 observed that these actions do not themselves make a transaction eligible; a pair can nevertheless be waiting before the action. This phase runs existing pairing for that waiting pair.
 
-Phase 38 described rule and category changes as unable to create a pairing
-candidate. This phase does not rely on such a change creating a candidate: an
-eligible pair can already be waiting when a person performs one of these actions.
-The desired result is to run the existing pairing operation at that point.
+## Read first
+
+- `docs/phase-conventions.md`, `docs/testing.md`, and `docs/audit-remediation-design.md` (47a).
+- `finances.categorize.service`, `finances.categorize.transfers`, `finances.cli.categories`, and web routes `categories`, `transactions`, `statements`, `sync`, and `review`.
+- `tests/integration/test_pairing_gaps.py` and `tests/support.py`.
 
 ## Starting state
 
-Phase 46 passed with 4,310 tests; the latest migration is
-`0026_proposal_findings.py`. Sections: `web, cli, core`. Confirm the clean
-committed baseline and test count when issuing the final spec. Existing
-uncommitted project work must be preserved.
+N is 4310 after Phase 46. Sections: `web,cli,core`. Newest migration: `0026_proposal_findings.py`. The prior baseline must be committed and `git status --short` empty before implementation. Run the starting check in `docs/phase-conventions.md`.
 
-## Proposed contract
+The architect's baseline check passed all 4,310 tests on 2026-11-15. The existing `categorize/service.py` coverage is 100% (83 statements, 22 branches). The first sandboxed run could not bind the loopback transport-test server; the required rerun passed with loopback permission.
 
-1. Add `categorize_and_pair(session: Session) -> CategorizeResult` to
-   `finances.categorize.service`. Call `categorize(session)` first and then
-   `pair_transfers(session)` once. Return the categorization result unchanged.
-   Neither open nor commit a session; propagate failures.
-2. Keep the CLI `categorize_all()` interface and output. Its own session calls
-   the shared operation. Existing CLI import, sync, alias, and split callers
-   continue through that adapter.
-3. In web routes, use the shared operation after rule add, edit, and delete;
-   alias add and delete; bulk category clear; and single-transaction category
-   clear. Preserve existing input validation, notices, redirects, and refusals.
-4. Replace adjacent categorization and pairing in web statement import, sync,
-   and split removal with one shared call. Do not add a second pairing call.
-   Share removal and explicit transfer finding remain pair-only operations.
-5. In `accept_proposals`, use the shared operation only where accepted rule or
-   alias changes already trigger categorization. Preserve the `Accepted` result
-   and its conditional `categorized` field. Creating an agent proposal remains
-   inert; acceptance stays a person's action.
-6. Web mutation, categorization, pairing, and audit writes use the existing
-   request session and commit together. A pairing exception rolls all back.
-   Do not change CLI import or sync transaction boundaries.
+## Scope
 
-## Expected implementation scope
+| Path | Change |
+|---|---|
+| `src/finances/categorize/service.py` | Shared operation and acceptance integration (R1, R4) |
+| `src/finances/cli/categories.py` | CLI adapter (R2) |
+| `src/finances/web/routes/categories.py` | Rules and aliases (R3) |
+| `src/finances/web/routes/transactions.py` | Category clearing and split clearing (R3, R5) |
+| `src/finances/web/routes/statements.py`, `src/finances/web/routes/sync.py` | Existing paired operations (R5) |
+| `tests/integration/test_web_pair_after_rules.py` | Given below |
+| `tests/unit/test_categorize_and_pair.py` | Coder tests below; core section |
+| `tests/integration/test_web_pair_after_rules_more.py` | Coder tests below; web section |
+| `tests/integration/test_pair_after_acceptance.py` | Coder tests below; core section |
+| `docs/progress.md` | Append the phase entry |
 
-- `src/finances/categorize/service.py`, `src/finances/cli/categories.py`.
-- `src/finances/web/routes/categories.py`, `transactions.py`, `statements.py`,
-  and `sync.py`.
-- New focused tests, any specifically identified earlier test patch changes,
-  and the phase entry in `docs/progress.md`.
+No other paths may change. New test names match existing section patterns. No migration or new dependency.
 
-This list is provisional until existing tests and patch points have been checked.
-No migration, dependency, pairing-algorithm change, session-helper rename, or
-other Phase 47 work belongs here.
+## Requirements
 
-## Deciding cases to prepare
+- **R1.** In `finances.categorize.service`, add `categorize_and_pair(session: Session) -> CategorizeResult`: run `categorize(session)`, then `pair_transfers(session)` once, return the same result object. Pass the same session. Do not open, commit, or roll back a session; propagate errors. Keep `categorize` as a standalone operation.
+- **R2.** `finances.cli.categories.categorize_all()` keeps its signature, session boundary, output, and return value, and uses the shared operation.
+- **R3.** Rule add/edit/delete, alias add/delete, bulk "Leave to the rules", and single category clear run the shared operation in the existing session after the write. Their existing validation, responses, notices, and redirects stay unchanged.
+- **R4.** `accept_proposals` uses the shared operation when an accepted kind in its existing set (`RULE`, `ALIAS`, `RULE_EDIT`, `RULE_DELETE`) triggers categorization. Preserve acceptance order and the `Accepted` result; other kinds do not trigger it. Proposal submission alone does not categorize or pair.
+- **R5.** Web statement import, sync, and split clear each use the shared operation in place of adjacent categorize/pair calls; no second pairing call. Keep pair-only operations, including unshare and explicit transfer finding, unchanged.
+- **R6.** The initiating web write, categorization, pairing, and audit writes share the existing session. An exception from pairing rolls them all back. Do not change CLI import/sync session boundaries.
+- **R7.** No pairing rules, matching, amounts, schemas, or MCP write capabilities change. Preserve manual/split/shared exclusions, rejected and confirmed pairs, privacy, and all previous tests.
 
-- A waiting, synthetic eligible pair is paired immediately after each of the
-  seven web actions in requirement 3. Check resulting stored pair and the
-  action's existing response; repeat without creating a duplicate.
-- A forced pairing exception during a rule action rolls back its rule, category
-  changes, pair, and audit records. Check persisted state in a fresh session.
-- Direct operation returns the original result, calls in order with the same
-  session, leaves commit to the caller, and propagates exceptions.
-- CLI text remains unchanged; import, sync, and split-removal routes pair once.
-- Accepted rule/alias changes recategorize and pair; proposal submission alone
-  does neither. Acceptance of a kind that does not currently recategorize stays
-  unchanged.
-- Existing manual decisions, splits, shares, rejected transfers, and confirmed
-  pairs retain their behavior; reports exclude newly paired transfers.
+## Given test
 
-## Acceptance to complete before handoff
+Seven parameterized cases. Copy this file exactly; do not change it.
 
-Prepare and embed given tests after checking each against the predecessor in an
-isolated clone. Pin the exact count and failure reasons, any earlier-test diff,
-the per-module coverage command, scope, searches, and the guide's spot checks.
-Run the standard gates in `docs/phase-conventions.md` when the phase is built.
+`tests/integration/test_web_pair_after_rules.py`
+
+```python
+from datetime import date
+
+import pytest
+from fastapi.testclient import TestClient
+
+from finances.config import Settings
+from finances.db.engine import get_engine, session_scope
+from finances.db.migrate import upgrade_to_head
+from finances.db.orm import TransactionRow
+from finances.db.repositories import (
+    add_alias,
+    create_account,
+    create_rule,
+    find_transfer_pair,
+    list_transfer_pairs,
+    set_category_by_hand,
+)
+from finances.web.app import create_app
+from tests.support import WEB_PORT, post
+
+
+@pytest.mark.parametrize(
+    ("case", "path", "fields", "location"),
+    [
+        (
+            "add",
+            "/categories/rules/add",
+            {"pattern": "NEW", "match": "contains", "priority": "0", "category": "Groceries"},
+            "/categories?notice=rule-added",
+        ),
+        (
+            "edit",
+            "/categories/rules/1",
+            {"pattern": "NEW", "match": "contains", "priority": "0", "category": "Groceries"},
+            "/categories?notice=rule-changed",
+        ),
+        ("delete", "/categories/rules/delete", {"rule": "1"}, "/categories?notice=rule-deleted"),
+        (
+            "alias_add",
+            "/categories/aliases/add",
+            {"source": "FIRST", "target": "SECOND"},
+            "/categories?notice=merchant-merged",
+        ),
+        (
+            "alias_delete",
+            "/categories/aliases/delete",
+            {"source": "FIRST"},
+            "/categories?notice=merchant-unmerged",
+        ),
+        (
+            "bulk",
+            "/transactions/bulk",
+            {"id": "1", "action": "clear"},
+            "/transactions?notice=bulk-cleared",
+        ),
+        ("clear", "/transactions/1/category/clear", {}, "/transactions/1?notice=category-cleared"),
+    ],
+    ids=[
+        "rule-add",
+        "rule-edit",
+        "rule-delete",
+        "alias-add",
+        "alias-delete",
+        "bulk-clear",
+        "single-clear",
+    ],
+)
+def test_action_pairs_waiting_transfer(
+    tmp_settings: Settings, case: str, path: str, fields: dict[str, str], location: str
+) -> None:
+    upgrade_to_head()
+    engine = get_engine()
+    with session_scope(engine) as session:
+        for number, (name, cents) in enumerate(
+            (("Test Checking", -12345), ("Test Savings", 12345)), start=1
+        ):
+            account = create_account(session, name, "Test Bank", "checking")
+            session.add(
+                TransactionRow(
+                    account_id=account.id,
+                    posted_date=date(2026, 5, 10),
+                    amount_cents=cents,
+                    description="SYNTHETIC TRANSFER",
+                    source="statement",
+                    fingerprint=f"t{number:02d}".ljust(64, "0"),
+                )
+            )
+        session.flush()
+        if case in ("edit", "delete"):
+            create_rule(session, "OLD", "Groceries")
+        if case == "alias_delete":
+            add_alias(session, "FIRST", "SECOND")
+        if case in ("bulk", "clear"):
+            set_category_by_hand(session, 1, "Groceries")
+    client = TestClient(create_app(WEB_PORT), base_url=f"http://127.0.0.1:{WEB_PORT}")
+    client.get("/categories")
+    response = post(client, path, **fields)
+    assert (response.status_code, response.headers.get("location")) == (303, location)
+    with session_scope(engine) as session:
+        assert find_transfer_pair(session, 1) is not None
+        assert len(list_transfer_pairs(session)) == 1
+    engine.dispose()
+```
+
+## Tests to write
+
+Use synthetic data and assert persisted behavior. Put each test in the listed file.
+
+`tests/unit/test_categorize_and_pair.py`:
+- A controlled session and stubbed operations: order, same session, exactly one call each, and identity of the returned `CategorizeResult`.
+- A pairing exception propagates and no hidden commit or rollback is called.
+
+`tests/integration/test_web_pair_after_rules_more.py`:
+- Force pairing to raise after adding a rule; a fresh session sees no rule, changed categorization, transfer pair, or added audit row. Compare pre/post values, not merely the response.
+- Run category clear twice on a pairable transaction: one pair remains. A rejected pair, an existing confirmed pair, and a split/shared movement remain governed by the existing pairing rules.
+- A web import, a sync, and a split clear each invoke pairing once in their existing operation; use synthetic data and stubs, no network or real Keychain. The CLI `categorize_all` returns the categorization result with unchanged displayed text. Verify reports exclude an automatically paired transfer.
+
+`tests/integration/test_pair_after_acceptance.py`:
+- Accept a rule proposal and an alias proposal with a waiting pair; each returns its categorization result and stores the pair. Submitting either proposal alone leaves it unpaired.
+- Accept a proposal of a kind outside the four listed in R4 and show categorization and pairing are not invoked.
+
+Add sufficient behavior tests to meet coverage; do not alter given tests or earlier tests. If an earlier test needs a change, stop and report it rather than changing an unlisted path.
+
+## Acceptance
+
+Follow `docs/phase-conventions.md`. Run:
+
+| Command | Expected |
+|---|---|
+| `.venv/bin/python scripts/check.py --first web,cli,core` | `All checks passed.`; every section 0 failed; tests at least 4317 passed, no failures, skips, xfails or warnings summary |
+| `.venv/bin/python -m coverage report --include="*/finances/categorize/service.py" --fail-under=100` | Immediately after the check, exit 0, TOTAL 100% |
+| `.venv/bin/python -m pytest tests/integration/test_web_pair_after_rules.py --no-cov` | 7 passed |
+| `git grep -n -F 'categorize(session)' -- src/finances/web/routes/categories.py src/finances/web/routes/transactions.py src/finances/web/routes/statements.py src/finances/web/routes/sync.py` | no output |
+| `git status --short` | only Scope paths |
+
+The project's required `scripts/check.py` gate is included above. The coverage command checks the shared operation's module; the full check separately enforces every critical-module threshold.
+
+## Report
+
+Append the exact progress entry required by `docs/phase-conventions.md` and provide its required acceptance evidence and requirement-to-test mapping.
