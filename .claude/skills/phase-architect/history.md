@@ -357,7 +357,7 @@ isolated coding; unrelated editor settings remain untouched.
 
 ## Phase 47e: shared parser line flattening (2026-11-16)
 
-Specified; result pending. Baseline cf3c2c0, N=4514. One critical helper and
+PASS: 4564 tests, no findings or approved deviations; implementation 0ee3a38 and review f689774 committed. Baseline cf3c2c0, N=4514. One critical helper and
 six parser call sites, explicitly including Marcus CD. Sixteen given cases
 collected in a fresh fail47e clone: nine missing-helper attribute failures and
 seven missing-delegation sentinel failures. Eight literal line expectations
@@ -366,3 +366,17 @@ parse and reconcile. Given lint/format pass, generated embedded bytes match.
 No implementation, fixtures, dependency, probe, search gate or tooling changes.
 No unresolved owner decision. Commit planning docs before isolated coding; retain
 unrelated editor settings. Existing helper contracts and full branch gate remain.
+
+
+## Phase 47f: MCP account ownership from analysis (2026-11-16)
+
+Specified; result pending. Baseline f689774, N=4564. Two production files;
+AccountListing.joint defaults False and preserves display owner. Analysis loads
+accounts/people/raw owners once, avoiding critical Attribution changes. Seven
+given cases collect in isolated fail47f: five missing-field failures and two
+missing-delegation JSON failures. Lint/format pass; generated embedded bytes
+match. Exact earlier-test diff removes three obsolete MCP repository imports.
+Collision coverage uses a synthetic loader because Joint is a reserved person
+name; no validation relaxation. Public MCP/CLI/web compatibility is coder-owned.
+No implementation, dependencies, probe, search or tooling changes. No owner
+choice unresolved. Commit planning docs before isolated coding.
