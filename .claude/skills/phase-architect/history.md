@@ -318,9 +318,23 @@ Rules for writing the guide:
 
 ## Phase 47b: faster test execution (2026-11-15)
 
-Specified; result pending. One scripts phase adds opt-in local workers and timing,
+PASS: 4371 tests, no approved deviations (review committed 3edb182). Four workers recommended from the measured matrix; repeated migration setup remains a separately scoped experiment. One scripts phase adds opt-in local workers and timing,
 with serial/2/4 identity and coverage parity before recommending workers. Seven
 given cases collected in isolated HEAD clone: six intended failures, one serial
 characterization pass; lint/format pass. No xdist install or feature implementation
 was performed. 47a scope-only review failure remains a prerequisite. Remaining
 audit parts move from 47b–47i to 47c–47j. Fixture optimization waits for timings.
+
+
+## Phase 47c: explicit proposal-kind refusal (2026-11-16)
+
+Specified; result pending. Predecessor 47b approved at 4371 tests. Four given
+refusal cases collected in an isolated 3edb182 clone; all four fail for missing
+ValueError, lint and formatting pass. Complete twelve-kind dispatch matrices and
+persisted safety/compatibility cases remain coder-owned. No implementation,
+dependency change, probe or new search gate. Settled design requires no owner
+choice. Finalized planning baseline must be committed before isolated coding.
+
+47a lesson: distinguish unrelated workspace scope from functional defects. The
+owner-approved reassessment is committed at c8ec721; no functional repair was
+needed. Use isolated baselines before handoff, as the current skill requires.
