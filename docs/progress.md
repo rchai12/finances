@@ -944,3 +944,15 @@ Template:
 - Follow-ups:
   - Independent reassessment PASS (2026-11-15), docs/reviews/phase-47a-categorize-and-pair.md: sole prior finding was mixed scope; historical evidence preserved. Prior environment/dependency identity could not be established, so gates ran afresh: sandbox 4327 passed/10 localhost-bind errors; permitted check 4337 passed, All checks passed.; service 100%; given 7 passed; three scratch mutation detections.
   - Phase 47b's predecessor approval requirement is satisfied once this reassessment is committed; no Phase 47b implementation, commit, or push performed. Historical Tests and Changed files fields above describe the coder's original delivery.
+
+## Phase 47b: faster test execution (2026-11-15)
+- Tests: 4337 -> 4371 (given 7)
+- New public names: None
+- Changed files: 9
+- Deviations: None
+- Follow-ups:
+  - Built opt-in local workers and duration reporting with serial defaults, fail-closed malformed coverage handling, 27 coder cases, and development/concurrency guidance; existing tests and fixtures unchanged.
+  - Approved committed predecessor/baseline: c8ec721fc3c62ab5750e091851cda3a528c87e01; implemented and accepted in isolated /tmp/finances-47b-c8ec721, preserving original .vscode/settings.json; no commit or push.
+  - Sequential acceptance at 1/2/4 workers passed 4371 tests each, scripts first 100, every section zero failures/skips, no xfails/warnings; command wall 284.31/162.60/100.21 seconds and pytest full step 275.51/154.63/91.78 seconds; given-only 7 passed; all acceptance subprocesses and coverage exports exit 0.
+  - Complete collection and full-run JUnit identities/multiplicities match across all runs; all 199 measured files and missing line/branch sets match; overall coverage 99.9848%, every critical line/branch covered. Baseline sandbox had 10 localhost-bind errors; permitted rerun passed all 4337; package-index DNS required permitted installation of the authorized dev dependency.
+  - Benchmark evidence, versions, digest, timing observations and requirement mapping: docs/testing-performance.md; recommend --workers 4 (2.84x serial speed on this machine), default remains 1. Blockers: None. Independent verification remains required; repeated migration setup merits later separately scoped fixture profiling/design.

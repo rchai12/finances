@@ -56,6 +56,8 @@ def coverage_gaps(report: dict, modules: list[str]) -> list[str]:
             continue
         lines = found["summary"]["missing_lines"]
         branches = found["summary"]["missing_branches"]
+        if any(type(count) is not int or count < 0 for count in (lines, branches)):
+            raise ValueError("invalid coverage gap counts")
         if lines or branches:
             gaps.append(f"{module}: {lines} lines and {branches} branches not covered")
     return gaps
@@ -119,12 +121,43 @@ def section_files(names: list[str]) -> list[str]:
     return sorted(found)
 
 
+def _pytest_options(workers: int, durations: int) -> list[str]:
+    flags = ["-n", str(workers), "--dist", "load"] if workers > 1 else []
+    if durations:
+        flags.append(f"--durations={durations}")
+    return flags
+
+
+def _worker_count(value: str) -> int:
+    message = "--workers must be a positive integer"
+    try:
+        count = int(value)
+    except ValueError:
+        raise argparse.ArgumentTypeError(message) from None
+    if count < 1:
+        raise argparse.ArgumentTypeError(message)
+    return count
+
+
+def _duration_count(value: str) -> int:
+    message = "--durations must be a nonnegative integer"
+    try:
+        count = int(value)
+    except ValueError:
+        raise argparse.ArgumentTypeError(message) from None
+    if count < 0:
+        raise argparse.ArgumentTypeError(message)
+    return count
+
+
 def steps(
     python: str,
     coverage_json: Path,
     *,
     real_samples: bool,
     first: list[str] | None = None,
+    workers: int = 1,
+    durations: int = 0,
 ) -> list[Step]:
     found = [
         Step("lint", [python, "-m", "ruff", "check", "."]),
@@ -142,6 +175,7 @@ def steps(
                     f"--junitxml={coverage_json.with_name('first.xml')}",
                     "--continue-on-collection-errors",
                     *section_files(first),
+                    *_pytest_options(workers, durations),
                 ],
             )
         )
@@ -156,6 +190,7 @@ def steps(
                     f"--cov-report=json:{coverage_json}",
                     f"--junitxml={coverage_json.with_name('junit.xml')}",
                     "--continue-on-collection-errors",
+                    *_pytest_options(workers, durations),
                 ],
             ),
             Step(COVERAGE_STEP, None),
@@ -183,9 +218,13 @@ def run_command(command: list[str], cwd: Path) -> int:
 
 
 def _critical_coverage(coverage_json: Path) -> bool:
-    report = json.loads(coverage_json.read_text(encoding="utf-8"))
-    modules = read_critical(CRITICAL_FILE.read_text(encoding="utf-8"))
-    gaps = coverage_gaps(report, modules)
+    try:
+        report = json.loads(coverage_json.read_text(encoding="utf-8"))
+        modules = read_critical(CRITICAL_FILE.read_text(encoding="utf-8"))
+        gaps = coverage_gaps(report, modules)
+    except (OSError, ValueError, KeyError, TypeError, AttributeError):
+        print("  Coverage report missing or malformed.")
+        return False
     for gap in gaps:
         print(f"  {gap}")
     return not gaps
@@ -205,7 +244,9 @@ def _section_names() -> list[str]:
     return [name for name, _ in read_sections(SECTIONS_FILE.read_text(encoding="utf-8"))]
 
 
-def _run_one_section(name: str, run: Callable[[list[str], Path], int]) -> int:
+def _run_one_section(
+    name: str, run: Callable[[list[str], Path], int], *, workers: int = 1, durations: int = 0
+) -> int:
     files = section_files([name])
     with tempfile.TemporaryDirectory() as folder:
         report_path = Path(folder) / "junit.xml"
@@ -217,6 +258,7 @@ def _run_one_section(name: str, run: Callable[[list[str], Path], int]) -> int:
             f"--junitxml={report_path}",
             "--continue-on-collection-errors",
             *files,
+            *_pytest_options(workers, durations),
         ]
         code = run(command, ROOT)
         _print_table(report_path, [name])
@@ -243,11 +285,27 @@ def main(argv: list[str] | None = None, run: Callable[[list[str], Path], int] = 
         metavar="A[,B…]",
         help="Run these sections first; the full check only once they pass.",
     )
+    parser.add_argument(
+        "--workers",
+        type=_worker_count,
+        default=1,
+        metavar="W",
+        help="Run synthetic tests with W local workers (default: 1, serial).",
+    )
+    parser.add_argument(
+        "--durations",
+        type=_duration_count,
+        default=0,
+        metavar="K",
+        help="Show K slowest test durations (default: 0, omitted).",
+    )
     options = parser.parse_args(argv)
     if options.section is not None and options.real_samples:
         parser.error("argument --real-samples: not allowed with argument --section")
     if options.section is not None:
-        return _run_one_section(options.section, run)
+        return _run_one_section(
+            options.section, run, workers=options.workers, durations=options.durations
+        )
     first: list[str] | None = None
     if options.first is not None:
         first = options.first.split(",")
@@ -259,7 +317,12 @@ def main(argv: list[str] | None = None, run: Callable[[list[str], Path], int] = 
     with tempfile.TemporaryDirectory() as folder:
         coverage_json = Path(folder) / "coverage.json"
         planned = steps(
-            sys.executable, coverage_json, real_samples=options.real_samples, first=first
+            sys.executable,
+            coverage_json,
+            real_samples=options.real_samples,
+            first=first,
+            workers=options.workers,
+            durations=options.durations,
         )
         failed = None
         for step in planned:

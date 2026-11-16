@@ -8,7 +8,13 @@ patterns = ["integration/test_migrat*.py"]
 
 [[section]]
 name = "scripts"
-patterns = ["unit/test_check_script.py", "unit/test_sections*.py", "e2e/test_git_hooks.py"]
+patterns = [
+    "unit/test_check_script.py",
+    "unit/test_check_parallel.py",
+    "unit/test_check_parallel_behavior.py",
+    "unit/test_sections*.py",
+    "e2e/test_git_hooks.py",
+]
 
 [[section]]
 name = "web"

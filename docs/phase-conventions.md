@@ -18,6 +18,23 @@ The tests are grouped into the sections of `tests/sections.toml` (migrations, sc
 - **When coverage falls short**, a behaviour has no test. Write a test that checks what the uncovered line or branch does, from the spec, not one that only runs it. If the line can never run, or the spec does not need it, remove it and say so in your progress entry. Never add `# pragma: no cover` (unless the spec allows one) and never change a given test to reach the number. Then run `check.py --first …` again from the start.
 - A new test file belongs in the section of the code it tests. If `core` would take it otherwise, add a pattern to `tests/sections.toml`, and list that file in your Scope.
 
+Optional `--workers W` (positive integer, default 1) and `--durations K`
+(nonnegative integer, default 0) apply to section, selected-first and full
+synthetic pytest steps. Workers use local subprocesses with load scheduling;
+serial commands remain the default. Real samples and the other steps are unchanged.
+A focused file run uses `--no-cov`; `--section` already supplies it. Focused checks
+support development, followed by full acceptance at handoff and independent
+verification. `--first` always retains its selected-first then full-run semantics.
+
+Source, test, dependency or configuration changes require fresh applicable gates.
+A scope/document-only reassessment may reuse explicit prior evidence only when
+the owner authorizes narrowing and tested bytes and relevant environment match.
+Never infer automatic PASS or reuse a coder's result as independent verification.
+Keep one coordinated coverage run per checkout at a time. Separate checkouts have
+separate artifacts but share a bounded machine-wide worker budget; do not give
+every agent all cores. See [testing](testing.md) and the
+[measured worker recommendation](testing-performance.md).
+
 ### Scope
 
 - Change only the paths in the spec's Scope table. You may add private helpers inside them. Any other production file, existing test, template, or migration stays as it is unless the spec lists it.

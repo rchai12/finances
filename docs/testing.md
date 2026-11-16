@@ -58,3 +58,36 @@ Every command names the virtual environment's interpreter (`AGENTS.md`, "Running
 A phase names its sections, and its check is `check.py --first <its sections>`: their tests run first, and the full run only once they pass. A full run prints a table of the eight sections after the tests, with a rerun command beside any section that failed. A new test file belongs in the section of the code it tests: add a pattern to `tests/sections.toml` when `core` would take it otherwise.
 
 To have lint and format checked before every commit, run `scripts/install-git-hooks.sh` once; `scripts/uninstall-git-hooks.sh` removes the hook.
+
+### Focused development and local workers
+
+Use focused files without coverage while developing:
+`.venv/bin/python -m pytest tests/unit/test_check_parallel_behavior.py --no-cov`.
+`check.py --section scripts` also runs without coverage. Add `--workers 2` or
+`--workers 4` to opt into that many local pytest subprocess workers using the
+load scheduler; `--workers 1` is the serial default. Only positive integers are
+accepted, never `auto`. `--durations 20` reports the slowest setup, call and
+teardown items; its nonnegative integer default is 0 (no timing flag).
+
+Both options apply to section, selected-first and full synthetic pytest steps.
+They do not parallelize lint, format, critical coverage inspection, real-sample
+checks or separate acceptance invocations. `--first scripts` still runs the
+selected section before the complete suite; it does not replace full acceptance.
+Run the phase's required full checks at handoff, and run independent verification
+separately. See [measured performance](testing-performance.md) for the machine's
+worker recommendation and benchmark limitations.
+
+Run one coordinated coverage-producing job per checkout at a time: pytest-cov
+combines all local workers in that job, and later coverage commands consume its
+persistent data. Concurrent runs in one checkout can overwrite that evidence.
+Separate checkouts keep separate artifacts but share a machine-wide worker
+budget: agree a bounded total before starting concurrent agents; do not assign
+all cores to each agent. Inspect fixed shared filenames and ports before a new
+parallel test arrangement. Infrastructure failures need explicit resolution;
+never drop tests or weaken assertions to accommodate workers.
+
+Source, test, dependency or configuration changes require fresh applicable gates.
+A scope/document-only reassessment can reuse explicitly identified prior evidence
+only with owner-authorized narrowing and matching tested bytes and relevant
+environment. There is no automatic PASS, and a coder's results never substitute
+for independent verifier evidence.
