@@ -31,7 +31,7 @@ MIDNIGHT = datetime(2026, 5, 25, 0, 0, tzinfo=UTC)
 
 @pytest.fixture
 def session(db_engine: Engine, monkeypatch: pytest.MonkeyPatch) -> Iterator[Session]:
-    monkeypatch.setattr("finances.db.repositories.audit._now", lambda: NOON)
+    monkeypatch.setattr("finances.db.time.utc_now", lambda: NOON)
     with session_scope(db_engine) as opened:
         yield opened
 
@@ -118,7 +118,7 @@ def test_audit_without_a_migrated_database(tmp_settings: Settings) -> None:
 def test_since_keeps_a_change_at_midnight_utc_that_day(
     db_engine: Engine, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    monkeypatch.setattr("finances.db.repositories.audit._now", lambda: MIDNIGHT)
+    monkeypatch.setattr("finances.db.time.utc_now", lambda: MIDNIGHT)
     with session_scope(db_engine) as session:
         create_account(session, "Test Card", "Test Bank", "credit_card")
         assert [item.after for item in list_changes(session, since=date(2026, 5, 25))] == [

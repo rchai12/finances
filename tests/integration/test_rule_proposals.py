@@ -75,7 +75,7 @@ def assigned(session: Session) -> dict[int, str]:
 
 @pytest.fixture
 def session(db_engine: Engine, monkeypatch: pytest.MonkeyPatch) -> Iterator[Session]:
-    monkeypatch.setattr("finances.db.repositories.proposals._now", lambda: NOON)
+    monkeypatch.setattr("finances.db.time.utc_now", lambda: NOON)
     with session_scope(db_engine) as opened:
         add_card(opened)
         yield opened
@@ -83,7 +83,7 @@ def session(db_engine: Engine, monkeypatch: pytest.MonkeyPatch) -> Iterator[Sess
 
 @pytest.fixture
 def card(tmp_settings: Settings, monkeypatch: pytest.MonkeyPatch) -> Settings:
-    monkeypatch.setattr("finances.db.repositories.proposals._now", lambda: NOON)
+    monkeypatch.setattr("finances.db.time.utc_now", lambda: NOON)
     upgrade_to_head()
     engine = get_engine()
     with session_scope(engine) as opened:

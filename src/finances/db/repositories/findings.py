@@ -1,8 +1,9 @@
-from datetime import UTC, date, datetime
+from datetime import date
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from finances.db import time as db_time
 from finances.db.orm import FindingStatusRow, to_finding_status
 from finances.db.repositories.audit import record_change
 from finances.domain.findings import (
@@ -17,17 +18,13 @@ from finances.domain.insights import TYPES, Finding
 from finances.domain.text import NAME_LIMIT, fit
 
 
-def _now() -> datetime:
-    return datetime.now(UTC)
-
-
 def _store_finding_status(session: Session, finding: Finding, status: str) -> FindingStatus:
     row = FindingStatusRow(
         type=fit(finding.type, NAME_LIMIT),
         subject=fit(finding.subject, NAME_LIMIT),
         month=finding.month if status == HANDLED else None,
         status=status,
-        set_at=_now(),
+        set_at=db_time.utc_now(),
     )
     session.add(row)
     session.flush()

@@ -39,11 +39,10 @@ RENAME_TEXT = "category Dining: rename to Restaurants"
 @pytest.fixture
 def card(tmp_settings: Settings, monkeypatch: pytest.MonkeyPatch) -> Settings:
     """Rule 1 puts ACME in Dining; transaction 2 is Groceries by hand."""
-    for module in ("proposals", "category_changes", "new_categories", "rule_changes"):
-        monkeypatch.setattr(
-            f"finances.db.repositories.{module}._now",
-            lambda: NOON,
-        )
+    monkeypatch.setattr(
+        "finances.db.time.utc_now",
+        lambda: NOON,
+    )
     upgrade_to_head()
     engine = get_engine()
     with session_scope(engine) as session:

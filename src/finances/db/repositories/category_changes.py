@@ -1,8 +1,7 @@
-from datetime import UTC, datetime
-
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from finances.db import time as db_time
 from finances.db.orm import CategoryRow, CategoryRuleRow, ProposalRow, to_proposal
 from finances.db.repositories.categories import (
     CategoryExistsError,
@@ -23,16 +22,12 @@ from finances.domain.proposals import (
     RULE_DELETE,
     RULE_EDIT,
     Proposal,
+    clean_reason,
 )
-from finances.domain.text import PROPOSAL_TEXT_LIMIT, collapse_ws
 
 _VALUE_KINDS = (CATEGORY, RULE, RULE_EDIT, RULE_DELETE)
 _RULE_KINDS = (RULE_EDIT, RULE_DELETE)
 _CHANGE_KINDS = (CATEGORY_RENAME, CATEGORY_DELETE)
-
-
-def _now() -> datetime:
-    return datetime.now(UTC)
 
 
 def _dry_run(session: Session, name: str, *, rename_to: str | None, move_to: str) -> None:
@@ -118,9 +113,7 @@ def propose_category_change(
     delete: bool = False,
     move_to: str | None = None,
 ) -> Proposal:
-    clean_reason = collapse_ws(reason)
-    if not 1 <= len(clean_reason) <= PROPOSAL_TEXT_LIMIT:
-        raise ValueError("a reason must be 1 to 200 characters")
+    clean = clean_reason(reason)
     row = _category_row(session, name)
     if row is None:
         raise ValueError("category not found")
@@ -153,9 +146,9 @@ def propose_category_change(
         kind=kind,
         target_id=row.id,
         value=stored,
-        reason=clean_reason,
+        reason=clean,
         status=OPEN,
-        created_at=_now(),
+        created_at=db_time.utc_now(),
         decided_at=None,
         other_id=None,
         pattern=None,

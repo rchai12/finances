@@ -25,7 +25,7 @@ def call(name: str, arguments: dict | None = None):
 def moved(tmp_settings: Settings, monkeypatch: pytest.MonkeyPatch) -> Settings:
     """$20.00 out of checking (1) and into savings (2) the same day."""
     monkeypatch.setattr(
-        "finances.db.repositories.proposals._now", lambda: datetime(2026, 5, 25, 12, 0, tzinfo=UTC)
+        "finances.db.time.utc_now", lambda: datetime(2026, 5, 25, 12, 0, tzinfo=UTC)
     )
     upgrade_to_head()
     engine = get_engine()

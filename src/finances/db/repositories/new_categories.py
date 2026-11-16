@@ -1,8 +1,7 @@
-from datetime import UTC, datetime
-
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from finances.db import time as db_time
 from finances.db.orm import ProposalRow, to_proposal
 from finances.db.repositories.categories import (
     _category_row,
@@ -19,12 +18,9 @@ from finances.domain.proposals import (
     NEW_CATEGORY,
     OPEN,
     Proposal,
+    clean_reason,
 )
-from finances.domain.text import CATEGORY_NAME_LIMIT, PROPOSAL_TEXT_LIMIT, collapse_ws
-
-
-def _now() -> datetime:
-    return datetime.now(UTC)
+from finances.domain.text import CATEGORY_NAME_LIMIT
 
 
 def new_is_out_of_date(session: Session, proposal: Proposal) -> bool:
@@ -72,9 +68,7 @@ def propose_group(
     kind: str = "spending",
     sensitive: bool = False,
 ) -> Proposal:
-    clean = collapse_ws(reason)
-    if not 1 <= len(clean) <= PROPOSAL_TEXT_LIMIT:
-        raise ValueError("a reason must be 1 to 200 characters")
+    clean = clean_reason(reason)
     stored = name.strip()
     if not 1 <= len(stored) <= CATEGORY_NAME_LIMIT:
         raise ValueError(f"a group name must be 1 to {CATEGORY_NAME_LIMIT} characters")
@@ -95,7 +89,7 @@ def propose_group(
         value=stored,
         reason=clean,
         status=OPEN,
-        created_at=_now(),
+        created_at=db_time.utc_now(),
         decided_at=None,
         other_id=None,
         pattern=None,
@@ -123,9 +117,7 @@ def propose_new_category(
     *,
     tax: bool = False,
 ) -> Proposal:
-    clean = collapse_ws(reason)
-    if not 1 <= len(clean) <= PROPOSAL_TEXT_LIMIT:
-        raise ValueError("a reason must be 1 to 200 characters")
+    clean = clean_reason(reason)
     stored = name.strip()
     if not 1 <= len(stored) <= CATEGORY_NAME_LIMIT:
         raise ValueError(f"a category name must be 1 to {CATEGORY_NAME_LIMIT} characters")
@@ -150,7 +142,7 @@ def propose_new_category(
         value=stored,
         reason=clean,
         status=OPEN,
-        created_at=_now(),
+        created_at=db_time.utc_now(),
         decided_at=None,
         other_id=None,
         pattern=None,

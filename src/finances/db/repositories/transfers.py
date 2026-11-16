@@ -7,6 +7,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import Session
 
+from finances.db import time as db_time
 from finances.db.orm import (
     ProposalRow,
     SharedExpenseRow,
@@ -26,8 +27,7 @@ from finances.domain.models import (
     CONFIRMED,
     TransferPair,
 )
-from finances.domain.proposals import DECLINED, NOT_TRANSFER, OPEN, TRANSFER, Proposal
-from finances.domain.text import PROPOSAL_TEXT_LIMIT, collapse_ws
+from finances.domain.proposals import DECLINED, NOT_TRANSFER, OPEN, TRANSFER, Proposal, clean_reason
 from finances.domain.transfers import Movement
 
 
@@ -176,11 +176,7 @@ def unpair_transfer(session: Session, pair_id: int) -> TransferPair:
 
 
 def _propose_pair(session: Session, kind: str, out_id: int, in_id: int, reason: str) -> Proposal:
-    from finances.db.repositories.proposals import _now
-
-    clean = collapse_ws(reason)
-    if not 1 <= len(clean) <= PROPOSAL_TEXT_LIMIT:
-        raise ValueError("a reason must be 1 to 200 characters")
+    clean = clean_reason(reason)
     _check_transfer(session, out_id, in_id)
     if (
         find_transfer_pair(session, out_id) is not None
@@ -206,7 +202,7 @@ def _propose_pair(session: Session, kind: str, out_id: int, in_id: int, reason: 
         value="",
         reason=clean,
         status=OPEN,
-        created_at=_now(),
+        created_at=db_time.utc_now(),
         decided_at=None,
         other_id=in_id,
     )

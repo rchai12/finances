@@ -24,11 +24,10 @@ WAITING = (
 @pytest.fixture
 def home(tmp_settings: Settings, monkeypatch: pytest.MonkeyPatch) -> TestClient:
     """1 a group Pets; 2 a category Dog Food in it, which waits for 1."""
-    for module in ("proposals", "new_categories"):
-        monkeypatch.setattr(
-            f"finances.db.repositories.{module}._now",
-            lambda: datetime(2026, 5, 25, 12, 0, tzinfo=UTC),
-        )
+    monkeypatch.setattr(
+        "finances.db.time.utc_now",
+        lambda: datetime(2026, 5, 25, 12, 0, tzinfo=UTC),
+    )
     upgrade_to_head()
     engine = get_engine()
     with session_scope(engine) as session:

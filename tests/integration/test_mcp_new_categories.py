@@ -32,11 +32,10 @@ def error(name: str, arguments: dict) -> list[str]:
 @pytest.fixture
 def card(tmp_settings: Settings, monkeypatch: pytest.MonkeyPatch) -> Settings:
     """One card purchase with no category: transaction 1, FOOBAR PET SUPPLY, -$25.99."""
-    for module in ("proposals", "new_categories"):
-        monkeypatch.setattr(
-            f"finances.db.repositories.{module}._now",
-            lambda: datetime(2026, 5, 25, 12, 0, tzinfo=UTC),
-        )
+    monkeypatch.setattr(
+        "finances.db.time.utc_now",
+        lambda: datetime(2026, 5, 25, 12, 0, tzinfo=UTC),
+    )
     upgrade_to_head()
     engine = get_engine()
     with session_scope(engine) as session:

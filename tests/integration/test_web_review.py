@@ -24,7 +24,7 @@ NOON = datetime(2026, 5, 25, 12, 0, tzinfo=UTC)
 
 @pytest.fixture
 def client(tmp_settings: Settings, monkeypatch: pytest.MonkeyPatch) -> TestClient:
-    monkeypatch.setattr("finances.db.repositories.proposals._now", lambda: NOON)
+    monkeypatch.setattr("finances.db.time.utc_now", lambda: NOON)
     found = TestClient(create_app(WEB_PORT), base_url=f"http://127.0.0.1:{WEB_PORT}")
     return found
 

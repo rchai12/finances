@@ -5,6 +5,7 @@ from datetime import date, datetime
 
 from finances.domain.audit import rule_text
 from finances.domain.findings import HANDLED, finding_text
+from finances.domain.text import PROPOSAL_TEXT_LIMIT, collapse_ws
 
 CATEGORY = "category"
 TRANSFER = "transfer"
@@ -147,3 +148,10 @@ def proposal_text(proposal: Proposal) -> str:
         named = finding_text(proposal.finding_type or "", proposal.finding_subject or "", month)
         return f"finding {named}: {proposal.value}"
     return f"transaction {proposal.target_id}: {proposal.value}"
+
+
+def clean_reason(reason: str) -> str:
+    clean = collapse_ws(reason)
+    if not 1 <= len(clean) <= PROPOSAL_TEXT_LIMIT:
+        raise ValueError("a reason must be 1 to 200 characters")
+    return clean

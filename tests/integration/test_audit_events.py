@@ -35,7 +35,7 @@ def trail() -> list[tuple]:
 @pytest.fixture
 def client(tmp_settings: Settings, monkeypatch: pytest.MonkeyPatch) -> TestClient:
     """A card added, then a backup FIRST taken; the trail's clock reads NOON."""
-    monkeypatch.setattr("finances.db.repositories.audit._now", lambda: NOON)
+    monkeypatch.setattr("finances.db.time.utc_now", lambda: NOON)
     monkeypatch.setattr(
         "finances.web.app._now", lambda: datetime(2026, 10, 17, 9, 0, 0, tzinfo=UTC)
     )

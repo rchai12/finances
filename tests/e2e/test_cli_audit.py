@@ -11,7 +11,7 @@ HEADINGS = ["When (UTC)", "Who", "Action", "Record", "Before", "After"]
 @pytest.fixture
 def changed(tmp_settings: Settings, monkeypatch: pytest.MonkeyPatch) -> Settings:
     monkeypatch.setattr(
-        "finances.db.repositories.audit._now", lambda: datetime(2026, 5, 25, 14, 3, 59, tzinfo=UTC)
+        "finances.db.time.utc_now", lambda: datetime(2026, 5, 25, 14, 3, 59, tzinfo=UTC)
     )
     assert run("db", "upgrade").exit_code == 0
     assert (

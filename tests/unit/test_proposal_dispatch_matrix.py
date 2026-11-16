@@ -5,6 +5,7 @@ from unittest.mock import Mock, call
 
 import pytest
 
+from finances.db import time as db_time
 from finances.db.repositories import proposals as repo
 from finances.domain import proposals as domain
 from finances.domain.models import CONFIRMED
@@ -88,7 +89,7 @@ def test_acceptance_dispatches_exactly_one_handler(monkeypatch, kind):
     monkeypatch.setattr(repo, "to_proposal", lambda r: domain.Proposal(**vars(r)))
     monkeypatch.setattr(repo, "waits_for", waiting)
     monkeypatch.setattr(repo, "proposal_out_of_date", stale)
-    monkeypatch.setattr(repo, "_now", lambda: NOW)
+    monkeypatch.setattr(db_time, "utc_now", lambda: NOW)
     audit = Mock()
     monkeypatch.setattr(repo, "record_change", audit)
     order = Mock()

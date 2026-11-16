@@ -36,11 +36,11 @@ def changed(client: TestClient, monkeypatch: pytest.MonkeyPatch) -> TestClient:
     engine = get_engine()
     with session_scope(engine) as session:
         monkeypatch.setattr(
-            "finances.db.repositories.audit._now", lambda: datetime(2026, 5, 24, 9, 0, tzinfo=UTC)
+            "finances.db.time.utc_now", lambda: datetime(2026, 5, 24, 9, 0, tzinfo=UTC)
         )
         create_account(session, "Test Card", "Test Bank", "credit_card")
         monkeypatch.setattr(
-            "finances.db.repositories.audit._now", lambda: datetime(2026, 5, 25, 14, 3, tzinfo=UTC)
+            "finances.db.time.utc_now", lambda: datetime(2026, 5, 25, 14, 3, tzinfo=UTC)
         )
         create_person(session, "Pat Example")
         create_rule(session, "ACME", "Dining")

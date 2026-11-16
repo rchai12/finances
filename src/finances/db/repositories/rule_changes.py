@@ -1,8 +1,7 @@
-from datetime import UTC, datetime
-
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from finances.db import time as db_time
 from finances.db.orm import CategoryRow, CategoryRuleRow, ProposalRow, to_proposal
 from finances.db.repositories.categories import (
     _category_row,
@@ -12,13 +11,9 @@ from finances.db.repositories.categories import (
     edit_rule,
 )
 from finances.domain.audit import rule_text
-from finances.domain.proposals import DECLINED, OPEN, RULE_DELETE, RULE_EDIT, Proposal
+from finances.domain.proposals import DECLINED, OPEN, RULE_DELETE, RULE_EDIT, Proposal, clean_reason
 from finances.domain.rules import MATCHES, normalize_pattern
-from finances.domain.text import PROPOSAL_TEXT_LIMIT, RULE_PATTERN_LIMIT, collapse_ws
-
-
-def _now() -> datetime:
-    return datetime.now(UTC)
+from finances.domain.text import RULE_PATTERN_LIMIT
 
 
 def _rule_row(session: Session, rule_id: int) -> CategoryRuleRow:
@@ -66,9 +61,7 @@ def propose_rule_change(
     priority: int | None = None,
     category: str | None = None,
 ) -> Proposal:
-    clean_reason = collapse_ws(reason)
-    if not 1 <= len(clean_reason) <= PROPOSAL_TEXT_LIMIT:
-        raise ValueError("a reason must be 1 to 200 characters")
+    clean = clean_reason(reason)
     row = _rule_row(session, rule_id)
     given = (pattern is not None, match is not None, priority is not None, category is not None)
     if delete and any(given):
@@ -120,9 +113,9 @@ def propose_rule_change(
         kind=kind,
         target_id=rule_id,
         value=stored_name,
-        reason=clean_reason,
+        reason=clean,
         status=OPEN,
-        created_at=_now(),
+        created_at=db_time.utc_now(),
         decided_at=None,
         other_id=None,
         pattern=stored_pattern,

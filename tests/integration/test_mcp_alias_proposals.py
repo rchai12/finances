@@ -29,7 +29,7 @@ def card(tmp_settings: Settings, monkeypatch: pytest.MonkeyPatch) -> Settings:
     """Two card purchases: 1 cleans to ACME CAFE, 2 to ACME COFFEE; a rule puts ACME COFFEE in
     Dining, so 2 is categorized and 1 is not."""
     monkeypatch.setattr(
-        "finances.db.repositories.proposals._now", lambda: datetime(2026, 5, 25, 12, 0, tzinfo=UTC)
+        "finances.db.time.utc_now", lambda: datetime(2026, 5, 25, 12, 0, tzinfo=UTC)
     )
     upgrade_to_head()
     engine = get_engine()

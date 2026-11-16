@@ -34,7 +34,7 @@ def call(name: str, arguments: dict | None = None):
 def card(tmp_settings: Settings, monkeypatch: pytest.MonkeyPatch) -> Settings:
     """Two card purchases: 1 cleans to ACME COFFEE, 2 to FOOBAR GROCERY. No rules."""
     monkeypatch.setattr(
-        "finances.db.repositories.proposals._now", lambda: datetime(2026, 5, 25, 12, 0, tzinfo=UTC)
+        "finances.db.time.utc_now", lambda: datetime(2026, 5, 25, 12, 0, tzinfo=UTC)
     )
     upgrade_to_head()
     engine = get_engine()

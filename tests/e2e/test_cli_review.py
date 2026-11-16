@@ -15,7 +15,7 @@ HEADINGS = ["ID", "Date", "Account", "Description", "Amount", "Now", "Proposed",
 def proposed(tmp_settings: Settings, monkeypatch: pytest.MonkeyPatch) -> Settings:
     """Two coffees on a card with the agent's proposals (1 and 2)."""
     monkeypatch.setattr(
-        "finances.db.repositories.proposals._now", lambda: datetime(2026, 5, 25, 12, 0, tzinfo=UTC)
+        "finances.db.time.utc_now", lambda: datetime(2026, 5, 25, 12, 0, tzinfo=UTC)
     )
     assert run("db", "upgrade").exit_code == 0
     engine = get_engine()

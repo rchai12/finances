@@ -1,8 +1,7 @@
-from datetime import UTC, datetime
-
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from finances.db import time as db_time
 from finances.db.orm import ProposalRow, to_proposal
 from finances.db.repositories.findings import (
     _store_finding_status,
@@ -10,12 +9,8 @@ from finances.db.repositories.findings import (
 )
 from finances.domain.findings import FINDING_STATUSES, HANDLED, status_for, status_of
 from finances.domain.insights import Finding
-from finances.domain.proposals import DECLINED, FINDING_STATUS, OPEN, Proposal
-from finances.domain.text import NAME_LIMIT, PROPOSAL_TEXT_LIMIT, collapse_ws, fit
-
-
-def _now() -> datetime:
-    return datetime.now(UTC)
+from finances.domain.proposals import DECLINED, FINDING_STATUS, OPEN, Proposal, clean_reason
+from finances.domain.text import NAME_LIMIT, fit
 
 
 def finding_status_is_out_of_date(session: Session, proposal: Proposal) -> bool:
@@ -42,9 +37,7 @@ def accept_finding_status(session: Session, row: ProposalRow) -> None:
 def propose_finding_status(
     session: Session, finding: Finding, status: str, reason: str
 ) -> Proposal:
-    clean_reason = collapse_ws(reason)
-    if not 1 <= len(clean_reason) <= PROPOSAL_TEXT_LIMIT:
-        raise ValueError("a reason must be 1 to 200 characters")
+    clean = clean_reason(reason)
     if status not in FINDING_STATUSES:
         raise ValueError("status must be one of: " + ", ".join(FINDING_STATUSES))
     current = status_of(finding, list_finding_statuses(session))
@@ -73,9 +66,9 @@ def propose_finding_status(
         kind=FINDING_STATUS,
         target_id=0,
         value=status,
-        reason=clean_reason,
+        reason=clean,
         status=OPEN,
-        created_at=_now(),
+        created_at=db_time.utc_now(),
         finding_type=fit(finding.type, NAME_LIMIT),
         finding_subject=fit(finding.subject, NAME_LIMIT),
         finding_month=finding.month,

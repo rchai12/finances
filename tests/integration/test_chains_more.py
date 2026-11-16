@@ -28,11 +28,10 @@ NOON = datetime(2026, 5, 25, 12, 0, tzinfo=UTC)
 
 @pytest.fixture
 def card(tmp_settings: Settings, monkeypatch: pytest.MonkeyPatch) -> Settings:
-    for module in ("proposals", "new_categories"):
-        monkeypatch.setattr(
-            f"finances.db.repositories.{module}._now",
-            lambda: NOON,
-        )
+    monkeypatch.setattr(
+        "finances.db.time.utc_now",
+        lambda: NOON,
+    )
     upgrade_to_head()
     engine = get_engine()
     with session_scope(engine) as session:

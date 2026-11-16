@@ -1,14 +1,9 @@
-from datetime import UTC, datetime
-
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from finances.db import time as db_time
 from finances.db.orm import AdviceRow, to_advice
 from finances.domain.proposals import Advice
-
-
-def _now() -> datetime:
-    return datetime.now(UTC)
 
 
 def dismiss_advice(session: Session, advice_id: int) -> Advice:
@@ -17,7 +12,7 @@ def dismiss_advice(session: Session, advice_id: int) -> Advice:
         raise ValueError("note not found")
     if row.dismissed_at is not None:
         raise ValueError(f"note {advice_id} is already dismissed")
-    row.dismissed_at = _now()
+    row.dismissed_at = db_time.utc_now()
     session.flush()
     return to_advice(row)
 

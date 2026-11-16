@@ -44,11 +44,10 @@ def error(name: str, arguments: dict) -> list[str]:
 def card(tmp_settings: Settings, monkeypatch: pytest.MonkeyPatch) -> Settings:
     """Rule 1 puts ACME in Dining, so transaction 1 (ACME COFFEE) is Dining by the rule;
     a person set transaction 2 (FOOBAR GROCERY) to Groceries by hand."""
-    for module in ("proposals", "category_changes"):
-        monkeypatch.setattr(
-            f"finances.db.repositories.{module}._now",
-            lambda: datetime(2026, 5, 25, 12, 0, tzinfo=UTC),
-        )
+    monkeypatch.setattr(
+        "finances.db.time.utc_now",
+        lambda: datetime(2026, 5, 25, 12, 0, tzinfo=UTC),
+    )
     upgrade_to_head()
     engine = get_engine()
     with session_scope(engine) as session:

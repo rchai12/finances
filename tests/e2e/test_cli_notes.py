@@ -15,7 +15,9 @@ HEADINGS = ["ID", "When (UTC)", "Subject", "Note", "State"]
 def notes(tmp_settings: Settings, monkeypatch: pytest.MonkeyPatch) -> Settings:
     """Note 1 (budgets) at 12:00 and note 2 (no subject) at 12:05; no proposals."""
     stamps = iter([datetime(2026, 5, 25, 12, minute, tzinfo=UTC) for minute in (0, 5)])
-    monkeypatch.setattr("finances.db.repositories.proposals._now", lambda: next(stamps))
+    monkeypatch.setattr(
+        "finances.db.time.utc_now", lambda: next(stamps, datetime(2026, 5, 25, 13, 0, tzinfo=UTC))
+    )
     upgrade_to_head()
     engine = get_engine()
     with session_scope(engine) as session:

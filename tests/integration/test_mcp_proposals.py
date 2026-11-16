@@ -56,7 +56,7 @@ def call(name: str, arguments: dict | None = None):
 def one(tmp_settings: Settings, monkeypatch: pytest.MonkeyPatch) -> Settings:
     """A card with one coffee and no category."""
     monkeypatch.setattr(
-        "finances.db.repositories.proposals._now", lambda: datetime(2026, 5, 25, 12, 0, tzinfo=UTC)
+        "finances.db.time.utc_now", lambda: datetime(2026, 5, 25, 12, 0, tzinfo=UTC)
     )
     upgrade_to_head()
     engine = get_engine()

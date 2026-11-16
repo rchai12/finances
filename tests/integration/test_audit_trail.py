@@ -40,7 +40,7 @@ NOON = datetime(2026, 5, 25, 12, 0, tzinfo=UTC)
 
 @pytest.fixture
 def session(db_engine: Engine, monkeypatch: pytest.MonkeyPatch) -> Iterator[Session]:
-    monkeypatch.setattr("finances.db.repositories.audit._now", lambda: NOON)
+    monkeypatch.setattr("finances.db.time.utc_now", lambda: NOON)
     with session_scope(db_engine) as opened:
         yield opened
 
@@ -202,7 +202,7 @@ def test_list_changes_newest_first_and_filters(
 ) -> None:
     for day, name in ((24, "Test A"), (25, "Test B"), (25, "Test C")):
         moment = datetime(2026, 5, day, 23, 30, tzinfo=UTC)
-        monkeypatch.setattr("finances.db.repositories.audit._now", lambda moment=moment: moment)
+        monkeypatch.setattr("finances.db.time.utc_now", lambda moment=moment: moment)
         create_account(session, name, "Test Bank", "checking")
     create_person(session, "Pat Example")
     assert [item.after for item in list_changes(session)] == [

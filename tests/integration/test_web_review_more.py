@@ -108,7 +108,7 @@ def test_the_notes_table_shows_at_most_twenty_newest_first(
 ) -> None:
     times = [datetime(2026, 5, 25, 12, minute, tzinfo=UTC) for minute in range(21)]
     stamps = iter(times)
-    monkeypatch.setattr("finances.db.repositories.proposals._now", lambda: next(stamps))
+    monkeypatch.setattr("finances.db.time.utc_now", lambda: next(stamps))
     upgrade_to_head()
     engine = get_engine()
     with session_scope(engine) as session:

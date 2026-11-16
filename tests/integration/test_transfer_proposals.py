@@ -31,7 +31,7 @@ NOON = datetime(2026, 5, 25, 12, 0, tzinfo=UTC)
 def session(db_engine: Engine, monkeypatch: pytest.MonkeyPatch) -> Iterator[Session]:
     """A move to savings with two possible inflows (1 out; 2 and 3 in), waiting for review; a
     card payment the rules pair (4 and 5); a coffee (6) and money in of another amount (7)."""
-    monkeypatch.setattr("finances.db.repositories.proposals._now", lambda: NOON)
+    monkeypatch.setattr("finances.db.time.utc_now", lambda: NOON)
     with session_scope(db_engine) as opened:
         create_account(opened, "Test Checking", "Test Bank", "checking")
         create_account(opened, "Test Savings", "Test Bank", "savings")

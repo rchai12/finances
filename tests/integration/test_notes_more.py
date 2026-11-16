@@ -38,8 +38,7 @@ def call(name: str, arguments: dict | None = None):
 
 @pytest.fixture
 def home(tmp_settings: Settings, monkeypatch: pytest.MonkeyPatch) -> Settings:
-    monkeypatch.setattr("finances.db.repositories.proposals._now", lambda: KEPT)
-    monkeypatch.setattr("finances.db.repositories.advice._now", lambda: GONE)
+    monkeypatch.setattr("finances.db.time.utc_now", lambda: KEPT)
     upgrade_to_head()
     engine = get_engine()
     with session_scope(engine) as session:
@@ -60,6 +59,7 @@ def home(tmp_settings: Settings, monkeypatch: pytest.MonkeyPatch) -> Settings:
         session.flush()
         propose_category(session, 1, "Coffee & Dessert", "ACME is a coffee shop")
     engine.dispose()
+    monkeypatch.setattr("finances.db.time.utc_now", lambda: GONE)
     return tmp_settings
 
 

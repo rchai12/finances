@@ -3,13 +3,10 @@ from datetime import UTC, date, datetime
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from finances.db import time as db_time
 from finances.db.orm import AuditRow, to_change
 from finances.domain.audit import ACTIONS, KINDS, PERSON, WHO, Change
 from finances.domain.text import AUDIT_TEXT_LIMIT, fit
-
-
-def _now() -> datetime:
-    return datetime.now(UTC)
 
 
 def record_change(
@@ -29,7 +26,7 @@ def record_change(
     if who not in WHO:
         raise ValueError("who must be one of: " + ", ".join(WHO))
     row = AuditRow(
-        at=_now(),
+        at=db_time.utc_now(),
         who=who,
         action=action,
         kind=kind,

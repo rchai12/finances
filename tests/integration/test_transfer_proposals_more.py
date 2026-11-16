@@ -83,7 +83,7 @@ def add_move(session: Session) -> None:
 
 @pytest.fixture
 def moved(tmp_settings: Settings, monkeypatch: pytest.MonkeyPatch) -> Settings:
-    monkeypatch.setattr("finances.db.repositories.proposals._now", lambda: NOON)
+    monkeypatch.setattr("finances.db.time.utc_now", lambda: NOON)
     upgrade_to_head()
     engine = get_engine()
     with session_scope(engine) as session:
@@ -94,7 +94,7 @@ def moved(tmp_settings: Settings, monkeypatch: pytest.MonkeyPatch) -> Settings:
 
 @pytest.fixture
 def session(db_engine: Engine, monkeypatch: pytest.MonkeyPatch) -> Iterator[Session]:
-    monkeypatch.setattr("finances.db.repositories.proposals._now", lambda: NOON)
+    monkeypatch.setattr("finances.db.time.utc_now", lambda: NOON)
     with session_scope(db_engine) as opened:
         add_move(opened)
         yield opened

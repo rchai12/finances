@@ -1,8 +1,7 @@
-from datetime import UTC, datetime
-
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from finances.db import time as db_time
 from finances.db.orm import AdviceRow, ProposalRow, to_advice, to_proposal
 from finances.db.repositories.aliases import add_alias, alias_map
 from finances.db.repositories.assignments import (
@@ -54,20 +53,16 @@ from finances.domain.proposals import (
     TRANSFER,
     Advice,
     Proposal,
+    clean_reason,
     proposal_text,
 )
 from finances.domain.rules import MATCHES, normalize_pattern, rule_matches
 from finances.domain.text import (
     ADVICE_TEXT_LIMIT,
     NAME_LIMIT,
-    PROPOSAL_TEXT_LIMIT,
     RULE_PATTERN_LIMIT,
     collapse_ws,
 )
-
-
-def _now() -> datetime:
-    return datetime.now(UTC)
 
 
 def decided_by_a_person(session: Session, transaction_id: int) -> bool:
@@ -76,9 +71,7 @@ def decided_by_a_person(session: Session, transaction_id: int) -> bool:
 
 
 def propose_category(session: Session, transaction_id: int, category: str, reason: str) -> Proposal:
-    clean = collapse_ws(reason)
-    if not 1 <= len(clean) <= PROPOSAL_TEXT_LIMIT:
-        raise ValueError("a reason must be 1 to 200 characters")
+    clean = clean_reason(reason)
     if get_transaction(session, transaction_id) is None:
         raise ValueError("transaction not found")
     stored, parent_id = proposed_category(session, category)
@@ -102,7 +95,7 @@ def propose_category(session: Session, transaction_id: int, category: str, reaso
         value=stored,
         reason=clean,
         status=OPEN,
-        created_at=_now(),
+        created_at=db_time.utc_now(),
         decided_at=None,
         parent_id=parent_id,
         before=current,
@@ -130,9 +123,7 @@ def propose_rule(
     match: str = "contains",
     priority: int = 0,
 ) -> Proposal:
-    clean = collapse_ws(reason)
-    if not 1 <= len(clean) <= PROPOSAL_TEXT_LIMIT:
-        raise ValueError("a reason must be 1 to 200 characters")
+    clean = clean_reason(reason)
     stored = normalize_pattern(pattern)
     if not 1 <= len(stored) <= RULE_PATTERN_LIMIT:
         raise ValueError(f"a rule pattern must be 1 to {RULE_PATTERN_LIMIT} characters")
@@ -165,7 +156,7 @@ def propose_rule(
         value=stored_name,
         reason=clean,
         status=OPEN,
-        created_at=_now(),
+        created_at=db_time.utc_now(),
         decided_at=None,
         other_id=None,
         pattern=stored,
@@ -179,9 +170,7 @@ def propose_rule(
 
 
 def propose_merchant_alias(session: Session, example_id: int, target: str, reason: str) -> Proposal:
-    clean = collapse_ws(reason)
-    if not 1 <= len(clean) <= PROPOSAL_TEXT_LIMIT:
-        raise ValueError("a reason must be 1 to 200 characters")
+    clean = clean_reason(reason)
     example = get_transaction(session, example_id)
     if example is None:
         raise ValueError("transaction not found")
@@ -199,7 +188,7 @@ def propose_merchant_alias(session: Session, example_id: int, target: str, reaso
         value=stored,
         reason=clean,
         status=OPEN,
-        created_at=_now(),
+        created_at=db_time.utc_now(),
         decided_at=None,
         other_id=None,
         pattern=None,
@@ -325,7 +314,7 @@ def accept_proposal(session: Session, proposal_id: int) -> Proposal:
     else:
         raise ValueError("unsupported proposal kind")
     row.status = ACCEPTED
-    row.decided_at = _now()
+    row.decided_at = db_time.utc_now()
     session.flush()
     record_change(
         session,
@@ -340,7 +329,7 @@ def accept_proposal(session: Session, proposal_id: int) -> Proposal:
 def decline_proposal(session: Session, proposal_id: int) -> Proposal:
     row = _open_row(session, proposal_id)
     row.status = DECLINED
-    row.decided_at = _now()
+    row.decided_at = db_time.utc_now()
     session.flush()
     record_change(
         session,
@@ -359,7 +348,7 @@ def log_advice(session: Session, text: str, subject: str = "") -> Advice:
     clean_subject = collapse_ws(subject)
     if len(clean_subject) > NAME_LIMIT:
         raise ValueError("a subject is at most 100 characters")
-    row = AdviceRow(created_at=_now(), subject=clean_subject, text=clean_text)
+    row = AdviceRow(created_at=db_time.utc_now(), subject=clean_subject, text=clean_text)
     session.add(row)
     session.flush()
     return to_advice(row)
