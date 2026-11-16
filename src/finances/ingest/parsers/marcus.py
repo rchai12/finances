@@ -4,7 +4,7 @@ import re
 from datetime import date
 
 from finances.domain.models import AccountType
-from finances.ingest.parsers.helpers import collapse_ws, parse_amount, squeeze
+from finances.ingest.parsers.helpers import collapse_ws, flatten, parse_amount, squeeze
 from finances.ingest.statement import ParsedStatement, Section, StatementError, StatementLine
 
 _MONEY = r"\$(?:[0-9]{1,3}(?:,[0-9]{3})+|[0-9]+)\.[0-9]{2}"
@@ -32,7 +32,7 @@ class MarcusSavingsParser:
         )
 
     def parse(self, pages: list[str]) -> ParsedStatement:
-        lines = [line.strip() for page in pages for line in page.splitlines()]
+        lines = flatten(pages)
         text = "\n".join(lines)
         account = _ACCOUNT.search(text)
         if account is None:

@@ -8,6 +8,7 @@ from finances.ingest.parsers.helpers import (
     MONTHS,
     collapse_ws,
     find_labeled_amount,
+    flatten,
     parse_amount,
     parse_month_day,
 )
@@ -41,7 +42,7 @@ class BoaCardParser:
         return "bankofamerica.com" in first_page and "Account#" in first_page
 
     def parse(self, pages: list[str]) -> ParsedStatement:
-        lines = [line.strip() for page in pages for line in page.splitlines()]
+        lines = flatten(pages)
         text = "\n".join(lines)
         account = _ACCOUNT.search(text)
         if account is None:

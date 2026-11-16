@@ -4,7 +4,14 @@ import re
 from datetime import date
 
 from finances.domain.models import AccountType
-from finances.ingest.parsers.helpers import MONTHS, collapse_ws, infer_year, parse_amount, squeeze
+from finances.ingest.parsers.helpers import (
+    MONTHS,
+    collapse_ws,
+    flatten,
+    infer_year,
+    parse_amount,
+    squeeze,
+)
 from finances.ingest.statement import ParsedStatement, Section, StatementError, StatementLine
 
 _AMOUNT = r"(?:[0-9]{1,3}(?:,[0-9]{3})+|[0-9]+)\.[0-9]{2}"
@@ -57,7 +64,7 @@ class BoaDepositParser:
         )
 
     def parse(self, pages: list[str]) -> ParsedStatement:
-        lines = [line.strip() for page in pages for line in page.splitlines()]
+        lines = flatten(pages)
         account_index, last4 = _account(lines)
         if last4 is None:
             raise StatementError(_NO_ACCOUNT)

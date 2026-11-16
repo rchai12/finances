@@ -4,7 +4,13 @@ import re
 from datetime import date
 
 from finances.domain.models import AccountType
-from finances.ingest.parsers.helpers import MONTHS, collapse_ws, parse_amount, parse_month_day
+from finances.ingest.parsers.helpers import (
+    MONTHS,
+    collapse_ws,
+    flatten,
+    parse_amount,
+    parse_month_day,
+)
 from finances.ingest.statement import ParsedStatement, Section, StatementError, StatementLine
 
 _MONEY = r"\$(?:[0-9]{1,3}(?:,[0-9]{3})+|[0-9]+)\.[0-9]{2}"
@@ -50,7 +56,7 @@ class CapitalOneCardParser:
         return brand and "days in Billing Cycle" in first_page
 
     def parse(self, pages: list[str]) -> ParsedStatement:
-        lines = [line.strip() for page in pages for line in page.splitlines()]
+        lines = flatten(pages)
         ending = _ENDING.search("\n".join(lines))
         if ending is None:
             raise StatementError(_NO_ENDING)

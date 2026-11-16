@@ -84,3 +84,7 @@ def find_labeled_amount(lines: list[str], label: str) -> int | None:
         except ValueError:
             continue
     return None
+
+
+def flatten(pages: list[str]) -> list[str]:
+    return [line.strip() for page in pages for line in page.splitlines()]

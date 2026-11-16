@@ -4,7 +4,13 @@ import re
 from datetime import date, timedelta
 
 from finances.domain.models import AccountType
-from finances.ingest.parsers.helpers import collapse_ws, parse_amount, parse_month_day, squeeze
+from finances.ingest.parsers.helpers import (
+    collapse_ws,
+    flatten,
+    parse_amount,
+    parse_month_day,
+    squeeze,
+)
 from finances.ingest.statement import ParsedStatement, Section, StatementError, StatementLine
 
 _AMOUNT = r"(?:[0-9]{1,3}(?:,[0-9]{3})+|[0-9]+)\.[0-9]{2}"
@@ -59,7 +65,7 @@ class TruistDepositParser:
         return "Truist" in first_page and "Your account statement" in first_page
 
     def parse(self, pages: list[str]) -> ParsedStatement:
-        lines = [line.strip() for page in pages for line in page.splitlines()]
+        lines = flatten(pages)
         account = _account(lines)
         if account is None:
             raise StatementError(_NO_ACCOUNT)

@@ -984,3 +984,16 @@ Template:
   - Applied exact given clock-patch migration to all thirty earlier files; all expected blob hashes and previous assertion ASTs match, test identities unchanged, and new given file is byte-identical to its spec block. No other earlier tests, dependencies, migrations, clock families or adapters changed.
   - R1/R3: given helper limits/Unicode/refusal/fresh-clock tests; R2: test_every_writer_delegates_original_reason_first, test_invalid_reason_precedes_other_refusals, test_valid_reason_preserves_next_refusal and test_creation_sites_store_shared_reason_and_timestamp; R4/R5: that creation matrix, test_all_fifteen_repository_clock_sites_use_module_lookup and strict persisted category/decline/advice/direct-finding/finding-acceptance event clocks; R6: exact thirty-file hashes/assertion AST comparison and full prior suite.
   - Evidence: /tmp/finances-47d-evidence; no blockers, commit or push. Independent verification remains required.
+
+## Phase 47e: shared parser line flattening (2026-11-16)
+- Tests: 4514 -> 4564 (given 16)
+- New public names: `finances.ingest.parsers.helpers`: `flatten`
+- Changed files: 10
+- Deviations: None
+- Follow-ups:
+  - Built one splitlines/strip helper and replaced the six duplicate parse expressions, covering Marcus savings and CD through the same method; detection, parsing rules and all pre-existing helpers remain unchanged.
+  - Planning baseline 51527d1e993f5ba9427a58cf533d45ea44905ccf; committed spec/guide matched HEAD; isolated /tmp/finances-47e-51527d1 started clean with the existing venv linked and PYTHONPATH=/tmp/finances-47e-51527d1/src on Python invocations; finances.__file__ resolved inside the clone. Original .vscode/settings.json preserved.
+  - Baseline --workers 4 passed 4514 tests in 96.10s and all gates; used known required loopback permission for existing synthetic transport tests. Given-before run failed all 16 cases; after implementation 50 focused cases passed (16 given and 34 coder compatibility cases).
+  - Required --first parsers --workers 4 acceptance exited 0: parsers 903 passed, full suite 4564 passed in 93.27s, every section zero failures/skips, no xfails/warnings summary, overall 99.98% and all critical gates passed; final line All checks passed. Immediate required helpers coverage exited 0: 66 statements, 0 missed, 24 branches, 0 partial, helper and TOTAL 100%, no missing locations. Given-only exited 0: 16 passed in 0.01s.
+  - R1/R2: test_flatten_preserves_lines, test_flatten_returns_fresh_list_without_mutating_pages, test_literal_boundaries_and_repeated_lines and test_empty_and_nonempty_calls_have_no_shared_state; R3: given sentinel delegation plus test_successful_spy_and_empty_return_use; R4: seven-base complete statement/reconciliation legacy matrix, CRLF repagination, cross-bank and Marcus amount-mismatch refusal cases; R5: unchanged earlier helper tests, source AST equivalence audit and full critical/previous-suite gates.
+  - Given file byte-identical to its spec block; source AST audit confirms only helper addition, helper imports and six substitutions; existing tests/fixtures, dependencies, configuration and migrations unchanged. Logs and receipts: /tmp/finances-47e-evidence. No blockers, commit or push; independent verification remains required.
