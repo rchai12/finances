@@ -18,7 +18,7 @@ from finances.db.repositories import (
     set_account_active,
     set_account_owner,
 )
-from finances.mcp_server import tools
+from finances.mcp_server import accounts, tools
 from finances.mcp_server.server import build_server
 from finances.views.accounts import AccountRow, account_rows
 from finances.web.app import create_app
@@ -190,8 +190,8 @@ def test_adapter_enters_reading_and_forwards_same_session(monkeypatch):
         return []
 
     loader = Mock(side_effect=load)
-    monkeypatch.setattr(tools, "reading", reading)
-    monkeypatch.setattr(tools, "account_listing", loader)
+    monkeypatch.setattr(accounts, "reading", reading)
+    monkeypatch.setattr(accounts, "account_listing", loader)
     assert tools.list_accounts() == {"accounts": []}
     loader.assert_called_once_with(session, include_inactive=False)
     assert events == ["enter", "exit"] and session.mock_calls == []

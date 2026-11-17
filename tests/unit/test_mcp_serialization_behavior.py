@@ -10,7 +10,7 @@ import pytest
 from finances.analysis.search import FoundTransaction
 from finances.domain.models import DataSource, Transaction
 from finances.domain.spending import Flow
-from finances.mcp_server import helpers, proposals, reports, tools
+from finances.mcp_server import accounts, helpers, proposals, queues, reports, tools
 from finances.mcp_server import serialization as ser
 from tests.unit.test_mcp_serialization import CASES, proposal
 
@@ -219,16 +219,16 @@ def test_listing_and_queue_wiring(monkeypatch):
     session = Mock()
     item = proposal("category")
     marker = {"synthetic": "marker"}
-    monkeypatch.setattr(tools, "reading", lambda: nullcontext(session))
+    monkeypatch.setattr(queues, "reading", lambda: nullcontext(session))
     monkeypatch.setattr(proposals, "reading", lambda: nullcontext(session))
     monkeypatch.setattr(proposals, "load_proposals", Mock(return_value=[item]))
     serializer = Mock(return_value=marker)
     monkeypatch.setattr(ser, "proposal_item", serializer)
     assert tools.list_proposals() == {"proposals": [marker]}
     serializer.assert_called_once_with(session, item)
-    monkeypatch.setattr(tools, "account_names", Mock(return_value={2: "Test Card"}))
-    monkeypatch.setattr(tools, "load_uncategorized", Mock(return_value=[transaction()]))
-    monkeypatch.setattr(tools, "count_uncategorized", Mock(return_value=1))
+    monkeypatch.setattr(queues, "account_names", Mock(return_value={2: "Test Card"}))
+    monkeypatch.setattr(queues, "load_uncategorized", Mock(return_value=[transaction()]))
+    monkeypatch.setattr(queues, "count_uncategorized", Mock(return_value=1))
     brief = Mock(return_value=marker)
     monkeypatch.setattr(ser, "brief", brief)
     assert tools.list_uncategorized() == {
@@ -254,7 +254,14 @@ def test_source_structure_and_limits():
 
     assert all(
         fn is getattr(tools, fn.__name__)
-        and fn.__module__ == (reports.__name__ if hasattr(reports, fn.__name__) else tools.__name__)
+        and fn.__module__
+        == (
+            reports.__name__
+            if hasattr(reports, fn.__name__)
+            else accounts.__name__
+            if hasattr(accounts, fn.__name__)
+            else queues.__name__
+        )
         for fn, _ in _TOOLS
     )
 
@@ -265,10 +272,10 @@ def test_read_tool_helper_markers(monkeypatch):
     session = Mock()
     names = {2: "Test Card"}
     marker = {"synthetic": "moved"}
-    monkeypatch.setattr(tools, "reading", lambda: nullcontext(session))
-    monkeypatch.setattr(tools, "account_names", Mock(return_value=names))
+    monkeypatch.setattr(queues, "reading", lambda: nullcontext(session))
+    monkeypatch.setattr(queues, "account_names", Mock(return_value=names))
     found = object()
-    monkeypatch.setattr(tools, "search_transactions", Mock(return_value=[found]))
+    monkeypatch.setattr(queues, "search_transactions", Mock(return_value=[found]))
     tx = Mock(return_value=marker)
     monkeypatch.setattr(ser, "transaction_item", tx)
     assert tools.list_transactions() == {"transactions": [marker], "next_offset": None}
@@ -276,7 +283,7 @@ def test_read_tool_helper_markers(monkeypatch):
     named = Mock(return_value=marker)
     monkeypatch.setattr(ser, "named", named)
     monkeypatch.setattr(
-        tools,
+        queues,
         "list_transfer_pairs",
         Mock(return_value=[NS(id=3, status="auto", out_transaction_id=7, in_transaction_id=8)]),
     )
@@ -288,7 +295,7 @@ def test_read_tool_helper_markers(monkeypatch):
 
     assert named.call_args_list == [call(session, 7, names), call(session, 8, names)]
     named.reset_mock()
-    monkeypatch.setattr(tools, "transfer_suggestions", Mock(return_value=[(7, 8)]))
+    monkeypatch.setattr(queues, "transfer_suggestions", Mock(return_value=[(7, 8)]))
     assert tools.list_transfer_suggestions() == {"suggestions": [{"out": marker, "in": marker}]}
     assert named.call_args_list == [call(session, 7, names), call(session, 8, names)]
     iso = Mock(return_value="moved-date")
@@ -303,7 +310,7 @@ def test_read_tool_helper_markers(monkeypatch):
         drift_date=None,
     )
     monkeypatch.setattr(
-        tools,
+        queues,
         "coverage_report",
         Mock(
             return_value=NS(
@@ -383,7 +390,7 @@ def test_tool_bodies_match_planning_baseline():
     import hashlib
 
     nodes = []
-    for module in (tools, proposals, helpers, reports):
+    for module in (tools, proposals, helpers, reports, accounts, queues):
         tree = ast.parse(Path(module.__file__).read_text())
         for node in tree.body:
             if isinstance(node, ast.FunctionDef):

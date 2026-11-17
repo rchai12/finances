@@ -8,7 +8,7 @@ import pytest
 from finances.analysis import listings
 from finances.analysis.people import Attribution
 from finances.domain.models import Account, AccountType
-from finances.mcp_server import tools
+from finances.mcp_server import accounts, tools
 
 CARD = Account(
     1,
@@ -65,7 +65,7 @@ def test_existing_two_argument_listing_defaults_to_nonjoint():
 @pytest.mark.parametrize("include_inactive", [False, True], ids=["active", "all"])
 def test_mcp_serializes_shared_listing_only(monkeypatch, include_inactive):
     session = Mock()
-    monkeypatch.setattr(tools, "reading", lambda: nullcontext(session))
+    monkeypatch.setattr(accounts, "reading", lambda: nullcontext(session))
     rows = [
         SimpleNamespace(account=CARD, owner=owner, joint=joint)
         for owner, joint in [
@@ -76,11 +76,11 @@ def test_mcp_serializes_shared_listing_only(monkeypatch, include_inactive):
         ]
     ]
     loader = Mock(return_value=rows)
-    monkeypatch.setattr(tools, "account_listing", loader, raising=False)
+    monkeypatch.setattr(accounts, "account_listing", loader, raising=False)
     direct = []
     for name in ("list_people", "list_account_owners", "load_accounts"):
         spy = Mock(return_value=[])
-        monkeypatch.setattr(tools, name, spy, raising=False)
+        monkeypatch.setattr(accounts, name, spy, raising=False)
         direct.append(spy)
     assert tools.list_accounts(include_inactive) == {
         "accounts": [
