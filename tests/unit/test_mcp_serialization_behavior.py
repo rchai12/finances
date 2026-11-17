@@ -10,8 +10,8 @@ import pytest
 from finances.analysis.search import FoundTransaction
 from finances.domain.models import DataSource, Transaction
 from finances.domain.spending import Flow
+from finances.mcp_server import helpers, proposals, tools
 from finances.mcp_server import serialization as ser
-from finances.mcp_server import tools
 from tests.unit.test_mcp_serialization import CASES, proposal
 
 
@@ -205,9 +205,9 @@ def test_all_writer_serializer_wiring(monkeypatch, name, seam, args):
     session = Mock()
     item = proposal("category")
     marker = {"synthetic": "marker"}
-    monkeypatch.setattr(tools, "writing", lambda: nullcontext(session))
-    monkeypatch.setattr(tools, seam, Mock(return_value=item))
-    monkeypatch.setattr(tools, "find_finding", Mock(return_value=object()))
+    monkeypatch.setattr(proposals, "writing", lambda: nullcontext(session))
+    monkeypatch.setattr(proposals, seam, Mock(return_value=item))
+    monkeypatch.setattr(proposals, "find_finding", Mock(return_value=object()))
     serializer = Mock(return_value=marker)
     monkeypatch.setattr(ser, "proposal_item", serializer)
     assert getattr(tools, name)(*args) == {"proposal": marker}
@@ -220,7 +220,8 @@ def test_listing_and_queue_wiring(monkeypatch):
     item = proposal("category")
     marker = {"synthetic": "marker"}
     monkeypatch.setattr(tools, "reading", lambda: nullcontext(session))
-    monkeypatch.setattr(tools, "load_proposals", Mock(return_value=[item]))
+    monkeypatch.setattr(proposals, "reading", lambda: nullcontext(session))
+    monkeypatch.setattr(proposals, "load_proposals", Mock(return_value=[item]))
     serializer = Mock(return_value=marker)
     monkeypatch.setattr(ser, "proposal_item", serializer)
     assert tools.list_proposals() == {"proposals": [marker]}
@@ -320,9 +321,10 @@ def test_read_tool_helper_markers(monkeypatch):
         text="Synthetic note",
         dismissed_at=None,
     )
-    monkeypatch.setattr(tools, "writing", lambda: nullcontext(session))
-    monkeypatch.setattr(tools, "keep_advice", Mock(return_value=item))
-    monkeypatch.setattr(tools, "load_advice", Mock(return_value=[item]))
+    monkeypatch.setattr(proposals, "writing", lambda: nullcontext(session))
+    monkeypatch.setattr(proposals, "keep_advice", Mock(return_value=item))
+    monkeypatch.setattr(proposals, "reading", lambda: nullcontext(session))
+    monkeypatch.setattr(proposals, "load_advice", Mock(return_value=[item]))
     expected = {
         "id": 1,
         "created_at": "2026-01-02T00:00:00+00:00",
@@ -376,10 +378,17 @@ BASELINE_ASTS = {
 def test_tool_bodies_match_planning_baseline():
     import hashlib
 
-    tree = ast.parse(Path(tools.__file__).read_text())
+    nodes = []
+    for module in (tools, proposals, helpers):
+        tree = ast.parse(Path(module.__file__).read_text())
+        for node in tree.body:
+            if isinstance(node, ast.FunctionDef):
+                if module is helpers and node.name == "month_start":
+                    node.name = "_month_start"
+                nodes.append(node)
     actual = {
         node.name: hashlib.sha256(ast.dump(node).encode()).hexdigest()
-        for node in tree.body
+        for node in nodes
         if isinstance(node, ast.FunctionDef)
     }
     assert actual == BASELINE_ASTS
