@@ -11,7 +11,7 @@ from finances.analysis.export import transactions_for_export
 from finances.analysis.spending import spending_report
 from finances.analysis.yearend import year_report
 from finances.cli.common import fail, require_current_schema
-from finances.cli.reports import _range
+from finances.cli.periods import spending_range
 from finances.config import get_settings
 from finances.db.engine import get_engine, session_scope
 from finances.export.files import write_csv
@@ -125,7 +125,7 @@ def spending_command(
 ) -> None:
     """Write spending for a month or range (this month by default), grouped one way."""
     require_current_schema()
-    first, last = _range(month, start, end)
+    first, last = spending_range(month, start, end)
     with session_scope(get_engine()) as session:
         try:
             report = spending_report(session, first, last, by)

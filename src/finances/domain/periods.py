@@ -1,9 +1,11 @@
 """Calendar months, and which accounts' data covers a range. Pure: no database."""
 
 from collections.abc import Iterable, Mapping
+from dataclasses import dataclass
 from datetime import date, timedelta
+from typing import Literal
 
-from finances.domain.spending import month_bounds
+from finances.domain.spending import month_bounds, month_range
 
 MONTHS_MAX = 24
 _DAY = timedelta(days=1)
@@ -51,3 +53,44 @@ def statement_gaps(periods: Iterable[tuple[date, date]]) -> list[tuple[date, dat
     return [
         (joined[index][1] + _DAY, joined[index + 1][0] - _DAY) for index in range(len(joined) - 1)
     ]
+
+
+@dataclass(frozen=True)
+class Period:
+    start: date
+    end: date
+
+
+class PeriodError(ValueError):
+    def __init__(self, code: Literal["conflict", "incomplete", "month"], message: str) -> None:
+        super().__init__(message)
+        self.code = code
+
+
+def validate_selection(*, month_present: bool, start_present: bool, end_present: bool) -> None:
+    if month_present and (start_present or end_present):
+        raise PeriodError("conflict", "month cannot accompany endpoints")
+    if start_present != end_present:
+        raise PeriodError("incomplete", "both endpoints are required")
+
+
+def select_period(
+    *, today: date, month: str | None = None, start: date | None = None, end: date | None = None
+) -> Period:
+    validate_selection(
+        month_present=month is not None,
+        start_present=start is not None,
+        end_present=end is not None,
+    )
+    if month is not None:
+        try:
+            return Period(*month_range(month))
+        except ValueError as error:
+            raise PeriodError("month", str(error)) from error
+    if start is not None and end is not None:
+        return Period(start, end)
+    return Period(*month_bounds(today))
+
+
+def first_day(month: str | None, *, today: date) -> date:
+    return select_period(month=month, today=today).start

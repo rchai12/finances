@@ -49,6 +49,7 @@ from finances.db.repositories import propose_rule_change as store_rule_change
 from finances.db.repositories import propose_transfer as store_transfer
 from finances.db.repositories.categories import CategoryExistsError
 from finances.db.repositories.chains import waits_for
+from finances.domain import periods
 from finances.domain.merchants import clean_merchant
 from finances.domain.models import Transaction
 from finances.domain.proposals import (
@@ -65,7 +66,7 @@ from finances.domain.proposals import (
     Proposal,
     group_kind_word,
 )
-from finances.domain.spending import UNASSIGNED, UNCATEGORIZED, is_refund, month_bounds, month_range
+from finances.domain.spending import UNASSIGNED, UNCATEGORIZED, is_refund, month_range
 from finances.mcp_server.access import reading, writing
 
 By = Literal["category", "group", "merchant", "person", "account", "bank", "card"]
@@ -201,10 +202,13 @@ def get_spending(
     end: date | None = None,
     by: By = "category",
 ) -> dict[str, Any]:
-    if (start is None) != (end is None):
-        raise ToolError("give both start and end, or neither")
-    if start is None or end is None:
-        start, end = month_bounds(clock.today())
+    try:
+        period = periods.select_period(
+            start=start, end=end, today=clock.today() if start is None and end is None else date.min
+        )
+    except periods.PeriodError as error:
+        raise ToolError("give both start and end, or neither") from error
+    start, end = period.start, period.end
     with reading() as session:
         try:
             report = spending_report(session, start, end, by)
@@ -262,14 +266,10 @@ def month_over_month(
 
 
 def _month_start(month: str) -> date:
-    if not month:
-        start, _ = month_bounds(clock.today())
-        return start
     try:
-        start, _ = month_range(month)
+        return periods.first_day(month or None, today=clock.today() if not month else date.min)
     except ValueError as error:
         raise ToolError(str(error)) from error
-    return start
 
 
 def get_insights(month: str = "") -> dict[str, Any]:

@@ -1,6 +1,6 @@
 """Report commands: spending, balances, months, recurring charges, insights, and merchants."""
 
-from datetime import date, datetime
+from datetime import datetime
 from typing import Annotated
 
 import typer
@@ -15,9 +15,11 @@ from finances.analysis.spending import spending_report
 from finances.analysis.upcoming import upcoming_report
 from finances.analysis.yearend import year_report
 from finances.cli.common import fail, print_rows, require_current_schema
+from finances.cli.periods import first_day as _first_day
+from finances.cli.periods import spending_range as _range
 from finances.db.engine import get_engine, session_scope
 from finances.domain.periods import MONTHS_MAX
-from finances.domain.spending import SpendingLine, month_bounds, month_range
+from finances.domain.spending import SpendingLine, month_range
 from finances.views.balances import balance_rows, balance_summary
 from finances.views.forecast import (
     account_heading,
@@ -46,21 +48,6 @@ from finances.views.spending import (
 )
 from finances.views.upcoming import upcoming_heading, upcoming_rows, upcoming_summary
 from finances.views.yearend import year_heading
-
-
-def _range(month: str | None, start: datetime | None, end: datetime | None) -> tuple[date, date]:
-    if month is not None and (start is not None or end is not None):
-        fail("give --month, or --from and --to, not both")
-    if (start is None) != (end is None):
-        fail("give both --from and --to")
-    if month is not None:
-        try:
-            return month_range(month)
-        except ValueError as error:
-            fail(str(error))
-    if start is not None and end is not None:
-        return start.date(), end.date()
-    return month_bounds(clock.today())
 
 
 def spending_command(
@@ -242,15 +229,6 @@ def forecast_command(
 
 
 _MONTH_OPTION = typer.Option("--month", help="A month, YYYY-MM (this month by default).")
-
-
-def _first_day(month: str | None) -> date:
-    if month is None:
-        return month_bounds(clock.today())[0]
-    try:
-        return month_range(month)[0]
-    except ValueError as error:
-        fail(str(error))
 
 
 def insights_command(month: Annotated[str | None, _MONTH_OPTION] = None) -> None:

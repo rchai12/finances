@@ -1,7 +1,6 @@
 """The Reports and Insights pages."""
 
 import json
-from datetime import date
 
 from fastapi import APIRouter, Request
 from fastapi.responses import Response
@@ -16,7 +15,7 @@ from finances.analysis.spending import spending_report
 from finances.analysis.upcoming import upcoming_report
 from finances.analysis.yearend import year_report
 from finances.db.repositories import list_open_advice, reopen_finding, set_finding_status
-from finances.domain.spending import BY, month_bounds, month_range
+from finances.domain.spending import BY, month_bounds
 from finances.views.balances import balance_rows, balance_summary
 from finances.views.charts import net_worth_chart
 from finances.views.forecast import (
@@ -45,7 +44,9 @@ from finances.views.yearend import year_page
 from finances.web import app as web_app
 from finances.web.access import _reading
 from finances.web.forms import refused
-from finances.web.helpers import _WHOLE, _day
+from finances.web.helpers import _WHOLE
+from finances.web.periods import first_day as _month_start
+from finances.web.periods import spending_range as _spending_range
 from finances.web.render import _done, _not_migrated, _render
 
 router = APIRouter()
@@ -63,27 +64,6 @@ def _days(text: str) -> int:
     if days < 1 or days > 90:
         raise ValueError(DAYS_REFUSED)
     return days
-
-
-def _spending_range(form: dict[str, str]) -> tuple[date, date]:
-    """The days the Reports page's spending covers, refusing a form that does not fit."""
-    if form["month"] and (form["start"] or form["end"]):
-        raise ValueError("give a month, or from and to, not both")
-    if bool(form["start"]) != bool(form["end"]):
-        raise ValueError("give both from and to")
-    start, end = _day(form["start"], "from"), _day(form["end"], "to")
-    if start is not None and end is not None:
-        return start, end
-    if form["month"]:
-        return month_range(form["month"])
-    return month_bounds(web_app._today())
-
-
-def _month_start(text: str) -> date:
-    """The first day of the month typed, or of this month when nothing was typed."""
-    if not text:
-        return month_bounds(web_app._today())[0]
-    return month_range(text)[0]
 
 
 def _insights_refused(request: Request, month: str, message: str) -> Response:

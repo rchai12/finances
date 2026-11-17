@@ -10,8 +10,9 @@ from finances.views.export import spending_csv, transactions_csv, year_csv
 from finances.web import app as web_app
 from finances.web.access import _reading
 from finances.web.helpers import _WHOLE
+from finances.web.periods import spending_range
 from finances.web.render import _not_migrated, _render
-from finances.web.routes.reports import YEAR_REFUSED, _spending_range
+from finances.web.routes.reports import YEAR_REFUSED
 from finances.web.routes.transactions import _DEFAULT_LIMIT, _FILTER_FIELDS, _search_query
 
 router = APIRouter()
@@ -81,7 +82,7 @@ def spending(request: Request) -> Response:
         "by": query.get("by") or "category",
     }
     try:
-        start, end = _spending_range(form)
+        start, end = spending_range(form)
         with _reading() as session:
             report = spending_report(session, start, end, form["by"])
     except ValueError as error:
