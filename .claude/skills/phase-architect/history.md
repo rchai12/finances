@@ -465,7 +465,8 @@ including non-MCP filenames and given files, before fixing migration scope.
 
 ## Phase 47h4: finalize MCP facade (2026-11-16)
 
-Specified; result pending. Owner authorized importing nine reviewed 47h3 paths;
+PASS at4790, zero findings/deviations: implementation98188a8, review733cbd4.
+Owner authorized importing nine reviewed 47h3 paths;
 all matched review delivery before copy. Review claimed updated progress but
 both delivery and review clone contained old blocked text; architect reconciled
 summary to committed 4761 PASS, retained failed receipts and documented discrepancy.
@@ -477,3 +478,18 @@ rejects planted401-line source and permits400 (planted file removed). Exact
 three-file patch moves all multiline/single-line patch points and unchanged AST
 hash inventory. New accounts/queues retain11 verbatim tool bodies; facade only
 imports, no exception to recursive400 cap. No new dependencies or tooling code.
+
+
+## Phase 47i: view guards and testing conventions (2026-11-17)
+
+Specified; result pending. Predecessor733cbd4 approved at4790; implementation
+98188a8 committed. No owner choice needed; no test moves, source changes or
+section changes. Tighten three stale file exemptions to exact sync.py/runner/
+LinkRun result import; import coupling is not IO proof. Five scope paths:
+testing docs, existing guard only,16 given, coder guard cases and progress.
+Fresh fail47i yields11 intended failures/five guards pass. Full collection4790
+retained with16 added given nodes; probe self-check uses fake missing node and
+must fail. No reference guard implementation, dependencies or tooling changes.
+Coverage remains standard full overall/critical; no artificial test-code gate.
+Commit planning docs before isolated coder. Preserve all original names and
+formatting assertions, no suite-wide renames or regression deduplication.

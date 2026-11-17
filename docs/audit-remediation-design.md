@@ -288,6 +288,11 @@ repository split in the same phase.
 
 ## 47i: test and documentation maintenance
 
+The [47i spec](phases/phase-47i-view-guards-and-testing.md) and
+[guide](verification/phase-47i-view-guards-and-testing.md) specify guard/doc
+maintenance without test moves. The sole guarded-root result import is
+`sync.py: finances.sync.runner.LinkRun`; no whole-file exception remains.
+
 Update `docs/testing.md`: new tests are named for the behavior and their layer;
 the ten-second unit-suite statement is a historical aspiration, not a measured
 gate. Existing `*_more.py` files remain valid. When one is deliberately reorganized,
