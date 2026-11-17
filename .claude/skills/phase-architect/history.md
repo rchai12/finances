@@ -370,7 +370,7 @@ unrelated editor settings. Existing helper contracts and full branch gate remain
 
 ## Phase 47f: MCP account ownership from analysis (2026-11-16)
 
-Specified; result pending. Baseline f689774, N=4564. Two production files;
+PASS: 4583 tests, no findings or approved deviations; implementation c8f5011 and review 666e035 committed. Baseline f689774, N=4564. Two production files;
 AccountListing.joint defaults False and preserves display owner. Analysis loads
 accounts/people/raw owners once, avoiding critical Attribution changes. Seven
 given cases collect in isolated fail47f: five missing-field failures and two
@@ -380,3 +380,17 @@ Collision coverage uses a synthetic loader because Joint is a reserved person
 name; no validation relaxation. Public MCP/CLI/web compatibility is coder-owned.
 No implementation, dependencies, probe, search or tooling changes. No owner
 choice unresolved. Commit planning docs before isolated coding.
+
+
+## Phase 47g: shared reporting period selection (2026-11-16)
+
+Specified; result pending. Baseline 666e035, N=4583. Captured CLI/web empty-month
+difference and conflict/incomplete/date precedence before drafting. Five domain
+units and two thin shared adapters; explicit today, typed result/error, existing
+private caller aliases preserved. Nineteen given cases collect in fresh fail47g:
+eleven intended missing-API failures and eight passing boundary guards. Corrected
+a draft guard to use the actual typer.exceptions.Exit (not Click's separate type)
+before publication. Lint/format pass; embedded artifacts generated and checked.
+No implementation, dependency, probe, search gate or tooling change. No owner
+choice unresolved. Public boundary/export parity remains coder-owned. Commit
+planning docs before isolated coding; unrelated editor settings untouched.
