@@ -14,6 +14,7 @@ from finances.analysis.budgets import budget_report
 from finances.analysis.coverage import coverage_report
 from finances.analysis.forecast import forecast_report
 from finances.analysis.insights import find_finding, insights_report
+from finances.analysis.listings import account_listing
 from finances.analysis.months import month_report
 from finances.analysis.names import find_names
 from finances.analysis.networth import net_worth_over_time
@@ -27,12 +28,9 @@ from finances.db.repositories import (
     account_names,
     count_uncategorized,
     get_transaction,
-    list_account_owners,
-    list_people,
     list_transfer_pairs,
     proposal_out_of_date,
 )
-from finances.db.repositories import list_accounts as load_accounts
 from finances.db.repositories import list_advice as load_advice
 from finances.db.repositories import list_categories as load_categories
 from finances.db.repositories import list_proposals as load_proposals
@@ -75,12 +73,9 @@ By = Literal["category", "group", "merchant", "person", "account", "bank", "card
 
 def list_accounts(include_inactive: bool = False) -> dict[str, Any]:
     with reading() as session:
-        people = {person.id: person.name for person in list_people(session)}
-        owners = list_account_owners(session)
         accounts = []
-        for account in load_accounts(session, include_inactive):
-            has_row = account.id in owners
-            person_id = owners.get(account.id)
+        for item in account_listing(session, include_inactive=include_inactive):
+            account = item.account
             accounts.append(
                 {
                     "name": account.name,
@@ -89,8 +84,8 @@ def list_accounts(include_inactive: bool = False) -> dict[str, Any]:
                     "currency": account.currency,
                     "last4": account.last4,
                     "active": account.is_active,
-                    "owner": None if person_id is None else people[person_id],
-                    "joint": has_row and person_id is None,
+                    "owner": None if item.joint else item.owner,
+                    "joint": item.joint,
                 }
             )
         return {"accounts": accounts}

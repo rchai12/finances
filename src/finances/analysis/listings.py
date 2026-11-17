@@ -4,7 +4,6 @@ from dataclasses import dataclass
 
 from sqlalchemy.orm import Session
 
-from finances.analysis.people import load_attribution
 from finances.db.repositories import (
     list_account_owners,
     list_accounts,
@@ -12,12 +11,14 @@ from finances.db.repositories import (
     list_people,
 )
 from finances.domain.models import Account
+from finances.domain.people import JOINT
 
 
 @dataclass(frozen=True)
 class AccountListing:
     account: Account
     owner: str | None
+    joint: bool = False
 
 
 @dataclass(frozen=True)
@@ -28,10 +29,18 @@ class PersonListing:
 
 
 def account_listing(session: Session, *, include_inactive: bool = False) -> list[AccountListing]:
-    attribution = load_attribution(session)
+    accounts = list_accounts(session, include_inactive=include_inactive)
+    people = {person.id: person.name for person in list_people(session)}
+    owners = list_account_owners(session)
     return [
-        AccountListing(account, attribution.owner(account.id))
-        for account in list_accounts(session, include_inactive=include_inactive)
+        AccountListing(
+            account,
+            None
+            if account.id not in owners
+            else (JOINT if owners[account.id] is None else people[owners[account.id]]),
+            account.id in owners and owners[account.id] is None,
+        )
+        for account in accounts
     ]
 
 
