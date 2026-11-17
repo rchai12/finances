@@ -1,4 +1,4 @@
-"""The agent's read-only tools. Each returns one JSON object."""
+"""Read tools and permitted proposal/advice writers, returning JSON objects."""
 
 from collections.abc import Callable
 from datetime import date
@@ -6,7 +6,6 @@ from typing import Annotated, Any, Literal
 
 from mcp.server.mcpserver.exceptions import ToolError
 from pydantic import Field
-from sqlalchemy.orm import Session
 
 import finances.clock as clock
 from finances.analysis.balances import balance_report
@@ -19,7 +18,7 @@ from finances.analysis.months import month_report
 from finances.analysis.names import find_names
 from finances.analysis.networth import net_worth_over_time
 from finances.analysis.recurring import recurring_charges, recurring_income
-from finances.analysis.search import FoundTransaction, TransactionQuery, search_transactions
+from finances.analysis.search import TransactionQuery, search_transactions
 from finances.analysis.spending import spending_report
 from finances.analysis.upcoming import upcoming_report
 from finances.categorize.transfers import transfer_suggestions
@@ -27,9 +26,7 @@ from finances.config import get_settings
 from finances.db.repositories import (
     account_names,
     count_uncategorized,
-    get_transaction,
     list_transfer_pairs,
-    proposal_out_of_date,
 )
 from finances.db.repositories import list_advice as load_advice
 from finances.db.repositories import list_categories as load_categories
@@ -48,25 +45,10 @@ from finances.db.repositories import propose_rule as store_rule
 from finances.db.repositories import propose_rule_change as store_rule_change
 from finances.db.repositories import propose_transfer as store_transfer
 from finances.db.repositories.categories import CategoryExistsError
-from finances.db.repositories.chains import waits_for
 from finances.domain import periods
 from finances.domain.merchants import clean_merchant
-from finances.domain.models import Transaction
-from finances.domain.proposals import (
-    ALIAS,
-    CATEGORY,
-    CATEGORY_DELETE,
-    CATEGORY_RENAME,
-    FINDING_STATUS,
-    GROUP,
-    NEW_CATEGORY,
-    RULE,
-    RULE_DELETE,
-    RULE_EDIT,
-    Proposal,
-    group_kind_word,
-)
-from finances.domain.spending import UNASSIGNED, UNCATEGORIZED, is_refund, month_range
+from finances.domain.spending import month_range
+from finances.mcp_server import serialization
 from finances.mcp_server.access import reading, writing
 
 By = Literal["category", "group", "merchant", "person", "account", "bank", "card"]
@@ -130,28 +112,6 @@ def get_net_worth(months: Annotated[int, Field(ge=1, le=60)] = 12) -> dict[str, 
         }
 
 
-def _transaction_item(item: FoundTransaction, names: dict[int, str]) -> dict[str, Any]:
-    flow = item.flow
-    found = item.transaction
-    uncategorized = flow.category == UNCATEGORIZED
-    return {
-        "id": found.id,
-        "day": flow.day.isoformat(),
-        "posted": found.posted_date.isoformat(),
-        "account": names[found.account_id],
-        "description": found.description,
-        "merchant": flow.merchant,
-        "amount_cents": flow.amount_cents,
-        "kind": flow.kind,
-        "refund": is_refund(flow),
-        "category": None if uncategorized else flow.category,
-        "group": None if uncategorized else flow.group,
-        "person": None if flow.person == UNASSIGNED else flow.person,
-        "card": found.card_last4,
-        "pending": found.is_pending,
-    }
-
-
 def list_transactions(
     text: str = "",
     account: str = "",
@@ -192,7 +152,7 @@ def list_transactions(
     page = found[offset : offset + limit]
     next_offset = offset + limit if len(found) > offset + limit else None
     return {
-        "transactions": [_transaction_item(item, names) for item in page],
+        "transactions": [serialization.transaction_item(item, names) for item in page],
         "next_offset": next_offset,
     }
 
@@ -426,29 +386,13 @@ def get_budgets(month: str = "") -> dict[str, Any]:
     }
 
 
-def _brief(item: Transaction, names: dict[int, str]) -> dict[str, Any]:
-    return {
-        "id": item.id,
-        "posted": item.posted_date.isoformat(),
-        "account": names[item.account_id],
-        "description": item.description,
-        "amount_cents": item.amount_cents,
-    }
-
-
-def _named(session: Any, transaction_id: int, names: dict[int, str]) -> dict[str, Any]:
-    found = get_transaction(session, transaction_id)
-    assert found is not None
-    return _brief(found, names)
-
-
 def list_uncategorized(limit: Annotated[int, Field(ge=1, le=500)] = 50) -> dict[str, Any]:
     with reading() as session:
         names = account_names(session)
         return {
             "total": count_uncategorized(session),
             "transactions": [
-                {**_brief(item, names), "merchant": clean_merchant(item.description)}
+                {**serialization.brief(item, names), "merchant": clean_merchant(item.description)}
                 for item in load_uncategorized(session, limit)
             ],
         }
@@ -501,8 +445,8 @@ def list_transfers(limit: Annotated[int, Field(ge=1, le=500)] = 100) -> dict[str
                 {
                     "pair": item.id,
                     "status": item.status,
-                    "out": _named(session, item.out_transaction_id, names),
-                    "in": _named(session, item.in_transaction_id, names),
+                    "out": serialization.named(session, item.out_transaction_id, names),
+                    "in": serialization.named(session, item.in_transaction_id, names),
                 }
                 for item in newest[:limit]
             ],
@@ -515,16 +459,12 @@ def list_transfer_suggestions() -> dict[str, Any]:
         return {
             "suggestions": [
                 {
-                    "out": _named(session, out_id, names),
-                    "in": _named(session, in_id, names),
+                    "out": serialization.named(session, out_id, names),
+                    "in": serialization.named(session, in_id, names),
                 }
                 for out_id, in_id in transfer_suggestions(session)
             ]
         }
-
-
-def _iso(day: date | None) -> str | None:
-    return None if day is None else day.isoformat()
 
 
 def data_coverage() -> dict[str, Any]:
@@ -547,11 +487,11 @@ def data_coverage() -> dict[str, Any]:
                     {"start": start.isoformat(), "end": end.isoformat()}
                     for start, end in item.facts.gaps
                 ],
-                "newest_statement_end": _iso(item.facts.newest_statement_end),
+                "newest_statement_end": serialization.iso(item.facts.newest_statement_end),
                 "mapped": item.facts.mapped,
-                "last_pull": _iso(item.facts.last_pull),
+                "last_pull": serialization.iso(item.facts.last_pull),
                 "drift_cents": item.facts.drift_cents,
-                "drift_date": _iso(item.facts.drift_date),
+                "drift_date": serialization.iso(item.facts.drift_date),
             }
             for item in report.accounts
         ],
@@ -580,91 +520,6 @@ def find_merchants(phrase: str, limit: Annotated[int, Field(ge=1, le=20)] = 5) -
     }
 
 
-def _proposal_item(session: Session, proposal: Proposal) -> dict[str, Any]:
-    return {
-        "id": proposal.id,
-        "kind": proposal.kind,
-        "transaction_id": None
-        if proposal.kind
-        in (RULE_EDIT, RULE_DELETE, CATEGORY_RENAME, CATEGORY_DELETE, FINDING_STATUS)
-        else proposal.target_id,
-        "in_id": proposal.other_id,
-        "category": proposal.value
-        if proposal.kind in (CATEGORY, RULE, RULE_EDIT, RULE_DELETE)
-        else None,
-        "rule": (
-            None
-            if proposal.kind not in (RULE, RULE_EDIT, RULE_DELETE)
-            else {
-                "match": proposal.match,
-                "pattern": proposal.pattern,
-                "priority": proposal.priority,
-            }
-        ),
-        "alias": (
-            None
-            if proposal.kind != ALIAS
-            else {"source": proposal.source, "target": proposal.value}
-        ),
-        "new": (
-            None
-            if proposal.kind not in (GROUP, NEW_CATEGORY)
-            else {
-                "name": proposal.value,
-                "group": proposal.group if proposal.kind == NEW_CATEGORY else None,
-                "kind": (
-                    group_kind_word(transfer=proposal.transfer, income=proposal.income)
-                    if proposal.kind == GROUP
-                    else None
-                ),
-                "sensitive": proposal.sensitive if proposal.kind == GROUP else None,
-                "tax": proposal.tax if proposal.kind == NEW_CATEGORY else None,
-            }
-        ),
-        "waits_for": waits_for(session, proposal),
-        "rule_change": (
-            None
-            if proposal.kind not in (RULE_EDIT, RULE_DELETE)
-            else {
-                "rule_id": proposal.target_id,
-                "before": proposal.before,
-                "delete": proposal.kind == RULE_DELETE,
-            }
-        ),
-        "finding": (
-            None
-            if proposal.kind != FINDING_STATUS
-            else {
-                "type": proposal.finding_type,
-                "about": proposal.finding_subject or "",
-                "month": (
-                    "" if proposal.finding_month is None else proposal.finding_month.isoformat()[:7]
-                ),
-                "status": proposal.value,
-            }
-        ),
-        "category_change": (
-            None
-            if proposal.kind not in (CATEGORY_RENAME, CATEGORY_DELETE)
-            else {
-                "name": proposal.before,
-                "rename_to": proposal.value if proposal.kind == CATEGORY_RENAME else None,
-                "delete": proposal.kind == CATEGORY_DELETE,
-                "move_to": (
-                    None
-                    if proposal.kind != CATEGORY_DELETE or not proposal.value
-                    else proposal.value
-                ),
-            }
-        ),
-        "reason": proposal.reason,
-        "status": proposal.status,
-        "created_at": proposal.created_at.isoformat(),
-        "decided_at": _iso(proposal.decided_at),
-        "out_of_date": proposal_out_of_date(session, proposal),
-    }
-
-
 def _as_tool(work: Callable[[], dict[str, Any]]) -> dict[str, Any]:
     try:
         return work()
@@ -676,7 +531,7 @@ def propose_category(transaction_id: int, category: str, reason: str) -> dict[st
     def work() -> dict[str, Any]:
         with writing() as session:
             found = store_category_proposal(session, transaction_id, category, reason)
-            return {"proposal": _proposal_item(session, found)}
+            return {"proposal": serialization.proposal_item(session, found)}
 
     return _as_tool(work)
 
@@ -685,7 +540,7 @@ def propose_transfer(out_id: int, in_id: int, reason: str) -> dict[str, Any]:
     def work() -> dict[str, Any]:
         with writing() as session:
             found = store_transfer(session, out_id, in_id, reason)
-            return {"proposal": _proposal_item(session, found)}
+            return {"proposal": serialization.proposal_item(session, found)}
 
     return _as_tool(work)
 
@@ -694,7 +549,7 @@ def propose_not_transfer(out_id: int, in_id: int, reason: str) -> dict[str, Any]
     def work() -> dict[str, Any]:
         with writing() as session:
             found = store_not_transfer(session, out_id, in_id, reason)
-            return {"proposal": _proposal_item(session, found)}
+            return {"proposal": serialization.proposal_item(session, found)}
 
     return _as_tool(work)
 
@@ -712,7 +567,7 @@ def propose_rule(
             found = store_rule(
                 session, example_id, pattern, category, reason, match=match, priority=priority
             )
-            return {"proposal": _proposal_item(session, found)}
+            return {"proposal": serialization.proposal_item(session, found)}
 
     return _as_tool(work)
 
@@ -721,7 +576,7 @@ def propose_merchant_alias(example_id: int, target: str, reason: str) -> dict[st
     def work() -> dict[str, Any]:
         with writing() as session:
             found = store_alias(session, example_id, target, reason)
-            return {"proposal": _proposal_item(session, found)}
+            return {"proposal": serialization.proposal_item(session, found)}
 
     return _as_tool(work)
 
@@ -736,7 +591,7 @@ def propose_group(
     def work() -> dict[str, Any]:
         with writing() as session:
             found = store_group(session, example_id, name, reason, kind=kind, sensitive=sensitive)
-            return {"proposal": _proposal_item(session, found)}
+            return {"proposal": serialization.proposal_item(session, found)}
 
     return _as_tool(work)
 
@@ -751,7 +606,7 @@ def propose_new_category(
     def work() -> dict[str, Any]:
         with writing() as session:
             found = store_new_category(session, example_id, name, group, reason, tax=tax)
-            return {"proposal": _proposal_item(session, found)}
+            return {"proposal": serialization.proposal_item(session, found)}
 
     return _as_tool(work)
 
@@ -777,7 +632,7 @@ def propose_rule_change(
                 priority=priority,
                 category=category,
             )
-            return {"proposal": _proposal_item(session, found)}
+            return {"proposal": serialization.proposal_item(session, found)}
 
     return _as_tool(work)
 
@@ -794,7 +649,7 @@ def propose_category_change(
             found = store_category_change(
                 session, name, reason, rename_to=rename_to, delete=delete, move_to=move_to
             )
-            return {"proposal": _proposal_item(session, found)}
+            return {"proposal": serialization.proposal_item(session, found)}
 
     return _as_tool(work)
 
@@ -807,7 +662,7 @@ def propose_finding_status(
             start = _month_start(month)
             found = find_finding(session, start, type, about)
             stored = store_finding_status(session, found, status, reason)
-            return {"proposal": _proposal_item(session, stored)}
+            return {"proposal": serialization.proposal_item(session, stored)}
 
     return _as_tool(work)
 
@@ -819,7 +674,7 @@ def list_proposals(
     def work() -> dict[str, Any]:
         with reading() as session:
             found = load_proposals(session, status=status, limit=limit)
-            return {"proposals": [_proposal_item(session, item) for item in found]}
+            return {"proposals": [serialization.proposal_item(session, item) for item in found]}
 
     return _as_tool(work)
 
@@ -834,7 +689,7 @@ def log_advice(text: str, subject: str = "") -> dict[str, Any]:
                     "created_at": found.created_at.isoformat(),
                     "subject": found.subject,
                     "text": found.text,
-                    "dismissed_at": _iso(found.dismissed_at),
+                    "dismissed_at": serialization.iso(found.dismissed_at),
                 }
             }
 
@@ -852,7 +707,7 @@ def list_advice(limit: Annotated[int, Field(ge=1, le=200)] = 20) -> dict[str, An
                         "created_at": item.created_at.isoformat(),
                         "subject": item.subject,
                         "text": item.text,
-                        "dismissed_at": _iso(item.dismissed_at),
+                        "dismissed_at": serialization.iso(item.dismissed_at),
                     }
                     for item in found
                 ]
