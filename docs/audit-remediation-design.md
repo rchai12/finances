@@ -250,7 +250,10 @@ Each executable spec is issued against its approved predecessor. The
 [guide](verification/phase-47h2-mcp-proposal-tools.md) are approved, including
 the shared month helper needed by proposal and reporting consumers. The
 [47h3 spec](phases/phase-47h3-mcp-report-tools.md) and
-[guide](verification/phase-47h3-mcp-report-tools.md) specify seven reporting moves.
+[guide](verification/phase-47h3-mcp-report-tools.md) are approved. The
+[47h4 spec](phases/phase-47h4-mcp-facade.md) and
+[guide](verification/phase-47h4-mcp-facade.md) finalize accounts/queues and a
+permanent recursive 400-line gate in the standard full synthetic check.
 New modules meet 400 lines immediately; the shrinking tools.py has a temporary
 monolith exception through 47h3. That exception expires at 47h4, when any remaining
 facade exception is limited to imports alone. No arbitrary helper relocation.

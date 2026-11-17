@@ -432,7 +432,8 @@ required before isolated coder work; later stages remain pending.
 
 ## Phase 47h3: extract MCP reporting tools (2026-11-16)
 
-Specified; result pending. Approved 47h2 baseline 713c911, N=4725. Existing owner
+PASS at 4761 per independent review 1dd738f; revision 2 scope correction
+resolved initial four failures. Approved 47h2 baseline 713c911, N=4725. Existing owner
 four-stage choice governs seven reporting moves (~230 body lines). By moves with
 spending and is re-exported; shared helper stays unchanged. Twelve given cases
 in fresh fail47h3 fail for absent reports; five literal spending/recurring cases
@@ -460,3 +461,19 @@ lint/format clean. Full acceptance remains pending; all gates must rerun, no
 narrow reassessment. Preserve existing implementation and progress, commit revised
 planning baseline before resume. Lesson: search moved symbols across all tests,
 including non-MCP filenames and given files, before fixing migration scope.
+
+
+## Phase 47h4: finalize MCP facade (2026-11-16)
+
+Specified; result pending. Owner authorized importing nine reviewed 47h3 paths;
+all matched review delivery before copy. Review claimed updated progress but
+both delivery and review clone contained old blocked text; architect reconciled
+summary to committed 4761 PASS, retained failed receipts and documented discrepancy.
+Predecessor delivery and planning still need commits before isolated coding.
+Fresh fail47h4 clones1dd738f with explicit nine-path predecessor overlay. Fourteen
+given: thirteen intended failures, size guard already passes. Transfer ordering
+literal passes on predecessor; whole31-tool probe/self-check passes. Size guard
+rejects planted401-line source and permits400 (planted file removed). Exact
+three-file patch moves all multiline/single-line patch points and unchanged AST
+hash inventory. New accounts/queues retain11 verbatim tool bodies; facade only
+imports, no exception to recursive400 cap. No new dependencies or tooling code.
