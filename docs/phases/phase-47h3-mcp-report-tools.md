@@ -16,7 +16,7 @@ re-export it from tools; use the existing shared month helper. No new helper.
 AGENTS.md, docs/architecture.md, docs/testing.md, docs/phase-conventions.md,
 docs/progress.md, audit-remediation-design section 47h, the 47h2 spec/review,
 and mcp_server/tools.py, helpers.py, proposals.py, serialization.py, access.py,
-server.py and the two earlier tests in Scope below.
+server.py and the four earlier tests in Scope below.
 
 ## Starting state
 
@@ -44,6 +44,8 @@ work. No dependency installation or feature spike is needed.
 | `tests/unit/test_mcp_report_tools_behavior.py` | New: coder tests below |
 | `tests/unit/test_mcp_serialization_behavior.py` | Exact given patch |
 | `tests/unit/test_mcp_proposal_tools_behavior.py` | Exact given patch |
+| `tests/unit/test_period_adapters.py` | Exact correction patch below; supersedes its 47g given bytes |
+| `tests/integration/test_period_selection_compatibility.py` | Exact correction patch below |
 | `docs/progress.md` | Append phase entry |
 
 ## Out of scope
@@ -168,6 +170,94 @@ must match. Apply the following patch:
 
  @pytest.mark.parametrize("error", [ValueError("finding not found"), LookupError("synthetic")])
 ```
+
+## Spec correction (2026-11-16)
+
+Revision 2 corrects an architect omission in planning commit 327f62a. The initial
+spec removed tools._month_start but omitted four tests calling it in two files
+outside Scope. The coder correctly stopped after full acceptance reported
+4757 passed, four failed; MCP's 332 passing cases alone were insufficient.
+This is a specification/scope defect, not evidence to restore a private facade
+alias or change implementation behavior. Preserve the existing isolated work.
+
+This revision authorizes the two added Scope paths and only the patch below.
+It supersedes the old Phase 47g given file's import/call locations, leaving every
+assertion, input, error message, clock refusal and delegation count unchanged.
+The canonical helpers.month_start is already the implementation used by reports
+and proposals; public MCP caller tests continue covering their adapters.
+N remains 4725, given count 12, minimum 4737 plus coder cases. No new tests.
+
+The four migrated cases passed both against approved 47h2 and against a disposable
+copy of the delivered 47h3 source. Both files lint/format cleanly. This targeted
+validation is not full acceptance or an independent implementation approval.
+No product/design decision or new dependency is involved.
+
+Commit revised planning docs before resuming. The coder may preserve its existing
+/tmp/finances-47h3-work delivery by comparing the committed old baseline to the
+new planning commit and applying only planning-document changes plus this exact
+test patch. Record both SHAs and confirm spec/guide match revised committed bytes;
+do not reset or overwrite implementation/progress. Original editor settings and
+original blocked progress remain preserved. Apply this correction patch once,
+in addition to the original two-file patch:
+
+```text
+--- a/tests/unit/test_period_adapters.py
++++ b/tests/unit/test_period_adapters.py
+@@ -5,7 +5,7 @@
+ from typer.exceptions import Exit
+
+ from finances.cli import reports as cli
+-from finances.mcp_server import tools
++from finances.mcp_server import helpers
+ from finances.web.routes import reports as web
+
+
+@@ -50,5 +50,5 @@
+
+ def test_mcp_bad_month_keeps_tool_error():
+     with pytest.raises(ToolError) as stopped:
+-        tools._month_start("bad")
++        helpers.month_start("bad")
+     assert str(stopped.value) == "month must be a year and month, like 2026-05"
+--- a/tests/integration/test_period_selection_compatibility.py
++++ b/tests/integration/test_period_selection_compatibility.py
+@@ -16,7 +16,7 @@
+ from finances.db.orm import TransactionRow
+ from finances.db.repositories import create_account, set_category_by_hand
+ from finances.domain import periods
+-from finances.mcp_server import tools
++from finances.mcp_server import helpers
+ from finances.mcp_server.server import build_server
+ from finances.web import app as web_app
+ from finances.web import periods as web
+@@ -77,7 +77,7 @@
+     assert web.spending_range(dict(month="", start="", end="")) == expected
+     assert cli.first_day(None) == expected[0]
+     assert web.first_day("") == expected[0]
+-    assert tools._month_start("") == expected[0]
++    assert helpers.month_start("") == expected[0]
+     assert spy.call_count == 5
+
+
+@@ -99,7 +99,7 @@
+     assert (
+         cli.first_day("2024-02")
+         == web.first_day("2024-02")
+-        == tools._month_start("2024-02")
++        == helpers.month_start("2024-02")
+         == date(2024, 2, 1)
+     )
+     with pytest.raises(ValueError, match="from must be a date"):
+```
+
+**Rerun gates:** all five Acceptance steps are live again, starting from
+scripts/check.py --first mcp --workers 4, followed immediately by coverage,
+given-only tests, probe and complete nine-path scope/patch checks. The added
+period files run in core as well as MCP tests in mcp; selected-first still runs
+the whole suite. Reuse no failed-run acceptance result or coverage. Independent
+verifier runs every gate fresh against revision 2 and the same delivery bytes.
+Update the existing progress entry after success, retaining the stop/correction
+history; do not append a duplicate phase heading.
 
 ## Given tests
 

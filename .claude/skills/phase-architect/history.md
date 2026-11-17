@@ -445,3 +445,18 @@ digest pass unchanged. No implementation/dependencies/tooling changes. New repor
 before isolated coder starts. When embedding unified diffs, check staged-equivalent
 whitespace too: blank context markers alone are removed in Markdown, preserving
 patch added/removed content (as approved by the 47h2 review).
+
+
+### Phase 47h3 correction: missed shared-period callers (2026-11-16)
+
+Initial planning 327f62a omitted four tools._month_start calls outside MCP-named
+tests. Coder stopped correctly: 4757 passed/four failed, selected MCP 332 passed.
+Spec revision 2 adds exact test migrations in test_period_adapters.py and
+integration/test_period_selection_compatibility.py to canonical helpers.month_start;
+all assertions, inputs, clocks and delegation counts retained, superseding only
+47g's old given import/call locations. Four targeted cases pass on predecessor
+and delivered reporting source in disposable fail47h3-correction; both files
+lint/format clean. Full acceptance remains pending; all gates must rerun, no
+narrow reassessment. Preserve existing implementation and progress, commit revised
+planning baseline before resume. Lesson: search moved symbols across all tests,
+including non-MCP filenames and given files, before fixing migration scope.

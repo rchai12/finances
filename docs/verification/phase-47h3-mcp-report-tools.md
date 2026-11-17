@@ -12,6 +12,20 @@ inspect status/diff before writing report. Use fresh isolated clone, linked
 existing venv and clone/src PYTHONPATH; verify import provenance. Preserve editor
 settings and compare reviewed delivery bytes before transporting verdict.
 
+## Revision 2 correction (2026-11-16)
+
+Judge the corrected spec, not planning commit 327f62a alone. Its omitted period
+tests were a spec defect: four callers used the intentionally removed private
+facade alias. Two additional Scope files migrate only imports/calls to
+helpers.month_start, preserving all assertions and the old given behavior.
+Confirm all four cases (bad month, two default dates, explicit no-calendar) pass;
+public MCP period tests remain unchanged. Review old/new planning SHAs and the
+preserved implementation separately; no compatibility shim is needed.
+The earlier 4757-pass/four-fail run is historical failure evidence only. All five
+acceptance steps must run fresh, including core in the full suite, immediate
+coverage, given-only twelve, probe and expanded scope/given equality. No
+scope-only reassessment or reuse of functional evidence is authorized.
+
 ## 1. Gates
 
 Run spec's five acceptance steps exactly, sequentially: first
@@ -23,7 +37,8 @@ not weakening tests. Prior coder receipts do not replace fresh verification.
 
 ## 2. Scope and requirements
 
-Seven spec paths plus review; given file and two-file patch match supplied
+Nine spec paths plus review; given file, original two-file patch and correction
+two-file patch match supplied
 content. All other source/tests unchanged. No relocation of accounts/net-worth,
 transactions, coverage or queues. Check unchanged server/access/helpers/proposals/
 serialization bytes, all old hashes and remaining eleven read function bodies.
