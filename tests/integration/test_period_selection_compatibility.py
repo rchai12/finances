@@ -16,7 +16,7 @@ from finances.db.migrate import upgrade_to_head
 from finances.db.orm import TransactionRow
 from finances.db.repositories import create_account, set_category_by_hand
 from finances.domain import periods
-from finances.mcp_server import tools
+from finances.mcp_server import helpers
 from finances.mcp_server.server import build_server
 from finances.web import app as web_app
 from finances.web import periods as web
@@ -77,7 +77,7 @@ def test_defaults_and_delegation(monkeypatch, today):
     assert web.spending_range(dict(month="", start="", end="")) == expected
     assert cli.first_day(None) == expected[0]
     assert web.first_day("") == expected[0]
-    assert tools._month_start("") == expected[0]
+    assert helpers.month_start("") == expected[0]
     assert spy.call_count == 5
 
 
@@ -99,7 +99,7 @@ def test_explicit_selections_do_not_read_clocks(monkeypatch):
     assert (
         cli.first_day("2024-02")
         == web.first_day("2024-02")
-        == tools._month_start("2024-02")
+        == helpers.month_start("2024-02")
         == date(2024, 2, 1)
     )
     with pytest.raises(ValueError, match="from must be a date"):

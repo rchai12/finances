@@ -1054,13 +1054,15 @@ Template:
   - Source sizes: proposals 222, helpers 15, tools 512 lines; new modules meet 400-line caps, tools retains temporary exception ending at 47h4. No facade/server dependency from area modules, new dependency, schema, migration or later-stage implementation. Evidence /tmp/finances-47h2-evidence. Independent verification remains required; no commit or push.
 
 ## Phase 47h3: extract MCP reporting tools (2026-11-16)
-- Tests: 4725 -> 4757 passed, 4 failed (given 12)
-- New public names: `finances.mcp_server.reports`: `By`, `get_spending`, `month_over_month`, `get_insights`, `get_recurring`, `get_upcoming`, `get_forecast`, `get_budgets` (isolated implementation only)
-- Changed files: 7 in isolated checkout; progress only in original workspace
+- Tests: 4725 -> 4761 (given 12)
+- New public names: `finances.mcp_server.reports`: `By`, `get_spending`, `month_over_month`, `get_insights`, `get_recurring`, `get_upcoming`, `get_forecast`, `get_budgets`
+- Changed files: 9 authorized paths in completed delivery
 - Deviations: None
 - Follow-ups:
-  - Stopped: R5/Acceptance 1 versus Design private-alias removal | four unchanged earlier cases call tools._month_start and fail AttributeError after required removal; these two test files are outside Scope | architect must authorize exact test migration or revise alias requirement before implementation can finish.
+  - Resolved prior stop: initial acceptance had 4757 passes/four failures from omitted private-alias test migrations; revision 2 d823d07 authorized both files. Independent review 1dd738f records fresh full acceptance: 4761 passed, all checks passed, reports coverage 100%, twelve given passed, probe FAILURES 0. Receipt reconciled by architect from committed review; no new full run claimed.
   - Blocked files: tests/unit/test_period_adapters.py:53 and tests/integration/test_period_selection_compatibility.py:80,102. The first is a Phase 47g given test; no unauthorized test edits or compatibility alias added.
   - Full planning baseline 327f62a0008cb755bbc454149143e5463489cc80 follows approved 47h2 713c9117d8aa5e79fa44e54a61d72aa9485d7bef; committed spec/guide matched HEAD. Fresh /tmp/finances-47h3-work started clean, linked existing venv and used PYTHONPATH=/tmp/finances-47h3-work/src; finances.__file__ resolved inside clone. Original .vscode/settings.json preserved.
   - Baseline passed 4725 tests in 99.17s, All checks passed. Given-before failed all twelve for missing reports module; focused run passed 89 (12 given, 24 coder and 53 earlier cases). Required --first mcp --workers 4: selected MCP 332 passed; full suite 4757 passed/4 failed in 95.40s, exit 1; core 1606 passed/4 failed, all other sections zero failures/skips. Existing synthetic loopback permission used.
   - Coverage-consuming and subsequent acceptance gates not run because first gate failed. Given bytes and exact two authorized earlier-test patches verified; original function AST pin passed; server/access/helpers/proposals/serialization byte-identical. reports.py 244 lines, tools.py 286 lines; no final global gate applied. Source/tests remain in isolated checkout pending spec correction, not copied to original workspace. Logs /tmp/finances-47h3-evidence. No commit or push.
+
+  - Delivery reconciliation (2026-11-16): owner authorized copying nine reviewed paths to main workspace; source/tests compared byte-for-byte to /tmp/finances-47h3-r2-review. Both scratch delivery and review copy still contained the historical blocked progress text despite review describing an updated entry. Architect corrected summary fields here from the committed review, retaining failed-attempt receipts above as history. Implementation bytes were not repaired.

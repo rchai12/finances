@@ -10,7 +10,7 @@ import pytest
 from finances.analysis.search import FoundTransaction
 from finances.domain.models import DataSource, Transaction
 from finances.domain.spending import Flow
-from finances.mcp_server import helpers, proposals, tools
+from finances.mcp_server import helpers, proposals, reports, tools
 from finances.mcp_server import serialization as ser
 from tests.unit.test_mcp_serialization import CASES, proposal
 
@@ -252,7 +252,11 @@ def test_source_structure_and_limits():
     assert "mcp_server.tools" not in serialization and "mcp_server.server" not in serialization
     from finances.mcp_server.server import _TOOLS
 
-    assert all(fn.__module__ == tools.__name__ for fn, _ in _TOOLS)
+    assert all(
+        fn is getattr(tools, fn.__name__)
+        and fn.__module__ == (reports.__name__ if hasattr(reports, fn.__name__) else tools.__name__)
+        for fn, _ in _TOOLS
+    )
 
 
 def test_read_tool_helper_markers(monkeypatch):
@@ -379,7 +383,7 @@ def test_tool_bodies_match_planning_baseline():
     import hashlib
 
     nodes = []
-    for module in (tools, proposals, helpers):
+    for module in (tools, proposals, helpers, reports):
         tree = ast.parse(Path(module.__file__).read_text())
         for node in tree.body:
             if isinstance(node, ast.FunctionDef):

@@ -5,7 +5,7 @@ from mcp.server.mcpserver.exceptions import ToolError
 from typer.exceptions import Exit
 
 from finances.cli import reports as cli
-from finances.mcp_server import tools
+from finances.mcp_server import helpers
 from finances.web.routes import reports as web
 
 
@@ -50,5 +50,5 @@ def test_web_empty_month_defaults(monkeypatch):
 
 def test_mcp_bad_month_keeps_tool_error():
     with pytest.raises(ToolError) as stopped:
-        tools._month_start("bad")
+        helpers.month_start("bad")
     assert str(stopped.value) == "month must be a year and month, like 2026-05"

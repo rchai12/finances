@@ -9,7 +9,7 @@ import pytest
 from mcp.server.mcpserver.exceptions import ToolError
 
 from finances.db.repositories.categories import CategoryExistsError
-from finances.mcp_server import helpers, proposals, tools
+from finances.mcp_server import helpers, proposals, reports, tools
 
 
 @pytest.fixture
@@ -208,7 +208,7 @@ def test_month_helper_clock_errors_and_aliases(monkeypatch):
     with pytest.raises(ToolError, match="^month must be a year and month, like 2026-05$"):
         helpers.month_start("2026-13")
     assert clock.call_count == 1
-    assert tools._month_start is proposals._month_start is helpers.month_start
+    assert reports._month_start is proposals._month_start is helpers.month_start
 
 
 @pytest.mark.parametrize("error", [ValueError("finding not found"), LookupError("synthetic")])
