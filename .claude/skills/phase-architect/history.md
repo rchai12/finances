@@ -384,7 +384,7 @@ choice unresolved. Commit planning docs before isolated coding.
 
 ## Phase 47g: shared reporting period selection (2026-11-16)
 
-Specified; result pending. Baseline 666e035, N=4583. Captured CLI/web empty-month
+PASS: 4639 tests, no findings or approved deviations; implementation f792f13 and review d09bcde committed. Baseline 666e035, N=4583. Captured CLI/web empty-month
 difference and conflict/incomplete/date precedence before drafting. Five domain
 units and two thin shared adapters; explicit today, typed result/error, existing
 private caller aliases preserved. Nineteen given cases collect in fresh fail47g:
@@ -394,3 +394,19 @@ before publication. Lint/format pass; embedded artifacts generated and checked.
 No implementation, dependency, probe, search gate or tooling change. No owner
 choice unresolved. Public boundary/export parity remains coder-owned. Commit
 planning docs before isolated coding; unrelated editor settings untouched.
+
+
+## Phase 47h1: extract MCP serialization (2026-11-16)
+
+Specified; result pending. Owner chose four stages: serialization, proposal/advice,
+reporting, accounts/queues and final size gate (47h1–47h4). Baseline d09bcde,
+N=4639. Five helper moves, tool bodies/registration/access unchanged except helper
+references and stale module docstring. Sixteen given cases collected in isolated
+fail47h1: fifteen expected missing-module failures, one inventory guard passes.
+Twelve complete synthetic proposal JSON outputs captured from existing helper
+and fixed as literals. Lint/format pass. Validated independent full 31-tool
+schema/signature digest twice; probe self-check detects a planted description
+change and returns FAILURES 0 on baseline. New module <=400; tools temporary
+<=861 exception expires at 47h4. No implementation, dependencies or tooling
+changes; no earlier-test patch required for this stage. Commit planning docs
+before isolated coding.

@@ -39,7 +39,10 @@ executable phase guide. The findings are accepted; do not repeat the audit.
 | 47e | Exact line preservation including blanks/page boundaries; synthetic parser records and reconciliation unchanged |
 | 47f | Complete JSON ownership matrix including a name colliding with the joint label; no duplicated tool ownership loading |
 | 47g | CLI/web/MCP compatibility matrix for valid/invalid/default input and report/export parity, including error precedence |
-| 47h | Complete tool/signature/schema inventory and proposal serialization matrix; access-policy tests; import-direction and size gates |
+| 47h1 | Whole proposal JSON and shared serializers; unchanged 31-tool schema/signature inventory; new-module size/import direction |
+| 47h2 | Proposal/advice tool moves and patch migration; write permissions and same schema inventory |
+| 47h3 | Reporting tool moves; JSON/order/error compatibility and same schema inventory |
+| 47h4 | Account/queue moves, final facade, all access policies and global 400-line gate; inventory without missing/duplicate registrations |
 | 47i | All moved tests accounted for and assigned to correct sections; forbidden dependency rejected by the tightened guard |
 | 47j | Event-coordinated two-connection lock success and exhaustion, no partial writes, settings isolation, foreign keys and read-only enforcement |
 

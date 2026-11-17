@@ -45,8 +45,11 @@ conditional because backup/restore and cross-process access need their own desig
 | 47e | Share statement line flattening | 47d | parsers |
 | 47f | Use analysis account ownership in MCP | 47e | core, mcp |
 | 47g | Share reporting period selection | 47f | core, cli, web, mcp |
-| 47h | Split MCP tools behind their existing import path | 47g | mcp |
-| 47i | Document test organization and tighten stale guards | 47h | core, scripts |
+| 47h1 | Extract MCP serialization | 47g | mcp |
+| 47h2 | Extract proposal/advice tools | 47h1 | mcp |
+| 47h3 | Extract reporting tools | 47h2 | mcp |
+| 47h4 | Extract accounts/queues, finalize facade and size gate | 47h3 | mcp |
+| 47i | Document test organization and tighten stale guards | 47h4 | core, scripts |
 | 47j | Configure a bounded database lock wait | 47i | core, web, sync |
 
 This is a serial release order to keep one baseline at a time. Parts 47d–47g are
@@ -235,6 +238,18 @@ MCP period callers, related tests. If the captured caller matrix exceeds phase
 limits, split the domain/CLI/web and MCP integrations before writing given tests.
 
 ## 47h: split MCP tools by responsibility
+
+**Owner decision (2026-11-16): four stages, with independent review and commit
+between them.** 47h1 moves serialization only; 47h2 moves proposal/advice tools;
+47h3 moves reporting tools; 47h4 moves account/balance and transaction/work-queue
+tools, completes the supported facade and applies the final global size gate.
+Each executable spec is issued against its approved predecessor. The
+[47h1 spec](phases/phase-47h1-mcp-serialization.md) and
+[guide](verification/phase-47h1-mcp-serialization.md) are finalized first.
+New modules meet 400 lines immediately; the shrinking tools.py has a temporary
+monolith exception through 47h3. That exception expires at 47h4, when any remaining
+facade exception is limited to imports alone. No arbitrary helper relocation.
+
 
 Keep `finances.mcp_server.tools` as the supported facade. Move implementations
 into cohesive modules under `mcp_server`: account/balance tools, reporting tools,
