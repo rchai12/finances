@@ -415,7 +415,8 @@ before isolated coding.
 
 ## Phase 47h2: extract MCP proposal and advice tools (2026-11-16)
 
-Specified; result pending. Approved predecessor 1a7056e, N=4687. Owner's existing
+PASS at 4725 tests, no findings/deviations; implementation ac9cacc, review
+713c911. Approved predecessor 1a7056e, N=4687. Owner's existing
 four-stage decision applies. Move 13 existing tool bodies and _as_tool to proposals,
 shared month_start to helpers, preserve facade identity and original function ASTs.
 Exact earlier-test patch moves patch points and aggregates original AST hashes;
@@ -427,3 +428,20 @@ patch lint/format, patch applicability and embedded-copy checks pass. Initial
 hardlink clone was refused by filesystem; fresh --no-hardlinks clone succeeded.
 No production implementation, dependencies, or tooling changes. Planning commit
 required before isolated coder work; later stages remain pending.
+
+
+## Phase 47h3: extract MCP reporting tools (2026-11-16)
+
+Specified; result pending. Approved 47h2 baseline 713c911, N=4725. Existing owner
+four-stage choice governs seven reporting moves (~230 body lines). By moves with
+spending and is re-exported; shared helper stays unchanged. Twelve given cases
+in fresh fail47h3 fail for absent reports; five literal spending/recurring cases
+pass against original tools via temporary import substitution. Exact two-file
+patch updates registration ownership, function AST aggregation and helper alias
+pin without weakening behavior or changing hashes. Patch applicability and
+lint/format pass. Full independent 31-tool schema/signature probe self-check and
+digest pass unchanged. No implementation/dependencies/tooling changes. New reports
+<=400, tools <=512 interim; final global gate remains 47h4. Commit planning docs
+before isolated coder starts. When embedding unified diffs, check staged-equivalent
+whitespace too: blank context markers alone are removed in Markdown, preserving
+patch added/removed content (as approved by the 47h2 review).

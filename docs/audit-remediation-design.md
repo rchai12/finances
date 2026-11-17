@@ -247,8 +247,10 @@ Each executable spec is issued against its approved predecessor. The
 [47h1 spec](phases/phase-47h1-mcp-serialization.md) and
 [guide](verification/phase-47h1-mcp-serialization.md) are approved. The
 [47h2 spec](phases/phase-47h2-mcp-proposal-tools.md) and
-[guide](verification/phase-47h2-mcp-proposal-tools.md) now specify the next stage,
-including the shared month helper needed by proposal and reporting consumers.
+[guide](verification/phase-47h2-mcp-proposal-tools.md) are approved, including
+the shared month helper needed by proposal and reporting consumers. The
+[47h3 spec](phases/phase-47h3-mcp-report-tools.md) and
+[guide](verification/phase-47h3-mcp-report-tools.md) specify seven reporting moves.
 New modules meet 400 lines immediately; the shrinking tools.py has a temporary
 monolith exception through 47h3. That exception expires at 47h4, when any remaining
 facade exception is limited to imports alone. No arbitrary helper relocation.
