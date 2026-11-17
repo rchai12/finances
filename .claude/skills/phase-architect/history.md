@@ -482,7 +482,8 @@ imports, no exception to recursive400 cap. No new dependencies or tooling code.
 
 ## Phase 47i: view guards and testing conventions (2026-11-17)
 
-Specified; result pending. Predecessor733cbd4 approved at4790; implementation
+PASS at4828, no findings/deviations: implementationc0cb517, review67c8e7e.
+Predecessor733cbd4 approved at4790; implementation
 98188a8 committed. No owner choice needed; no test moves, source changes or
 section changes. Tighten three stale file exemptions to exact sync.py/runner/
 LinkRun result import; import coupling is not IO proof. Five scope paths:
@@ -493,3 +494,20 @@ must fail. No reference guard implementation, dependencies or tooling changes.
 Coverage remains standard full overall/critical; no artificial test-code gate.
 Commit planning docs before isolated coder. Preserve all original names and
 formatting assertions, no suite-wide renames or regression deduplication.
+
+
+## Phase 47j: bounded SQLite lock waiting (2026-11-17)
+
+Specified; result pending. Approved predecessor67c8e7e, N4828. Settled design:
+30000ms default,0..120000 config, native driver timeout; no retries/replay/WAL.
+Architect fixes precedence over explicit URL timeout, confirmed with SQLAlchemy
+spike:0.137 seconds yields PRAGMA137, URL timeout0 overridden. Fifteen given
+cases collect and fail as intended in fresh fail47j, lint/format clean. Settings,
+all connection paths, URL precedence, FK/query_only and isolation pins covered.
+Actual contention/rollback tests left to coder with event coordination and low
+configured timeout, migrated synthetic file DB, no default30s waits. Ten scope
+paths include both explicit env-key lists and new operations doc. No production
+implementation, dependencies, full-suite execution or separate duplicate probe.
+Final audit phase; conditional deferred findings remain deferred. Commit planning
+before isolated coding and run full acceptance, immediate config/engine100 and
+independent verification. No phase47k inferred automatically.

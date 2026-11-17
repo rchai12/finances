@@ -315,6 +315,10 @@ section patterns. No source renaming campaign or release-version bump.
 
 ## 47j: a bounded SQLite lock wait
 
+The [47j spec](phases/phase-47j-sqlite-lock-wait.md) and
+[guide](verification/phase-47j-sqlite-lock-wait.md) specify the final bounded phase.
+The configured setting overrides an explicit URL timeout query parameter.
+
 Add settings `db_busy_timeout_ms: int = 30000`, constrained to 0 through 120000,
 from `get_settings()` (`FIN_DB_BUSY_TIMEOUT_MS`). Configure every SQLite connection
 created by `get_engine` with that timeout using the driver's connection option
