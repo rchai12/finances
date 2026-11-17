@@ -6,7 +6,7 @@ Applies to every phase. Phase specs list the specific tests; this file sets the 
 
 | Layer | Location / marker | What it covers | Runs |
 |---|---|---|---|
-| Unit | `tests/unit/` | Pure functions: money, dates, parsers on text, matcher, reconciliation, fingerprints, rules | Every `pytest` run; must be fast (< 10 s total) |
+| Unit | `tests/unit/` | Pure functions: money, dates, parsers on text, matcher, reconciliation, fingerprints, rules | Every `pytest` run; keep fast (the historical < 10 s aspiration is not a measured gate) |
 | Integration | `tests/integration/` | Repositories, migrations, import services against a freshly migrated temp SQLite DB | Every `pytest` run |
 | End-to-end | `tests/e2e/` | Multi-step CLI workflows (accounts → sync → statement) through Typer's `CliRunner` | Every `pytest` run |
 | Property-based | inside unit/integration, using `hypothesis` (Phase 9); the profile in `tests/conftest.py` makes every run use the same examples and keep no example database | Invariants over generated inputs: money, dates, reconciliation, fingerprints, pairing, damaged statements and SimpleFIN answers, and statements and feed pulls in any order | Every `pytest` run (bounded examples) |
@@ -21,8 +21,15 @@ Applies to every phase. Phase specs list the specific tests; this file sets the 
 4. **Every bug fix adds a test** that fails before the fix.
 5. **Integration tests use migrations**, never `metadata.create_all`, so migrations are always exercised.
 6. **Coverage**: branch coverage is measured on every run. Overall `fail_under = 85`. Every line and every branch of each critical module must be covered; `scripts/check.py` checks it.
-7. Tests for a module live in the matching layer folder, named `test_<module>.py`.
-8. **Shared helpers live in `tests/support.py`** (from Phase 13c): running `fin` and reading its tables (`run`, `table_rows`, `plain_lines`, `failed_cleanly`) and reading web pages (`Page`, `page`, `post`, `texts`). New tests import them instead of copying them; older tests keep their copies until they are next changed.
+7. Name new tests for the behavior they check, in the appropriate layer; keep module context in filenames such as `test_<module>.py`. Existing `*_more.py` files remain valid. A bug fix does not require renaming unrelated tests or duplicating a whole workflow in every layer; front-end regression cases remain useful.
+8. When deliberately moving tests, record an exact old-to-new node map and update section patterns and imports. Preserve every case and assertion.
+9. **Shared helpers live in `tests/support.py`** (from Phase 13c): running `fin` and reading its tables (`run`, `table_rows`, `plain_lines`, `failed_cleanly`) and reading web pages (`Page`, `page`, `post`, `texts`). New tests import them instead of copying them; older tests keep their copies until they are next changed.
+
+## View import guard
+
+The view guard scans Python imports recursively, including imports nested in functions. It rejects database, sync, keyring and SQLAlchemy imports except the exact result type `LinkRun` from `finances.sync.runner` in the root `sync.py` view. Imports of analysis result types in backup and transfer views are also allowed. Importing a service result type creates coupling; it does not by itself establish that a view performs IO. Move a result type when its service/view contract next changes.
+
+This AST guard checks declared import dependencies; it does not execute code or sandbox dynamic Python, and the `LinkRun` exception does not prove arbitrary calling code is IO-free.
 
 ## Critical modules
 

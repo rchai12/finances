@@ -38,7 +38,7 @@ from finances.views.people import PersonRow, people_rows
 from finances.views.refunds import RefundLine, RefundView, refund_view, refunded_lines
 
 VIEWS = Path(finances.views.__file__).parent
-STILL_LOADING = {"backups.py", "sync.py", "transfers.py"}
+PERMITTED_RESULT_IMPORTS = {("sync.py", "finances.sync.runner", "LinkRun")}
 CREATED = datetime(2026, 1, 2, 3, 4, 5, tzinfo=UTC)
 CARD = Account(1, "Test Card", "Test Bank", AccountType.CREDIT_CARD, "USD", "1111", True, CREATED)
 CHECKING = Account(
@@ -149,18 +149,34 @@ def test_the_refund_sections() -> None:
     ]
 
 
+def _forbidden_import(name: str) -> bool:
+    roots = ("finances.db", "finances.sync", "keyring", "sqlalchemy")
+    return any(name == root or name.startswith(root + ".") for root in roots)
+
+
+def _import_module(node: ast.ImportFrom, relative_path: str) -> str:
+    if not node.level:
+        return node.module or ""
+    package = ["finances", "views", *Path(relative_path).parent.parts]
+    if node.level > len(package):
+        raise ValueError(f"invalid relative import in {relative_path}")
+    base = package[: len(package) - node.level + 1]
+    return ".".join([*base, *([node.module] if node.module else [])])
+
+
 def test_only_the_frozen_views_still_load_data() -> None:
-    loading = set()
-    for path in VIEWS.glob("*.py"):
+    for path in VIEWS.rglob("*.py"):
+        relative_path = path.relative_to(VIEWS).as_posix()
         tree = ast.parse(path.read_text(encoding="utf-8"))
         for node in ast.walk(tree):
-            names = []
-            if isinstance(node, ast.ImportFrom) and node.module:
-                names = [node.module]
-            elif isinstance(node, ast.Import):
-                names = [alias.name for alias in node.names]
-            for name in names:
-                if name.startswith(("finances.db", "finances.sync", "keyring", "sqlalchemy")):
-                    loading.add(path.name)
-    assert loading <= STILL_LOADING
-    assert {"accounts.py", "people.py", "categories.py", "refunds.py"}.isdisjoint(loading)
+            if isinstance(node, ast.Import):
+                for alias in node.names:
+                    assert not _forbidden_import(alias.name), f"{relative_path}: {alias.name}"
+            elif isinstance(node, ast.ImportFrom):
+                module = _import_module(node, relative_path)
+                for alias in node.names:
+                    target = f"{module}.{alias.name}" if module else alias.name
+                    permitted = (relative_path, module, alias.name) in PERMITTED_RESULT_IMPORTS
+                    assert permitted or not (
+                        _forbidden_import(module) or _forbidden_import(target)
+                    ), f"{relative_path}: {target}"
