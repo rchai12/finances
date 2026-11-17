@@ -398,7 +398,8 @@ planning docs before isolated coding; unrelated editor settings untouched.
 
 ## Phase 47h1: extract MCP serialization (2026-11-16)
 
-Specified; result pending. Owner chose four stages: serialization, proposal/advice,
+PASS at 4687 tests, zero findings/deviations; implementation 5419497 and
+approval 1a7056e. Owner chose four stages: serialization, proposal/advice,
 reporting, accounts/queues and final size gate (47h1–47h4). Baseline d09bcde,
 N=4639. Five helper moves, tool bodies/registration/access unchanged except helper
 references and stale module docstring. Sixteen given cases collected in isolated
@@ -410,3 +411,19 @@ change and returns FAILURES 0 on baseline. New module <=400; tools temporary
 <=861 exception expires at 47h4. No implementation, dependencies or tooling
 changes; no earlier-test patch required for this stage. Commit planning docs
 before isolated coding.
+
+
+## Phase 47h2: extract MCP proposal and advice tools (2026-11-16)
+
+Specified; result pending. Approved predecessor 1a7056e, N=4687. Owner's existing
+four-stage decision applies. Move 13 existing tool bodies and _as_tool to proposals,
+shared month_start to helpers, preserve facade identity and original function ASTs.
+Exact earlier-test patch moves patch points and aggregates original AST hashes;
+no expected behavior or hash changes. New modules <=400, tools <=716 interim.
+Seventeen given cases fail for absent proposals in fresh fail47h2b; four literal
+behavior cases pass against predecessor via temporary import substitution. Probe
+self-check and full 31-tool metadata/signature digest pass unchanged. Given and
+patch lint/format, patch applicability and embedded-copy checks pass. Initial
+hardlink clone was refused by filesystem; fresh --no-hardlinks clone succeeded.
+No production implementation, dependencies, or tooling changes. Planning commit
+required before isolated coder work; later stages remain pending.
