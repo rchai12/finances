@@ -4,7 +4,13 @@ import pytest
 
 from finances.config import get_settings, mask_url
 
-_ENV_KEYS = ("FIN_ENVIRONMENT", "FIN_DATA_DIR", "FIN_DATABASE_URL", "FIN_LOG_LEVEL")
+_ENV_KEYS = (
+    "FIN_ENVIRONMENT",
+    "FIN_DATA_DIR",
+    "FIN_DATABASE_URL",
+    "FIN_LOG_LEVEL",
+    "FIN_DB_BUSY_TIMEOUT_MS",
+)
 
 
 @pytest.fixture(autouse=True)

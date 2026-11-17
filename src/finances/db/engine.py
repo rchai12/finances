@@ -24,7 +24,8 @@ def get_engine(url: str | None = None, *, read_only: bool = False) -> Engine:
     if parsed.database is not None and parsed.database != ":memory:":
         Path(parsed.database).parent.mkdir(parents=True, exist_ok=True)
 
-    engine = create_engine(url)
+    settings = get_settings()
+    engine = create_engine(url, connect_args={"timeout": settings.db_busy_timeout_ms / 1000})
 
     # Add a connect listener to enable foreign keys for every connection
     @event.listens_for(engine, "connect")

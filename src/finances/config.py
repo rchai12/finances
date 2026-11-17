@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import Literal
 from urllib.parse import urlsplit, urlunsplit
 
-from pydantic import field_validator
+from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 _HOST = re.compile(r"[a-z0-9-]+(\.[a-z0-9-]+)+")
@@ -17,6 +17,7 @@ class Settings(BaseSettings):
     environment: Literal["local", "cloud"] = "local"
     data_dir: Path = Path("data")
     database_url: str | None = None
+    db_busy_timeout_ms: int = Field(default=30000, ge=0, le=120000)
     log_level: str = "INFO"
     web_port: int = 8765
     backup_dir: Path | None = None
